@@ -38,6 +38,14 @@ post-steps:
       retention-days: 2
 
 safe-outputs:
+  activation-comments: false
+  upload-artifact:
+    max-uploads: 1
+    retention-days: 2
+    skip-archive: true
+    max-size-bytes: 1048576
+    allowed-paths:
+      - public/data/snapshot.json
   missing-tool: false
   missing-data: false
   noop: false
@@ -48,7 +56,7 @@ safe-outputs:
 jobs:
   safe_outputs:
     pre-steps:
-      - name: Require successful trusted agent validation
+      - name: Require successful candidate handoff
         env:
           AGENT_RESULT: ${{ needs.agent.result }}
         run: test "$AGENT_RESULT" = "success"
@@ -94,6 +102,7 @@ Each insight must contain:
    `aiInsights`.
 7. Run `npm run validate:insights` and `npm run scan:privacy -- public`.
 8. If validation fails or the evidence is insufficient, leave the existing insights unchanged.
-9. Do not request or emit any safe output, including an issue, comment, or pull request. A separate
-   deterministic workflow can publish only the successfully validated artifact after repeating
-   schema, evidence, baseline-diff, and privacy gates.
+9. Do not request or emit a safe output. The only configured safe-output capability is a
+   non-public, short-lived artifact restricted to the already-sanitized snapshot path; the
+   deterministic post-step owns the handoff artifact. A separate trusted workflow can publish only
+   after repeating schema, exact evidence, baseline-diff, and privacy gates from a fresh checkout.

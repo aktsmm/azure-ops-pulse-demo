@@ -150,14 +150,16 @@ The agent:
 - cannot call Azure or perform remediation;
 - may change only the `aiInsights` field in the one allowlisted file;
 - is followed by deterministic schema, exact numeric evidence, baseline-diff, and privacy checks;
-- has direct pull-request safe outputs disabled; and
-- can only upload a validated candidate artifact.
+- has every public safe output disabled; and
+- can only hand off the already-sanitized snapshot through a two-day run artifact.
 
 [`publish-ai-insights.yml`](.github/workflows/publish-ai-insights.yml) runs only after a successful
-default-branch agent run. It downloads the candidate, repeats every deterministic gate, and then may
-open a **draft pull request** for human review. A guard in the compiled workflow also stops all
-safe-output processing before handlers whenever the trusted agent job, including post-validation,
-does not succeed.
+default-branch agent run. Its read-only validation job starts from a fresh default-branch checkout,
+installs trusted dependencies from scratch, downloads only the candidate JSON, and repeats every
+deterministic gate. It then emits a one-day trusted artifact. A separate publication job receives
+write permissions only after validation succeeds and may open a **draft pull request** for human
+review. The compiled agent workflow has no issue, discussion, comment, pull-request, or persistent
+asset output permission.
 
 `gh aw audit` requires a real GitHub Actions run ID or URL, so it is used after the first configured
 run:
