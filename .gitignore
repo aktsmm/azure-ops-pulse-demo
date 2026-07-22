@@ -1,0 +1,10 @@
+node_modules/
+dist/
+coverage/
+.candidate/
+.env
+.env.*
+!.env.example
+*.log
+.DS_Store
+.github/aw/logs/
