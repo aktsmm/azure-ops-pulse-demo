@@ -19,7 +19,7 @@ function isVersionContext(match: RegExpExecArray, content: string): boolean {
 function isValidUnmaskedIpv4(match: RegExpExecArray, content: string): boolean {
   if (isIP(match[0]) !== 4 || isVersionContext(match, content)) return false;
   const suffix = content.slice(match.index + match[0].length, match.index + match[0].length + 12);
-  return !/^-\d+(?:[.,-]\d+)*/.test(suffix);
+  return !/^-\d+[.,]\d+(?:[.,-]\d+)*/.test(suffix);
 }
 
 function isValidUnmaskedIpv6(match: RegExpExecArray, content: string): boolean {

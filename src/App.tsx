@@ -13,6 +13,7 @@ import {
   ExternalLink,
   Gauge,
   Menu,
+  Minus,
   Network,
   Search,
   Server,
@@ -38,6 +39,7 @@ import type {
   TrendMetric
 } from "./data/contracts";
 import { useSnapshot } from "./hooks/useSnapshot";
+import { describeCostDelta } from "./lib/cost-delta";
 
 const NAV_ITEMS = [
   { path: "/overview", label: "Overview", icon: Gauge },
@@ -375,27 +377,30 @@ function CostPage({ data }: { data: PublicSnapshotV1 }) {
               {changeDrivers
                 .slice()
                 .sort((a, b) => Math.abs(b.deltaPercent) - Math.abs(a.deltaPercent))
-                .map((category) => (
-                  <div className="driver-row" key={category.name}>
-                    <span className="icon-tile">
-                      {category.deltaPercent > 0 ? (
-                        <TrendingUp size={18} aria-hidden="true" />
-                      ) : (
-                        <TrendingDown size={18} aria-hidden="true" />
-                      )}
-                    </span>
-                    <div>
-                      <strong>{category.name}</strong>
-                      <p>
-                        {category.deltaPercent > 0 ? "Increased" : "Decreased"} versus prior period
-                      </p>
+                .map((category) => {
+                  const movement = describeCostDelta(category.deltaPercent);
+                  return (
+                    <div className="driver-row" key={category.name}>
+                      <span className="icon-tile">
+                        {movement.direction === "up" ? (
+                          <TrendingUp size={18} aria-hidden="true" />
+                        ) : movement.direction === "down" ? (
+                          <TrendingDown size={18} aria-hidden="true" />
+                        ) : (
+                          <Minus size={18} aria-hidden="true" />
+                        )}
+                      </span>
+                      <div>
+                        <strong>{category.name}</strong>
+                        <p>{movement.label} versus prior period</p>
+                      </div>
+                      <StatusBadge severity={category.deltaPercent > 8 ? "warning" : "healthy"}>
+                        {category.deltaPercent > 0 ? "+" : ""}
+                        {category.deltaPercent}%
+                      </StatusBadge>
                     </div>
-                    <StatusBadge severity={category.deltaPercent > 8 ? "warning" : "healthy"}>
-                      {category.deltaPercent > 0 ? "+" : ""}
-                      {category.deltaPercent}%
-                    </StatusBadge>
-                  </div>
-                ))}
+                  );
+                })}
             </div>
           ) : (
             <EmptyState

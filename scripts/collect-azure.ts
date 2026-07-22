@@ -10,6 +10,7 @@ import type {
 } from "../src/data/contracts";
 import { sanitizeSnapshot } from "../src/lib/sanitize";
 import {
+  comparableCostPeriods,
   costCoverageLabel,
   transformComparableCost,
   type CostQueryProperties
@@ -229,21 +230,17 @@ const security = optionalSource(
   "Defender data is unavailable; plans may be disabled or permissions may be insufficient."
 );
 
-const currentPeriodEnd = new Date();
-const currentPeriodStart = new Date(currentPeriodEnd);
-currentPeriodStart.setUTCDate(currentPeriodStart.getUTCDate() - 30);
-const previousPeriodStart = new Date(currentPeriodStart);
-previousPeriodStart.setUTCDate(previousPeriodStart.getUTCDate() - 30);
+const costPeriods = comparableCostPeriods(new Date());
 
 const currentCost = optionalSource(
   "Cost Management",
-  () => queryCostPeriod(subscriptionId, currentPeriodStart, currentPeriodEnd),
+  () => queryCostPeriod(subscriptionId, costPeriods.current.start, costPeriods.current.end),
   "Current Cost Management period was collected.",
   "Current Cost Management period is unavailable; billing scope or role access may be required."
 );
 const previousCost = optionalSource(
   "Cost Management prior period",
-  () => queryCostPeriod(subscriptionId, previousPeriodStart, currentPeriodStart),
+  () => queryCostPeriod(subscriptionId, costPeriods.previous.start, costPeriods.previous.end),
   "Prior comparable Cost Management period was collected.",
   "Prior comparable Cost Management period is unavailable."
 );

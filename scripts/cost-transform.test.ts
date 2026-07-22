@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
+  comparableCostPeriods,
   costCoverageLabel,
   transformComparableCost,
   type CostQueryProperties
@@ -13,6 +14,15 @@ function costResponse(amounts: number[]): CostQueryProperties {
 }
 
 describe("Cost Management transform", () => {
+  it("creates equal, non-overlapping current and prior periods", () => {
+    const periods = comparableCostPeriods(new Date("2026-07-23T00:00:00.000Z"));
+
+    expect(periods.previous.end.getTime()).toBeLessThan(periods.current.start.getTime());
+    expect(periods.current.end.getTime() - periods.current.start.getTime()).toBe(
+      periods.previous.end.getTime() - periods.previous.start.getTime()
+    );
+  });
+
   it("sums every row before limiting display categories", () => {
     const result = transformComparableCost(
       costResponse([100, 90, 80, 70, 60, 50, 40, 30, 20, 10]),

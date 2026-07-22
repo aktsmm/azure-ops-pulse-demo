@@ -18,6 +18,15 @@ describe("public asset privacy rules", () => {
   });
 
   it.each([
+    `Address ${dotted("10", "24", "8", "17")}.`,
+    `range ${dotted("10", "24", "8", "17")}-82`
+  ])("rejects complete IPv4 in punctuation context: %s", (value) => {
+    expect(scanContent(value)).toContainEqual(
+      expect.objectContaining({ label: "unmasked IPv4 address" })
+    );
+  });
+
+  it.each([
     coloned("2603", "1030", "20e", "3", "", "23"),
     coloned("fd12", "3456", "789a", "", "1"),
     coloned("", "", "1"),
@@ -35,8 +44,12 @@ describe("public asset privacy rules", () => {
       `${coloned("2603", "1030")}:*`,
       `version ${dotted("1", "2", "3", "4")}`,
       "2026-03-14T12:34:56Z",
+      `${dotted("13", "88", "7", "71")}-2.82`,
       `${dotted("13", "88", "7", "71")}-9.2-4.1`,
-      "input::placeholder"
+      "input::placeholder",
+      "div::before",
+      "span::after",
+      "p::first-letter"
     ].join("\n");
 
     expect(scanContent(safe)).toEqual([]);

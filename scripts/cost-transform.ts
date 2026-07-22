@@ -17,6 +17,22 @@ export interface ComparableCostResult {
   previousCurrencyVerifiedJpy: boolean;
 }
 
+export function comparableCostPeriods(currentEnd: Date, days = 30) {
+  const current = {
+    start: new Date(currentEnd),
+    end: new Date(currentEnd)
+  };
+  current.start.setUTCDate(current.start.getUTCDate() - days);
+
+  const previous = {
+    start: new Date(current.start.getTime() - 1),
+    end: new Date(current.start.getTime() - 1)
+  };
+  previous.start.setUTCDate(previous.start.getUTCDate() - days);
+
+  return { current, previous };
+}
+
 export function costCoverageLabel(
   availability: "available" | "partial" | "unavailable"
 ): "Available" | "Partial" | "Unavailable" {
