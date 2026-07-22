@@ -9,6 +9,11 @@ import type {
   SourceStatus
 } from "../src/data/contracts";
 import { sanitizeSnapshot } from "../src/lib/sanitize";
+import {
+  costCoverageLabel,
+  transformComparableCost,
+  type CostQueryProperties
+} from "./cost-transform";
 import { publicSnapshotSchema } from "./public-schema";
 
 interface GraphResponse<T> {
@@ -90,6 +95,32 @@ function optionalSource<T>(
 function percent(value: unknown, fallback = 0): number {
   const number = Number(value);
   return Number.isFinite(number) ? number : fallback;
+}
+
+function queryCostPeriod(
+  subscriptionId: string,
+  start: Date,
+  end: Date
+): CostQueryProperties {
+  const result = runAzJson<{ properties?: CostQueryProperties }>([
+    "rest",
+    "--method",
+    "post",
+    "--url",
+    `https://management.azure.com/subscriptions/${subscriptionId}/providers/Microsoft.CostManagement/query?api-version=2025-03-01`,
+    "--body",
+    JSON.stringify({
+      type: "ActualCost",
+      timeframe: "Custom",
+      timePeriod: { from: start.toISOString(), to: end.toISOString() },
+      dataset: {
+        granularity: "None",
+        aggregation: { totalCost: { name: "Cost", function: "Sum" } },
+        grouping: [{ type: "Dimension", name: "ServiceName" }]
+      }
+    })
+  ]);
+  return result.properties ?? {};
 }
 
 const subscriptionId = process.env.AZURE_SUBSCRIPTION_ID;
@@ -198,36 +229,23 @@ const security = optionalSource(
   "Defender data is unavailable; plans may be disabled or permissions may be insufficient."
 );
 
-const cost = optionalSource(
+const currentPeriodEnd = new Date();
+const currentPeriodStart = new Date(currentPeriodEnd);
+currentPeriodStart.setUTCDate(currentPeriodStart.getUTCDate() - 30);
+const previousPeriodStart = new Date(currentPeriodStart);
+previousPeriodStart.setUTCDate(previousPeriodStart.getUTCDate() - 30);
+
+const currentCost = optionalSource(
   "Cost Management",
-  () => {
-    const end = new Date();
-    const start = new Date(end);
-    start.setUTCDate(start.getUTCDate() - 30);
-    const result = runAzJson<{
-      properties?: { rows?: unknown[][]; columns?: Array<{ name?: string }> };
-    }>([
-      "rest",
-      "--method",
-      "post",
-      "--url",
-      `https://management.azure.com/subscriptions/${subscriptionId}/providers/Microsoft.CostManagement/query?api-version=2025-03-01`,
-      "--body",
-      JSON.stringify({
-        type: "ActualCost",
-        timeframe: "Custom",
-        timePeriod: { from: start.toISOString(), to: end.toISOString() },
-        dataset: {
-          granularity: "None",
-          aggregation: { totalCost: { name: "Cost", function: "Sum" } },
-          grouping: [{ type: "Dimension", name: "ServiceName" }]
-        }
-      })
-    ]);
-    return result.properties;
-  },
-  "Cost Management percentages and rounded approximations were collected.",
-  "Cost Management is unavailable; billing scope or role access may be required."
+  () => queryCostPeriod(subscriptionId, currentPeriodStart, currentPeriodEnd),
+  "Current Cost Management period was collected.",
+  "Current Cost Management period is unavailable; billing scope or role access may be required."
+);
+const previousCost = optionalSource(
+  "Cost Management prior period",
+  () => queryCostPeriod(subscriptionId, previousPeriodStart, currentPeriodStart),
+  "Prior comparable Cost Management period was collected.",
+  "Prior comparable Cost Management period is unavailable."
 );
 
 const network = optionalSource(
@@ -266,12 +284,11 @@ const network = optionalSource(
   "Network inventory and metrics are unavailable."
 );
 const networkStatus: SourceStatus =
-  network.status.availability === "available" &&
-  ((network.value?.metricSeries ?? 0) === 0 || (network.value?.metricFailures ?? 0) > 0)
+  network.status.availability === "available"
     ? {
         source: "Network inventory and metrics",
         availability: "partial",
-        message: `Network inventory was collected; metric coverage was unavailable for ${network.value?.metricFailures ?? 0} of ${network.value?.inventory.length ?? 0} sampled resources.`
+        message: `Network inventory was collected with ${network.value?.metricSeries ?? 0} supported metric series; ${network.value?.metricFailures ?? 0} sampled resources had unavailable metrics. Flow telemetry was not collected.`
       }
     : network.status;
 
@@ -294,34 +311,30 @@ const resources: RawResource[] = rawResources.map((resource) => ({
   change: "Collected from Azure Resource Graph"
 }));
 
-const costRows = cost.value?.rows ?? [];
-const costColumns = (cost.value?.columns ?? []).map((column) => column.name?.toLowerCase() ?? "");
-const costIndex = costColumns.indexOf("cost");
-const serviceIndex = costColumns.indexOf("servicename");
-const currencyIndex = costColumns.indexOf("currency");
-const currencies = new Set(
-  costRows
-    .map((row) => (currencyIndex >= 0 ? String(row[currencyIndex] ?? "").toUpperCase() : ""))
-    .filter(Boolean)
-);
-const costIsJpy = currencies.size === 1 && currencies.has("JPY");
+const costData = transformComparableCost(currentCost.value, previousCost.value);
 const costStatus: SourceStatus =
-  cost.status.availability === "available" && !costIsJpy
+  currentCost.status.availability === "unavailable" || !costData.currentCurrencyVerifiedJpy
     ? {
         source: "Cost Management",
         availability: "unavailable",
-        message: "Billing currency is not verified as JPY; no unverified conversion was published."
+        message:
+          currentCost.status.availability === "unavailable"
+            ? currentCost.status.message
+            : "Billing currency is not verified as JPY; no unverified conversion was published."
       }
-    : cost.status;
-const categories =
-  costIsJpy && costIndex >= 0
-    ? costRows.slice(0, 8).map((row) => ({
-        name: String(serviceIndex >= 0 ? row[serviceIndex] ?? "Other" : "Other"),
-        amountJpy: percent(row[costIndex]),
-        deltaPercent: 0
-      }))
-    : [];
-const totalCost = categories.reduce((sum, item) => sum + item.amountJpy, 0);
+    : previousCost.status.availability === "unavailable" ||
+        !costData.previousCurrencyVerifiedJpy
+      ? {
+          source: "Cost Management",
+          availability: "partial",
+          message:
+            "Current rounded JPY cost was collected; the prior comparable period is unavailable."
+        }
+      : {
+          source: "Cost Management",
+          availability: "available",
+          message: "Current and prior comparable rounded JPY periods were collected."
+        };
 
 const recommendationCounts = new Map<string, SecurityRecommendation>();
 for (const item of security.value?.assessments ?? []) {
@@ -410,7 +423,7 @@ const raw: RawSnapshot = {
     },
     {
       label: "Cost coverage",
-      value: costStatus.availability === "available" ? "Available" : "Unavailable",
+      value: costCoverageLabel(costStatus.availability),
       change: "Rounded public view",
       direction: "flat",
       severity: costStatus.availability === "available" ? "healthy" : "warning",
@@ -476,10 +489,12 @@ const raw: RawSnapshot = {
       const score = Math.round((counts.healthy / Math.max(1, counts.total)) * 100);
       return { region, score, status: score >= 90 ? ("healthy" as const) : ("warning" as const) };
     }),
-  exactCostJpy: totalCost,
-  exactPreviousCostJpy: totalCost,
-  forecastCostJpy: totalCost || 1,
-  costCategories: categories,
+  exactCostJpy: costData.currentTotalJpy,
+  exactPreviousCostJpy: costData.previousTotalJpy,
+  forecastCostJpy: null,
+  budgetLimitJpy: null,
+  normalizedCostTrend: [],
+  costCategories: costData.categories,
   resources,
   reliability: {
     availability: `${healthPercent}%`,
@@ -496,15 +511,17 @@ const raw: RawSnapshot = {
         ? [{ framework: "Regulatory compliance aggregate", score: secureScore }]
         : []
   },
-  networkFlows: (network.value?.inventory ?? []).slice(0, 20).map((item) => ({
+  networkInventory: (network.value?.inventory ?? []).map((item) => ({
     id: item.id,
-    source: item.name,
-    destination: item.type,
-    protocol: "Inventory",
-    status: "Allowed",
-    latency: "Not collected",
-    throughput: "Not collected"
+    type: item.type,
+    location: item.location
   })),
+  networkTelemetry: {
+    availability: "unavailable",
+    message:
+      "Flow telemetry was not collected. Network resource existence is not interpreted as connection health.",
+    flows: []
+  },
   aiInsights: insights
 };
 

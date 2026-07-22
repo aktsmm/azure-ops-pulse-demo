@@ -20,7 +20,8 @@ export function createDemoRawSnapshot(generatedAt = new Date().toISOString()): R
       {
         source: "Cost Management",
         availability: "available",
-        message: "Rounded JPY approximations and percentages only."
+        message:
+          "Synthetic current and prior rounded JPY views; forecast and budget are unavailable."
       },
       {
         source: "Resource Health",
@@ -115,7 +116,9 @@ export function createDemoRawSnapshot(generatedAt = new Date().toISOString()): R
     ],
     exactCostJpy: 1_248_730,
     exactPreviousCostJpy: 1_158_380,
-    forecastCostJpy: 1_430_000,
+    forecastCostJpy: null,
+    budgetLimitJpy: null,
+    normalizedCostTrend: [68, 72, 69, 76, 81, 79, 86, 83, 89, 92, 88, 94],
     costCategories: [
       { name: "Compute", amountJpy: 508_000, deltaPercent: 11.4 },
       { name: "Databases", amountJpy: 281_000, deltaPercent: 4.1 },
@@ -287,8 +290,18 @@ export function createDemoRawSnapshot(generatedAt = new Date().toISOString()): R
         { framework: "PCI DSS", score: 72 }
       ]
     },
-    networkFlows: [
-      {
+    networkInventory: [
+      { id: "network-01", type: "microsoft.network/virtualNetworks", location: "Japan East" },
+      { id: "network-02", type: "microsoft.network/applicationGateways", location: "Japan East" },
+      { id: "network-03", type: "microsoft.network/frontDoors", location: "Global" },
+      { id: "network-04", type: "microsoft.network/networkSecurityGroups", location: "Japan West" },
+      { id: "network-05", type: "microsoft.network/privateEndpoints", location: "Japan East" }
+    ],
+    networkTelemetry: {
+      availability: "available",
+      message: "Synthetic DEMO flow telemetry; Azure inventory is not treated as connection health.",
+      flows: [
+        {
         id: "flow-01",
         source: address("10", "24", "8", "17"),
         destination: "commerce-edge.azurefd.net",
@@ -296,8 +309,8 @@ export function createDemoRawSnapshot(generatedAt = new Date().toISOString()): R
         status: "Allowed",
         latency: "24 ms",
         throughput: "182 Mbps"
-      },
-      {
+        },
+        {
         id: "flow-02",
         source: address("10", "24", "12", "9"),
         destination: "orders-primary.database.windows.net",
@@ -305,8 +318,8 @@ export function createDemoRawSnapshot(generatedAt = new Date().toISOString()): R
         status: "Allowed",
         latency: "7 ms",
         throughput: "64 Mbps"
-      },
-      {
+        },
+        {
         id: "flow-03",
         source: address("10", "31", "4", "22"),
         destination: address("203", "0", "113", "42"),
@@ -314,8 +327,8 @@ export function createDemoRawSnapshot(generatedAt = new Date().toISOString()): R
         status: "Degraded",
         latency: "168 ms",
         throughput: "11 Mbps"
-      },
-      {
+        },
+        {
         id: "flow-04",
         source: "2603:1030:20e:3::23",
         destination: "telemetry.microsoft.com",
@@ -323,8 +336,8 @@ export function createDemoRawSnapshot(generatedAt = new Date().toISOString()): R
         status: "Allowed",
         latency: "38 ms",
         throughput: "32 Mbps"
-      },
-      {
+        },
+        {
         id: "flow-05",
         source: address("10", "24", "9", "88"),
         destination: "unapproved.example.invalid",
@@ -332,8 +345,9 @@ export function createDemoRawSnapshot(generatedAt = new Date().toISOString()): R
         status: "Blocked",
         latency: "—",
         throughput: "0 Mbps"
-      }
-    ],
+        }
+      ]
+    },
     aiInsights: [
       {
         id: "compute-cost-rise",
@@ -342,11 +356,10 @@ export function createDemoRawSnapshot(generatedAt = new Date().toISOString()): R
         observation:
           "Compute increased faster than the portfolio while normalized reliability remained stable.",
         impact:
-          "If the current direction continues, forecast spend may approach the configured public budget guardrail.",
+          "Continued divergence may increase the portfolio cost change in the next comparison period.",
         numericEvidence: [
           { label: "Compute delta", value: "+11.4%", source: "cost.categories.0.deltaPercent" },
-          { label: "Portfolio delta", value: "+7.8%", source: "cost.deltaPercent" },
-          { label: "Budget used", value: "87%", source: "cost.budgetUsedPercent" }
+          { label: "Portfolio delta", value: "+7.8%", source: "cost.deltaPercent" }
         ],
         recommendedAction:
           "Review the largest compute change drivers and validate scale settings before the next collection.",
@@ -408,9 +421,21 @@ export function createDemoRawSnapshot(generatedAt = new Date().toISOString()): R
         impact:
           "The affected integration may contribute to tail latency without indicating a broad network incident.",
         numericEvidence: [
-          { label: "Degraded flows", value: "1", source: "network.degradedConnections" },
-          { label: "Observed latency", value: "168 ms", source: "network.flows.2.latency" },
-          { label: "Healthy flows", value: "3", source: "network.healthyConnections" }
+          {
+            label: "Degraded flows",
+            value: "1",
+            source: "network.telemetry.degradedConnections"
+          },
+          {
+            label: "Observed latency",
+            value: "168 ms",
+            source: "network.telemetry.flows.2.latency"
+          },
+          {
+            label: "Healthy flows",
+            value: "3",
+            source: "network.telemetry.healthyConnections"
+          }
         ],
         recommendedAction:
           "Validate provider status and compare the path against private network telemetry.",

@@ -41,7 +41,17 @@ export interface CostCategory {
   name: string;
   approximateAmount: string;
   sharePercent: number;
-  deltaPercent: number;
+  deltaPercent: number | null;
+}
+
+export interface CostAmount {
+  availability: "available" | "unavailable";
+  approximateAmount: string | null;
+}
+
+export interface CostBudget {
+  availability: "available" | "unavailable";
+  usedPercent: number | null;
 }
 
 export interface ReliabilityService {
@@ -70,6 +80,12 @@ export interface NetworkFlow {
   throughput: string;
 }
 
+export interface NetworkInventoryItem {
+  id: string;
+  type: string;
+  location?: string;
+}
+
 export interface AiInsight {
   id: string;
   severity: Severity;
@@ -88,7 +104,7 @@ export interface AiInsight {
 }
 
 export interface PublicSnapshotV1 {
-  schemaVersion: "1.0.0";
+  schemaVersion: "1.1.0";
   generatedAt: string;
   mode: "DEMO" | "AZURE";
   freshness: {
@@ -110,11 +126,11 @@ export interface PublicSnapshotV1 {
     regionalHealth: Array<{ region: string; score: number; status: Severity }>;
   };
   cost: {
-    currentApproximate: string;
-    previousApproximate: string;
-    deltaPercent: number;
-    forecastApproximate: string;
-    budgetUsedPercent: number;
+    current: CostAmount;
+    previous: CostAmount;
+    deltaPercent: number | null;
+    forecast: CostAmount;
+    budget: CostBudget;
     normalizedTrend: number[];
     categories: CostCategory[];
   };
@@ -137,10 +153,19 @@ export interface PublicSnapshotV1 {
     compliance: Array<{ framework: string; score: number }>;
   };
   network: {
-    healthyConnections: number;
-    degradedConnections: number;
-    blockedFlows: number;
-    flows: NetworkFlow[];
+    inventory: {
+      total: number;
+      byType: Array<{ label: string; count: number }>;
+      byRegion: Array<{ label: string; count: number }>;
+    };
+    telemetry: {
+      availability: Availability;
+      message: string;
+      healthyConnections: number | null;
+      degradedConnections: number | null;
+      blockedFlows: number | null;
+      flows: NetworkFlow[];
+    };
   };
   aiInsights: AiInsight[];
 }
@@ -168,13 +193,22 @@ export interface RawSnapshot {
   postureScore: number;
   events: ActivityEvent[];
   regionalHealth: Array<{ region: string; score: number; status: Severity }>;
-  exactCostJpy: number;
-  exactPreviousCostJpy: number;
-  forecastCostJpy: number;
-  costCategories: Array<{ name: string; amountJpy: number; deltaPercent: number }>;
+  exactCostJpy: number | null;
+  exactPreviousCostJpy: number | null;
+  forecastCostJpy: number | null;
+  budgetLimitJpy: number | null;
+  normalizedCostTrend: number[];
+  costCategories: Array<{ name: string; amountJpy: number; deltaPercent: number | null }>;
   resources: RawResource[];
   reliability: PublicSnapshotV1["reliability"];
   security: PublicSnapshotV1["security"];
-  networkFlows: Array<Omit<NetworkFlow, "source" | "destination"> & { source: string; destination: string }>;
+  networkInventory: NetworkInventoryItem[];
+  networkTelemetry: {
+    availability: Availability;
+    message: string;
+    flows: Array<
+      Omit<NetworkFlow, "source" | "destination"> & { source: string; destination: string }
+    >;
+  };
   aiInsights: AiInsight[];
 }

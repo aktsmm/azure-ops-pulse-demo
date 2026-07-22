@@ -1,11 +1,11 @@
 {
-  "schemaVersion": "1.0.0",
-  "generatedAt": "2026-07-22T17:53:25.793Z",
+  "schemaVersion": "1.1.0",
+  "generatedAt": "2026-07-22T18:53:51.745Z",
   "mode": "DEMO",
   "freshness": {
     "state": "fresh",
     "ageMinutes": 0,
-    "lastSuccessfulCollection": "2026-07-22T17:53:25.793Z",
+    "lastSuccessfulCollection": "2026-07-22T18:53:51.745Z",
     "nextScheduledCollection": "Tuesday / Friday 06:00 JST"
   },
   "scope": {
@@ -22,7 +22,7 @@
     {
       "source": "Cost Management",
       "availability": "available",
-      "message": "Rounded JPY approximations and percentages only."
+      "message": "Synthetic current and prior rounded JPY views; forecast and budget are unavailable."
     },
     {
       "source": "Resource Health",
@@ -175,11 +175,23 @@
     ]
   },
   "cost": {
-    "currentApproximate": "約¥124.9万",
-    "previousApproximate": "約¥115.8万",
+    "current": {
+      "availability": "available",
+      "approximateAmount": "約¥124.9万"
+    },
+    "previous": {
+      "availability": "available",
+      "approximateAmount": "約¥115.8万"
+    },
     "deltaPercent": 7.8,
-    "forecastApproximate": "約¥143.0万",
-    "budgetUsedPercent": 87,
+    "forecast": {
+      "availability": "unavailable",
+      "approximateAmount": null
+    },
+    "budget": {
+      "availability": "unavailable",
+      "usedPercent": null
+    },
     "normalizedTrend": [
       68,
       72,
@@ -488,56 +500,99 @@
     ]
   },
   "network": {
-    "healthyConnections": 3,
-    "degradedConnections": 1,
-    "blockedFlows": 1,
-    "flows": [
-      {
-        "id": "flow-4ba9f67b",
-        "source": "10.24.*.*",
-        "destination": "Azure Front Door endpoint",
-        "protocol": "HTTPS",
-        "status": "Allowed",
-        "latency": "24 ms",
-        "throughput": "182 Mbps"
-      },
-      {
-        "id": "flow-4ca9f80e",
-        "source": "10.24.*.*",
-        "destination": "Azure SQL endpoint",
-        "protocol": "TDS",
-        "status": "Allowed",
-        "latency": "7 ms",
-        "throughput": "64 Mbps"
-      },
-      {
-        "id": "flow-4da9f9a1",
-        "source": "10.31.*.*",
-        "destination": "203.0.*.*",
-        "protocol": "HTTPS",
-        "status": "Degraded",
-        "latency": "168 ms",
-        "throughput": "11 Mbps"
-      },
-      {
-        "id": "flow-4ea9fb34",
-        "source": "2603:1030:*",
-        "destination": "Microsoft service endpoint",
-        "protocol": "HTTPS",
-        "status": "Allowed",
-        "latency": "38 ms",
-        "throughput": "32 Mbps"
-      },
-      {
-        "id": "flow-4fa9fcc7",
-        "source": "10.24.*.*",
-        "destination": "External service endpoint",
-        "protocol": "HTTPS",
-        "status": "Blocked",
-        "latency": "—",
-        "throughput": "0 Mbps"
-      }
-    ]
+    "inventory": {
+      "total": 5,
+      "byType": [
+        {
+          "label": "virtualNetworks",
+          "count": 1
+        },
+        {
+          "label": "applicationGateways",
+          "count": 1
+        },
+        {
+          "label": "frontDoors",
+          "count": 1
+        },
+        {
+          "label": "networkSecurityGroups",
+          "count": 1
+        },
+        {
+          "label": "privateEndpoints",
+          "count": 1
+        }
+      ],
+      "byRegion": [
+        {
+          "label": "Japan East",
+          "count": 3
+        },
+        {
+          "label": "Global",
+          "count": 1
+        },
+        {
+          "label": "Japan West",
+          "count": 1
+        }
+      ]
+    },
+    "telemetry": {
+      "availability": "available",
+      "message": "Synthetic DEMO flow telemetry; Azure inventory is not treated as connection health.",
+      "healthyConnections": 3,
+      "degradedConnections": 1,
+      "blockedFlows": 1,
+      "flows": [
+        {
+          "id": "flow-4ba9f67b",
+          "source": "10.24.*.*",
+          "destination": "Azure Front Door endpoint",
+          "protocol": "HTTPS",
+          "status": "Allowed",
+          "latency": "24 ms",
+          "throughput": "182 Mbps"
+        },
+        {
+          "id": "flow-4ca9f80e",
+          "source": "10.24.*.*",
+          "destination": "Azure SQL endpoint",
+          "protocol": "TDS",
+          "status": "Allowed",
+          "latency": "7 ms",
+          "throughput": "64 Mbps"
+        },
+        {
+          "id": "flow-4da9f9a1",
+          "source": "10.31.*.*",
+          "destination": "203.0.*.*",
+          "protocol": "HTTPS",
+          "status": "Degraded",
+          "latency": "168 ms",
+          "throughput": "11 Mbps"
+        },
+        {
+          "id": "flow-4ea9fb34",
+          "source": "2603:1030:*",
+          "destination": "Microsoft service endpoint",
+          "protocol": "HTTPS",
+          "status": "Allowed",
+          "latency": "38 ms",
+          "throughput": "32 Mbps"
+        },
+        {
+          "id": "flow-4fa9fcc7",
+          "source": "10.24.*.*",
+          "destination": "External service endpoint",
+          "protocol": "HTTPS",
+          "status": "Blocked",
+          "latency": "—",
+          "throughput": "0 Mbps"
+        }
+      ]
+    }
   },
   "aiInsights": [
     {
@@ -545,7 +600,7 @@
       "severity": "warning",
       "title": "Compute growth is outpacing the overall cost trend",
       "observation": "Compute increased faster than the portfolio while normalized reliability remained stable.",
-      "impact": "If the current direction continues, forecast spend may approach the configured public budget guardrail.",
+      "impact": "Continued divergence may increase the portfolio cost change in the next comparison period.",
       "numericEvidence": [
         {
           "label": "Compute delta",
@@ -556,11 +611,6 @@
           "label": "Portfolio delta",
           "value": "+7.8%",
           "source": "cost.deltaPercent"
-        },
-        {
-          "label": "Budget used",
-          "value": "87%",
-          "source": "cost.budgetUsedPercent"
         }
       ],
       "recommendedAction": "Review the largest compute change drivers and validate scale settings before the next collection.",
@@ -629,17 +679,17 @@
         {
           "label": "Degraded flows",
           "value": "1",
-          "source": "network.degradedConnections"
+          "source": "network.telemetry.degradedConnections"
         },
         {
           "label": "Observed latency",
           "value": "168 ms",
-          "source": "network.flows.2.latency"
+          "source": "network.telemetry.flows.2.latency"
         },
         {
           "label": "Healthy flows",
           "value": "3",
-          "source": "network.healthyConnections"
+          "source": "network.telemetry.healthyConnections"
         }
       ],
       "recommendedAction": "Validate provider status and compare the path against private network telemetry.",

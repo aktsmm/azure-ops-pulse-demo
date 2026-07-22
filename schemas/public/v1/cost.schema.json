@@ -2,17 +2,68 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://aktsmm.github.io/azure-ops-pulse-demo/schemas/public/v1/cost.schema.json",
   "title": "Azure Ops Pulse public cost v1",
-  "description": "Contains approximate JPY labels, percentage changes, and normalized trends only.",
+  "description": "Contains explicit availability, approximate JPY labels, percentage changes, and normalized trends only.",
   "type": "object",
-  "required": ["currentApproximate", "previousApproximate", "deltaPercent", "categories"],
+  "required": ["current", "previous", "deltaPercent", "forecast", "budget", "normalizedTrend", "categories"],
+  "$defs": {
+    "amount": {
+      "type": "object",
+      "required": ["availability", "approximateAmount"],
+      "properties": {
+        "availability": { "enum": ["available", "unavailable"] },
+        "approximateAmount": {
+          "oneOf": [
+            { "type": "string", "pattern": "^約¥" },
+            { "type": "null" }
+          ]
+        }
+      },
+      "allOf": [
+        {
+          "if": { "properties": { "availability": { "const": "available" } } },
+          "then": { "properties": { "approximateAmount": { "type": "string", "pattern": "^約¥" } } },
+          "else": { "properties": { "approximateAmount": { "type": "null" } } }
+        }
+      ],
+      "additionalProperties": false
+    }
+  },
   "properties": {
-    "currentApproximate": { "type": "string", "pattern": "^(約¥|Unavailable)" },
-    "previousApproximate": { "type": "string", "pattern": "^(約¥|Unavailable)" },
-    "deltaPercent": { "type": "number" },
-    "forecastApproximate": { "type": "string", "pattern": "^(約¥|Unavailable)" },
-    "budgetUsedPercent": { "type": "number", "minimum": 0, "maximum": 100 },
+    "current": { "$ref": "#/$defs/amount" },
+    "previous": { "$ref": "#/$defs/amount" },
+    "deltaPercent": { "type": ["number", "null"] },
+    "forecast": { "$ref": "#/$defs/amount" },
+    "budget": {
+      "type": "object",
+      "required": ["availability", "usedPercent"],
+      "properties": {
+        "availability": { "enum": ["available", "unavailable"] },
+        "usedPercent": { "type": ["number", "null"], "minimum": 0, "maximum": 100 }
+      },
+      "allOf": [
+        {
+          "if": { "properties": { "availability": { "const": "available" } } },
+          "then": { "properties": { "usedPercent": { "type": "number", "minimum": 0, "maximum": 100 } } },
+          "else": { "properties": { "usedPercent": { "type": "null" } } }
+        }
+      ],
+      "additionalProperties": false
+    },
     "normalizedTrend": { "type": "array", "items": { "type": "number" } },
-    "categories": { "type": "array" }
+    "categories": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["name", "approximateAmount", "sharePercent", "deltaPercent"],
+        "properties": {
+          "name": { "type": "string" },
+          "approximateAmount": { "type": "string", "pattern": "^約¥" },
+          "sharePercent": { "type": "number", "minimum": 0, "maximum": 100 },
+          "deltaPercent": { "type": ["number", "null"] }
+        },
+        "additionalProperties": false
+      }
+    }
   },
   "additionalProperties": false
 }

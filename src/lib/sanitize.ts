@@ -101,11 +101,16 @@ export function sanitizeTags(tags: Record<string, string> = {}): Record<string, 
 }
 
 export function formatApproximateJpy(amount: number): string {
-  if (!Number.isFinite(amount) || amount <= 0) return "Unavailable";
-  if (amount >= 100_000_000) return `約¥${(amount / 100_000_000).toFixed(1)}億`;
-  if (amount >= 10_000) return `約¥${(amount / 10_000).toFixed(1)}万`;
-  if (amount >= 1_000) return `約¥${Math.round(amount / 1_000)}千`;
-  return "約¥1千未満";
+  if (!Number.isFinite(amount)) return "Unavailable";
+  const magnitude = Math.abs(amount);
+  const suffix = amount < 0 ? " credit" : "";
+  if (magnitude === 0) return "約¥0";
+  if (magnitude >= 100_000_000) {
+    return `約¥${(magnitude / 100_000_000).toFixed(1)}億${suffix}`;
+  }
+  if (magnitude >= 10_000) return `約¥${(magnitude / 10_000).toFixed(1)}万${suffix}`;
+  if (magnitude >= 1_000) return `約¥${Math.round(magnitude / 1_000)}千${suffix}`;
+  return `約¥1千未満${suffix}`;
 }
 
 function sanitizeResource(resource: RawResource): PublicSnapshotV1["inventory"]["resources"][number] {
@@ -156,25 +161,56 @@ function sanitizeRecommendation(
   };
 }
 
-function deltaPercent(current: number, previous: number): number {
-  if (!previous) return 0;
+function deltaPercent(current: number | null, previous: number | null): number | null {
+  if (current === null || previous === null || previous === 0) return null;
   return Number((((current - previous) / previous) * 100).toFixed(1));
 }
 
 export function sanitizeSnapshot(raw: RawSnapshot): PublicSnapshotV1 {
   const resources = raw.resources.map(sanitizeResource);
-  const totalCost = Math.max(1, raw.costCategories.reduce((sum, item) => sum + item.amountJpy, 0));
-  const networkFlows: NetworkFlow[] = raw.networkFlows.map((flow) => ({
-    ...flow,
-    id: `flow-${stableHash(flow.id)}`,
-    source: sanitizeEndpoint(flow.source),
-    destination: sanitizeEndpoint(flow.destination)
-  }));
+  if (raw.costCategories.some((item) => !Number.isFinite(item.amountJpy))) {
+    throw new Error("Cost categories contain a non-finite amount");
+  }
+  const categoryMagnitude = Math.max(
+    1,
+    raw.costCategories.reduce((sum, item) => sum + Math.abs(item.amountJpy), 0)
+  );
+  const networkFlows: NetworkFlow[] =
+    raw.networkTelemetry.availability === "unavailable"
+      ? []
+      : raw.networkTelemetry.flows.map((flow) => ({
+          ...flow,
+          id: `flow-${stableHash(flow.id)}`,
+          source: sanitizeEndpoint(flow.source),
+          destination: sanitizeEndpoint(flow.destination)
+        }));
   const generatedAt = new Date(raw.generatedAt);
   const ageMinutes = Math.max(0, Math.round((Date.now() - generatedAt.getTime()) / 60_000));
+  const costAmount = (amount: number | null) => {
+    const available = amount !== null && Number.isFinite(amount);
+    return {
+      availability: available ? ("available" as const) : ("unavailable" as const),
+      approximateAmount: available ? formatApproximateJpy(amount) : null
+    };
+  };
+  const networkByType = Object.entries(
+    raw.networkInventory.reduce<Record<string, number>>((counts, item) => {
+      const label = item.type.split("/").at(-1) || item.type;
+      counts[label] = (counts[label] ?? 0) + 1;
+      return counts;
+    }, {})
+  ).map(([label, count]) => ({ label, count }));
+  const networkByRegion = Object.entries(
+    raw.networkInventory.reduce<Record<string, number>>((counts, item) => {
+      const label = item.location || "Unknown";
+      counts[label] = (counts[label] ?? 0) + 1;
+      return counts;
+    }, {})
+  ).map(([label, count]) => ({ label, count }));
+  const telemetryAvailable = raw.networkTelemetry.availability !== "unavailable";
 
   return {
-    schemaVersion: "1.0.0",
+    schemaVersion: "1.1.0",
     generatedAt: generatedAt.toISOString(),
     mode: raw.mode,
     freshness: {
@@ -200,16 +236,28 @@ export function sanitizeSnapshot(raw: RawSnapshot): PublicSnapshotV1 {
       regionalHealth: raw.regionalHealth
     },
     cost: {
-      currentApproximate: formatApproximateJpy(raw.exactCostJpy),
-      previousApproximate: formatApproximateJpy(raw.exactPreviousCostJpy),
+      current: costAmount(raw.exactCostJpy),
+      previous: costAmount(raw.exactPreviousCostJpy),
       deltaPercent: deltaPercent(raw.exactCostJpy, raw.exactPreviousCostJpy),
-      forecastApproximate: formatApproximateJpy(raw.forecastCostJpy),
-      budgetUsedPercent: Math.min(100, Math.round((raw.exactCostJpy / raw.forecastCostJpy) * 100)),
-      normalizedTrend: [68, 72, 69, 76, 81, 79, 86, 83, 89, 92, 88, 94],
+      forecast: costAmount(raw.forecastCostJpy),
+      budget: {
+        availability:
+          raw.exactCostJpy === null || raw.budgetLimitJpy === null || raw.budgetLimitJpy <= 0
+            ? "unavailable"
+            : "available",
+        usedPercent:
+          raw.exactCostJpy === null || raw.budgetLimitJpy === null || raw.budgetLimitJpy <= 0
+            ? null
+            : Math.max(
+                0,
+                Math.min(100, Math.round((raw.exactCostJpy / raw.budgetLimitJpy) * 100))
+              )
+      },
+      normalizedTrend: raw.normalizedCostTrend,
       categories: raw.costCategories.map((item) => ({
-        name: item.name,
+        name: item.amountJpy < 0 ? `${item.name} credit` : item.name,
         approximateAmount: formatApproximateJpy(item.amountJpy),
-        sharePercent: Number(((item.amountJpy / totalCost) * 100).toFixed(1)),
+        sharePercent: Number(((Math.abs(item.amountJpy) / categoryMagnitude) * 100).toFixed(1)),
         deltaPercent: item.deltaPercent
       }))
     },
@@ -235,10 +283,25 @@ export function sanitizeSnapshot(raw: RawSnapshot): PublicSnapshotV1 {
       recommendations: raw.security.recommendations.map(sanitizeRecommendation)
     },
     network: {
-      healthyConnections: networkFlows.filter((flow) => flow.status === "Allowed").length,
-      degradedConnections: networkFlows.filter((flow) => flow.status === "Degraded").length,
-      blockedFlows: networkFlows.filter((flow) => flow.status === "Blocked").length,
-      flows: networkFlows
+      inventory: {
+        total: raw.networkInventory.length,
+        byType: networkByType,
+        byRegion: networkByRegion
+      },
+      telemetry: {
+        availability: raw.networkTelemetry.availability,
+        message: raw.networkTelemetry.message,
+        healthyConnections: telemetryAvailable
+          ? networkFlows.filter((flow) => flow.status === "Allowed").length
+          : null,
+        degradedConnections: telemetryAvailable
+          ? networkFlows.filter((flow) => flow.status === "Degraded").length
+          : null,
+        blockedFlows: telemetryAvailable
+          ? networkFlows.filter((flow) => flow.status === "Blocked").length
+          : null,
+        flows: networkFlows
+      }
     },
     aiInsights: raw.aiInsights.map(sanitizeInsight)
   };

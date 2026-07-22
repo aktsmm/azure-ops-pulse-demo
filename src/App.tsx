@@ -288,30 +288,44 @@ function OverviewPage({ data }: { data: PublicSnapshotV1 }) {
 }
 
 function CostPage({ data }: { data: PublicSnapshotV1 }) {
+  const delta = data.cost.deltaPercent;
+  const budgetUsed = data.cost.budget.usedPercent;
+  const changeDrivers = data.cost.categories.flatMap((category) =>
+    category.deltaPercent === null ? [] : [{ ...category, deltaPercent: category.deltaPercent }]
+  );
   const metrics: TrendMetric[] = [
     {
       label: "Current period",
-      value: data.cost.currentApproximate,
-      change: `${data.cost.deltaPercent > 0 ? "+" : ""}${data.cost.deltaPercent}%`,
-      direction: data.cost.deltaPercent > 0 ? "up" : "down",
-      severity: data.cost.deltaPercent > 5 ? "warning" : "healthy",
+      value: data.cost.current.approximateAmount ?? "Unavailable",
+      change:
+        delta === null ? "Prior period unavailable" : `${delta > 0 ? "+" : ""}${delta}%`,
+      direction: delta === null ? "flat" : delta > 0 ? "up" : delta < 0 ? "down" : "flat",
+      severity:
+        data.cost.current.availability === "unavailable"
+          ? "info"
+          : delta !== null && delta > 5
+            ? "warning"
+            : "healthy",
       points: data.cost.normalizedTrend
     },
     {
       label: "Forecast",
-      value: data.cost.forecastApproximate,
-      change: "Month-end estimate",
+      value: data.cost.forecast.approximateAmount ?? "Unavailable",
+      change:
+        data.cost.forecast.availability === "available"
+          ? "Collected month-end estimate"
+          : "Not collected",
       direction: "flat",
       severity: "info",
-      points: [72, 74, 77, 78, 80, 83, 85, 88, 90, 92, 94, 96]
+      points: data.cost.forecast.availability === "available" ? data.cost.normalizedTrend : []
     },
     {
       label: "Budget used",
-      value: `${data.cost.budgetUsedPercent}%`,
-      change: "Within guardrail",
+      value: budgetUsed === null ? "Unavailable" : `${budgetUsed}%`,
+      change: budgetUsed === null ? "Budget not collected" : "Configured budget utilization",
       direction: "flat",
-      severity: data.cost.budgetUsedPercent > 85 ? "warning" : "healthy",
-      points: [52, 55, 59, 62, 66, 70, 73, 77, 80, 83, 86, 88]
+      severity: budgetUsed === null ? "info" : budgetUsed > 85 ? "warning" : "healthy",
+      points: budgetUsed === null ? [] : [budgetUsed, budgetUsed]
     }
   ];
   return (
@@ -323,14 +337,21 @@ function CostPage({ data }: { data: PublicSnapshotV1 }) {
       <KpiStrip metrics={metrics} />
       <div className="bento-grid">
         <Panel title="Normalized spend trend" className="wide-panel">
-          <div className="chart-shell">
-            {data.cost.normalizedTrend.map((value, index) => (
-              <div className="chart-column" key={`${value}-${index}`}>
-                <span style={{ height: `${value}%` }} />
-                <small>W{index + 1}</small>
-              </div>
-            ))}
-          </div>
+          {data.cost.normalizedTrend.length ? (
+            <div className="chart-shell">
+              {data.cost.normalizedTrend.map((value, index) => (
+                <div className="chart-column" key={`${value}-${index}`}>
+                  <span style={{ height: `${value}%` }} />
+                  <small>W{index + 1}</small>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <EmptyState
+              title="Trend unavailable"
+              detail="The collector does not publish a synthetic time series for Azure cost."
+            />
+          )}
         </Panel>
         <Panel title="Service mix">
           <div className="ranked-list">
@@ -349,30 +370,39 @@ function CostPage({ data }: { data: PublicSnapshotV1 }) {
           </div>
         </Panel>
         <Panel title="Change drivers">
-          <div className="driver-list">
-            {data.cost.categories
-              .slice()
-              .sort((a, b) => Math.abs(b.deltaPercent) - Math.abs(a.deltaPercent))
-              .map((category) => (
-                <div className="driver-row" key={category.name}>
-                  <span className="icon-tile">
-                    {category.deltaPercent > 0 ? (
-                      <TrendingUp size={18} aria-hidden="true" />
-                    ) : (
-                      <TrendingDown size={18} aria-hidden="true" />
-                    )}
-                  </span>
-                  <div>
-                    <strong>{category.name}</strong>
-                    <p>{category.deltaPercent > 0 ? "Increased" : "Decreased"} versus prior period</p>
+          {changeDrivers.length ? (
+            <div className="driver-list">
+              {changeDrivers
+                .slice()
+                .sort((a, b) => Math.abs(b.deltaPercent) - Math.abs(a.deltaPercent))
+                .map((category) => (
+                  <div className="driver-row" key={category.name}>
+                    <span className="icon-tile">
+                      {category.deltaPercent > 0 ? (
+                        <TrendingUp size={18} aria-hidden="true" />
+                      ) : (
+                        <TrendingDown size={18} aria-hidden="true" />
+                      )}
+                    </span>
+                    <div>
+                      <strong>{category.name}</strong>
+                      <p>
+                        {category.deltaPercent > 0 ? "Increased" : "Decreased"} versus prior period
+                      </p>
+                    </div>
+                    <StatusBadge severity={category.deltaPercent > 8 ? "warning" : "healthy"}>
+                      {category.deltaPercent > 0 ? "+" : ""}
+                      {category.deltaPercent}%
+                    </StatusBadge>
                   </div>
-                  <StatusBadge severity={category.deltaPercent > 8 ? "warning" : "healthy"}>
-                    {category.deltaPercent > 0 ? "+" : ""}
-                    {category.deltaPercent}%
-                  </StatusBadge>
-                </div>
-              ))}
-          </div>
+                ))}
+            </div>
+          ) : (
+            <EmptyState
+              title="Change drivers unavailable"
+              detail="A comparable prior period is required before service deltas can be published."
+            />
+          )}
         </Panel>
       </div>
     </div>
@@ -723,29 +753,60 @@ function SecurityPage({ data }: { data: PublicSnapshotV1 }) {
 
 function NetworkPage({ data }: { data: PublicSnapshotV1 }) {
   const [filter, setFilter] = useState("All");
-  const rows = data.network.flows.filter((flow) => filter === "All" || flow.status === filter);
+  const telemetry = data.network.telemetry;
+  const rows = telemetry.flows.filter((flow) => filter === "All" || flow.status === filter);
   return (
     <div className="page-stack">
       <div className="inventory-strip">
         <div>
-          <span>Healthy connections</span>
-          <strong>{data.network.healthyConnections}</strong>
+          <span>Network resources</span>
+          <strong>{data.network.inventory.total}</strong>
         </div>
         <div>
-          <span>Degraded</span>
-          <strong>{data.network.degradedConnections}</strong>
+          <span>Resource types</span>
+          <strong>{data.network.inventory.byType.length}</strong>
         </div>
         <div>
-          <span>Blocked flows</span>
-          <strong>{data.network.blockedFlows}</strong>
+          <span>Regions</span>
+          <strong>{data.network.inventory.byRegion.length}</strong>
         </div>
         <div>
           <span>Endpoint policy</span>
           <strong>Masked</strong>
         </div>
       </div>
+      <div className="bento-grid">
+        <Panel title="Network inventory">
+          {data.network.inventory.byType.length ? (
+            <div className="ranked-list">
+              {data.network.inventory.byType.map((item) => (
+                <div className="ranked-row" key={item.label}>
+                  <strong>{item.label}</strong>
+                  <span>{item.count}</span>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <EmptyState
+              title="No network inventory"
+              detail="No supported network resources were returned in this snapshot."
+            />
+          )}
+        </Panel>
+        <Panel title="Flow telemetry status">
+          <div className="privacy-card">
+            <Network size={28} aria-hidden="true" />
+            <strong>
+              {telemetry.availability === "unavailable"
+                ? "Unavailable"
+                : `${telemetry.healthyConnections ?? 0} healthy connections`}
+            </strong>
+            <p>{telemetry.message}</p>
+          </div>
+        </Panel>
+      </div>
       <Panel
-        title="Flow health"
+        title="Observed flow telemetry"
         action={
           <label className="select-label compact">
             <span className="sr-only">Flow status</span>
@@ -758,7 +819,12 @@ function NetworkPage({ data }: { data: PublicSnapshotV1 }) {
           </label>
         }
       >
-        {rows.length ? (
+        {telemetry.availability === "unavailable" ? (
+          <EmptyState
+            title="Flow telemetry unavailable"
+            detail="Network resources were inventoried, but resource existence is never treated as connection health."
+          />
+        ) : rows.length ? (
           <div className="flow-list">
             {rows.map((flow) => (
               <article className="flow-row" key={flow.id}>

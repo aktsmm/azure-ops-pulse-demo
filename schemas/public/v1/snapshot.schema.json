@@ -19,7 +19,7 @@
     "aiInsights"
   ],
   "properties": {
-    "schemaVersion": { "const": "1.0.0" },
+    "schemaVersion": { "const": "1.1.0" },
     "generatedAt": { "type": "string", "format": "date-time" },
     "mode": { "enum": ["DEMO", "AZURE"] },
     "freshness": { "type": "object" },
@@ -35,4 +35,3 @@
   },
   "additionalProperties": false
 }
-

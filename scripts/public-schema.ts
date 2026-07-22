@@ -2,6 +2,34 @@ import { z } from "zod";
 
 const severity = z.enum(["critical", "warning", "healthy", "info"]);
 const statusBadge = z.enum(["Healthy", "Degraded", "Unavailable", "Unknown"]);
+const costAmountSchema = z
+  .object({
+    availability: z.enum(["available", "unavailable"]),
+    approximateAmount: z.string().startsWith("約¥").nullable()
+  })
+  .strict()
+  .superRefine((value, context) => {
+    if ((value.availability === "available") !== (value.approximateAmount !== null)) {
+      context.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: "Cost amount availability must match approximateAmount"
+      });
+    }
+  });
+const costBudgetSchema = z
+  .object({
+    availability: z.enum(["available", "unavailable"]),
+    usedPercent: z.number().min(0).max(100).nullable()
+  })
+  .strict()
+  .superRefine((value, context) => {
+    if ((value.availability === "available") !== (value.usedPercent !== null)) {
+      context.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: "Budget availability must match usedPercent"
+      });
+    }
+  });
 
 export const insightSchema = z
   .object({
@@ -41,7 +69,7 @@ export const insightSchema = z
 
 export const publicSnapshotSchema = z
   .object({
-    schemaVersion: z.literal("1.0.0"),
+    schemaVersion: z.literal("1.1.0"),
     generatedAt: z.string().datetime(),
     mode: z.enum(["DEMO", "AZURE"]),
     freshness: z
@@ -102,11 +130,11 @@ export const publicSnapshotSchema = z
       .strict(),
     cost: z
       .object({
-        currentApproximate: z.union([z.string().startsWith("約¥"), z.literal("Unavailable")]),
-        previousApproximate: z.union([z.string().startsWith("約¥"), z.literal("Unavailable")]),
-        deltaPercent: z.number(),
-        forecastApproximate: z.union([z.string().startsWith("約¥"), z.literal("Unavailable")]),
-        budgetUsedPercent: z.number().min(0).max(100),
+        current: costAmountSchema,
+        previous: costAmountSchema,
+        deltaPercent: z.number().nullable(),
+        forecast: costAmountSchema,
+        budget: costBudgetSchema,
         normalizedTrend: z.array(z.number()),
         categories: z.array(
           z
@@ -114,7 +142,7 @@ export const publicSnapshotSchema = z
               name: z.string(),
               approximateAmount: z.union([z.string().startsWith("約¥"), z.literal("Unavailable")]),
               sharePercent: z.number().min(0).max(100),
-              deltaPercent: z.number()
+              deltaPercent: z.number().nullable()
             })
             .strict()
         )
@@ -182,22 +210,57 @@ export const publicSnapshotSchema = z
       .strict(),
     network: z
       .object({
-        healthyConnections: z.number().nonnegative(),
-        degradedConnections: z.number().nonnegative(),
-        blockedFlows: z.number().nonnegative(),
-        flows: z.array(
-          z
-            .object({
-              id: z.string().regex(/^flow-[0-9a-f]{8}$/),
-              source: z.string(),
-              destination: z.string(),
-              protocol: z.string(),
-              status: z.enum(["Allowed", "Degraded", "Blocked"]),
-              latency: z.string(),
-              throughput: z.string()
-            })
-            .strict()
-        )
+        inventory: z
+          .object({
+            total: z.number().nonnegative(),
+            byType: z.array(z.object({ label: z.string(), count: z.number().nonnegative() }).strict()),
+            byRegion: z.array(
+              z.object({ label: z.string(), count: z.number().nonnegative() }).strict()
+            )
+          })
+          .strict(),
+        telemetry: z
+          .object({
+            availability: z.enum(["available", "partial", "unavailable"]),
+            message: z.string(),
+            healthyConnections: z.number().nonnegative().nullable(),
+            degradedConnections: z.number().nonnegative().nullable(),
+            blockedFlows: z.number().nonnegative().nullable(),
+            flows: z.array(
+              z
+                .object({
+                  id: z.string().regex(/^flow-[0-9a-f]{8}$/),
+                  source: z.string(),
+                  destination: z.string(),
+                  protocol: z.string(),
+                  status: z.enum(["Allowed", "Degraded", "Blocked"]),
+                  latency: z.string(),
+                  throughput: z.string()
+                })
+                .strict()
+            )
+          })
+          .strict()
+          .superRefine((value, context) => {
+            const unavailable = value.availability === "unavailable";
+            const counts = [
+              value.healthyConnections,
+              value.degradedConnections,
+              value.blockedFlows
+            ];
+            if (unavailable && (counts.some((count) => count !== null) || value.flows.length)) {
+              context.addIssue({
+                code: z.ZodIssueCode.custom,
+                message: "Unavailable flow telemetry must not contain counts or flows"
+              });
+            }
+            if (!unavailable && counts.some((count) => count === null)) {
+              context.addIssue({
+                code: z.ZodIssueCode.custom,
+                message: "Available flow telemetry requires explicit counts"
+              });
+            }
+          })
       })
       .strict(),
     aiInsights: z.array(insightSchema)

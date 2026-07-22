@@ -25,18 +25,33 @@ steps:
 
 post-steps:
   - name: Validate generated insight schema, evidence, and privacy
+    id: validate_candidate
+    if: success()
     run: npm run validate:insights && npm run scan:privacy -- public
+  - name: Upload validated insight candidate
+    if: success() && steps.validate_candidate.outcome == 'success'
+    uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+    with:
+      name: validated-ai-insights
+      path: public/data/snapshot.json
+      if-no-files-found: error
+      retention-days: 2
 
 safe-outputs:
-  create-pull-request:
-    title-prefix: "[ai-insights] "
-    draft: true
-    fallback-as-issue: false
-    if-no-changes: warn
-    allowed-files:
-      - public/data/snapshot.json
-    max-patch-files: 1
-    max-patch-size: 256
+  missing-tool: false
+  missing-data: false
+  noop: false
+  report-incomplete: false
+  report-failure-as-issue: false
+  threat-detection: false
+
+jobs:
+  safe_outputs:
+    pre-steps:
+      - name: Require successful trusted agent validation
+        env:
+          AGENT_RESULT: ${{ needs.agent.result }}
+        run: test "$AGENT_RESULT" = "success"
 
 ---
 
@@ -78,7 +93,7 @@ Each insight must contain:
 6. Do not alter identifiers, resource rows, source status, freshness, or any field outside
    `aiInsights`.
 7. Run `npm run validate:insights` and `npm run scan:privacy -- public`.
-8. If validation fails or the evidence is insufficient, leave the existing insights unchanged and
-   request no pull request.
-9. If validation passes and the insight set materially improves, request one draft pull request
-   describing the evidence used and the human review requirement.
+8. If validation fails or the evidence is insufficient, leave the existing insights unchanged.
+9. Do not request or emit any safe output, including an issue, comment, or pull request. A separate
+   deterministic workflow can publish only the successfully validated artifact after repeating
+   schema, evidence, baseline-diff, and privacy gates.
