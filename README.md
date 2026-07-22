@@ -137,7 +137,7 @@ SHA-pinned workflow is `ai-insights.lock.yml`. It was initialized and compiled w
 strict mode.
 
 ```bash
-gh aw compile ai-insights --strict --validate --no-check-update
+npm run compile:ai-insights
 gh aw validate ai-insights --strict --no-check-update
 gh aw lint .github/workflows/ai-insights.lock.yml
 ```
@@ -151,7 +151,7 @@ The agent:
 - may change only the `aiInsights` field in the one allowlisted file;
 - is followed by deterministic schema, exact numeric evidence, baseline-diff, and privacy checks;
 - has every public safe output disabled; and
-- can only hand off the already-sanitized snapshot through a two-day run artifact.
+- can only hand off the already-sanitized snapshot through a one-day run artifact.
 
 [`publish-ai-insights.yml`](.github/workflows/publish-ai-insights.yml) runs only after a successful
 default-branch agent run. Its read-only validation job starts from a fresh default-branch checkout,
@@ -159,7 +159,10 @@ installs trusted dependencies from scratch, downloads only the candidate JSON, a
 deterministic gate. It then emits a one-day trusted artifact. A separate publication job receives
 write permissions only after validation succeeds and may open a **draft pull request** for human
 review. The compiled agent workflow has no issue, discussion, comment, pull-request, or persistent
-asset output permission.
+asset output permission. gh-aw v0.82.9 requires a safe-output processor and unified diagnostics
+artifact in its raw generated lock, so `npm run compile:ai-insights` deterministically removes those
+compiler-mandatory runtime blocks after strict compilation. CI asserts that the committed lock has
+no public mutation handler and retains no unvalidated agent output.
 
 `gh aw audit` requires a real GitHub Actions run ID or URL, so it is used after the first configured
 run:

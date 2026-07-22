@@ -1,5 +1,6 @@
 import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
+import { hardenAgentWorkflowLock } from "./harden-ai-insights-lock";
 
 describe("AI insight publication gate", () => {
   it("compiles no public agent safe output", () => {
@@ -17,21 +18,42 @@ describe("AI insight publication gate", () => {
     }
     expect(source).toContain("upload-artifact:");
     expect(source).toMatch(/allowed-paths:\r?\n\s+- public\/data\/snapshot\.json/);
-    expect(source).toContain("retention-days: 2");
+    expect(source).toContain("retention-days: 1");
     expect(source).toContain("activation-comments: false");
     expect(source).toContain("report-failure-as-issue: false");
     expect(source).toContain("report-incomplete: false");
-    expect(lock).toContain('GH_AW_SAFE_OUTPUTS_HANDLER_CONFIG: "{\\"upload_artifact\\"');
     expect(lock).not.toContain('"create_issue"');
     expect(lock).not.toContain("created_issue_url");
     expect(lock).not.toContain("created_pr_url");
     expect(lock).not.toContain("issues: write");
     expect(lock).not.toContain("discussions: write");
     expect(lock).not.toContain("pull-requests: write");
-    const guard = lock.indexOf("Require successful candidate handoff");
-    const processing = lock.indexOf("Process Safe Outputs");
-    expect(guard).toBeGreaterThan(-1);
-    expect(processing).toBeGreaterThan(guard);
+    expect(lock).not.toContain("Process Safe Outputs");
+    expect(lock).not.toContain("Upload agent artifacts");
+    expect(lock).not.toContain("Upload upload-artifact staging");
+    expect(hardenAgentWorkflowLock(lock)).toBe(lock);
+  });
+
+  it("retains no unvalidated agent output artifact", () => {
+    const lock = readFileSync(".github/workflows/ai-insights.lock.yml", "utf8");
+    const uploads = lock.match(/^\s+uses: actions\/upload-artifact@/gm) ?? [];
+
+    expect(uploads).toHaveLength(2);
+    expect(lock).toContain("name: activation");
+    expect(lock).toMatch(
+      /name: validated-ai-insights\r?\n\s+path: public\/data\/snapshot\.json\r?\n\s+retention-days: 1/
+    );
+    for (const rawPath of [
+      "/logs/",
+      "safeoutputs.jsonl",
+      "agent_output.json",
+      "agent-stdio.log"
+    ]) {
+      const uploadBlocks = lock.match(
+        /uses: actions\/upload-artifact@[^\n]+\n(?:[^\n]*\n)*?(?= {6}- | {2}[A-Za-z0-9_-]+:|$)/g
+      );
+      expect(uploadBlocks?.join("\n") ?? "").not.toContain(rawPath);
+    }
   });
 
   it("publishes only successful default-branch artifacts after deterministic validation", () => {
