@@ -28,25 +28,23 @@ post-steps:
     id: validate_candidate
     if: success()
     run: npm run validate:insights && npm run scan:privacy -- public
-  - name: Delete unvalidated agent diagnostics
-    if: always()
-    run: |
-      rm -rf \
-        /tmp/gh-aw/agent \
-        /tmp/gh-aw/agent-stdio.log \
-        /tmp/gh-aw/agent_output.json \
-        /tmp/gh-aw/agent_usage.json \
-        /tmp/gh-aw/aw-prompts \
-        /tmp/gh-aw/awf-config.json \
-        /tmp/gh-aw/github_rate_limits.jsonl \
-        /tmp/gh-aw/mcp-logs \
-        /tmp/gh-aw/pre-agent-audit.txt \
-        /tmp/gh-aw/redacted-urls.log \
-        /tmp/gh-aw/safeoutputs.jsonl \
-        /tmp/gh-aw/sandbox/agent/logs \
-        /tmp/gh-aw/sandbox/firewall
-  - name: Upload validated insight candidate
+  - name: Verify bounded candidate handoff
+    id: bound_candidate
     if: success() && steps.validate_candidate.outcome == 'success'
+    run: |
+      candidate_path="public/data/snapshot.json"
+      candidate_count="$(find public/data -maxdepth 1 -type f -name 'snapshot.json' -printf '1\n' | wc -l)"
+      if [ "$candidate_count" -ne 1 ] || [ -L "$candidate_path" ]; then
+        echo "Candidate must be exactly one regular, non-symlink public/data/snapshot.json file."
+        exit 1
+      fi
+      candidate_size="$(wc -c < "$candidate_path")"
+      if [ "$candidate_size" -gt 1048576 ]; then
+        echo "Candidate exceeds the 1,048,576-byte handoff limit."
+        exit 1
+      fi
+  - name: Upload validated insight candidate
+    if: success() && steps.validate_candidate.outcome == 'success' && steps.bound_candidate.outcome == 'success'
     uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
     with:
       name: validated-ai-insights
@@ -56,6 +54,7 @@ post-steps:
 
 safe-outputs:
   activation-comments: false
+  staged: true
   upload-artifact:
     max-uploads: 1
     retention-days: 1
@@ -111,7 +110,9 @@ Each insight must contain:
    `aiInsights`.
 7. Run `npm run validate:insights` and `npm run scan:privacy -- public`.
 8. If validation fails or the evidence is insufficient, leave the existing insights unchanged.
-9. Do not request or emit a safe output. The only configured safe-output capability is a
-   non-public, one-day artifact restricted to the already-sanitized snapshot path; the
-   deterministic post-step owns the handoff artifact. A separate trusted workflow can publish only
-   after repeating schema, exact evidence, baseline-diff, and privacy gates from a fresh checkout.
+9. Do not request or emit a safe output. gh-aw requires a non-builtin safe output to avoid
+   auto-injecting `create_issue`, so the only configured capability is a staged, non-publishing
+   artifact restricted to the already-sanitized snapshot path. It is not the
+   `validated-ai-insights` handoff. The deterministic bounded post-step owns that exact artifact,
+   and a separate trusted workflow can publish only after repeating schema, exact evidence,
+   baseline-diff, and privacy gates from a fresh checkout.

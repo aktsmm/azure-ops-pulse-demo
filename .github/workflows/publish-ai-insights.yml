@@ -50,6 +50,7 @@ jobs:
             exit 1
           fi
           test ! -L .candidate/snapshot.json
+          test "$(wc -c < .candidate/snapshot.json)" -le 1048576
       - name: Install deterministic validation dependencies
         run: npm ci --ignore-scripts
       - name: Repeat schema, evidence, baseline, and privacy gates

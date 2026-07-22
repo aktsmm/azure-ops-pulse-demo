@@ -158,11 +158,25 @@ default-branch agent run. Its read-only validation job starts from a fresh defau
 installs trusted dependencies from scratch, downloads only the candidate JSON, and repeats every
 deterministic gate. It then emits a one-day trusted artifact. A separate publication job receives
 write permissions only after validation succeeds and may open a **draft pull request** for human
-review. The compiled agent workflow has no issue, discussion, comment, pull-request, or persistent
-asset output permission. gh-aw v0.82.9 requires a safe-output processor and unified diagnostics
-artifact in its raw generated lock, so `npm run compile:ai-insights` deterministically removes those
-compiler-mandatory runtime blocks after strict compilation. CI asserts that the committed lock has
-no public mutation handler and retains no unvalidated agent output.
+review. The compiled agent workflow has no issue, discussion, comment, pull-request, or repository-content
+write permission. `npm run compile:ai-insights` downloads and checksum-verifies the exact gh-aw
+v0.82.14 release without changing the globally installed extension, then performs strict compilation.
+gh-aw still auto-injects `create_issue` when no non-builtin safe output exists, so this workflow keeps
+one staged `upload-artifact` capability that cannot publish a final artifact and is not consumed by
+the publisher. The publisher downloads only the exact `validated-ai-insights` artifact from the exact
+triggering run.
+
+gh-aw v0.82.14 also requires activation, unified agent/firewall, usage, and safe-output audit
+artifacts. Those artifacts contain only the already-public sanitized snapshot/repository context and
+compiler diagnostics; the workflow has no Azure credentials or raw Azure input, and gh-aw redacts
+GitHub/Copilot secrets before its unified upload. The compiler does not emit one-day retention on
+every mandatory upload, so the deterministic post-compile hardener sets every generated
+`upload-artifact` step to `retention-days: 1`. The direct candidate handoff additionally requires
+exactly one regular non-symlink `public/data/snapshot.json` no larger than 1,048,576 bytes.
+
+References: [gh-aw v0.82.14 release](https://github.com/github/gh-aw/releases/tag/v0.82.14),
+[mandatory unified artifact compiler](https://github.com/github/gh-aw/blob/v0.82.14/pkg/workflow/compiler_yaml_artifacts.go),
+and [default safe-output injection](https://github.com/github/gh-aw/blob/v0.82.14/pkg/workflow/safe_outputs_state.go).
 
 `gh aw audit` requires a real GitHub Actions run ID or URL, so it is used after the first configured
 run:

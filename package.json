@@ -12,7 +12,7 @@
     "test:watch": "vitest",
     "generate:demo": "tsx scripts/generate-demo.ts",
     "collect:azure": "tsx scripts/collect-azure.ts",
-    "compile:ai-insights": "gh aw compile ai-insights --strict --validate --no-check-update && tsx scripts/harden-ai-insights-lock.ts",
+    "compile:ai-insights": "tsx scripts/compile-ai-insights.ts",
     "validate:data": "tsx scripts/validate-public-data.ts public/data/snapshot.json",
     "validate:insights": "tsx scripts/validate-public-data.ts public/data/snapshot.json --insights-only",
     "scan:privacy": "tsx scripts/privacy-scan.ts"
