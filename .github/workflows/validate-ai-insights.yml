@@ -1,0 +1,75 @@
+name: Validate AI insight PR
+
+on:
+  pull_request_target:
+    types: [opened, synchronize, reopened]
+    paths:
+      - public/data/snapshot.json
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout pull request
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          ref: ${{ github.event.pull_request.base.sha }}
+          fetch-depth: 0
+          path: trusted
+          persist-credentials: false
+      - name: Checkout candidate snapshot
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+          fetch-depth: 0
+          path: candidate
+          persist-credentials: false
+          sparse-checkout: public/data/snapshot.json
+          sparse-checkout-cone-mode: false
+      - name: Set up Node.js
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: trusted/package-lock.json
+      - name: Install dependencies
+        working-directory: trusted
+        run: npm ci --ignore-scripts
+      - name: Verify scope and stage candidate snapshot
+        env:
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+        run: |
+          mapfile -t changed_files < <(git -C candidate diff --name-only "$BASE_SHA...$HEAD_SHA")
+          if [ "${#changed_files[@]}" -ne 1 ] || [ "${changed_files[0]}" != "public/data/snapshot.json" ]; then
+            printf 'AI insight PR changed files outside the approved snapshot path:\n'
+            printf '%s\n' "${changed_files[@]}"
+            exit 1
+          fi
+          cp candidate/public/data/snapshot.json trusted/public/data/snapshot.json
+      - name: Validate AI-only change, evidence, and privacy
+        working-directory: trusted
+        run: |
+          npm run validate:insights
+          npm run scan:privacy -- public
+
+  publish:
+    needs: validate
+    if: >
+      github.event.pull_request.draft &&
+      startsWith(github.event.pull_request.title, '[ai-insights] ') &&
+      github.event.pull_request.user.login == 'github-actions[bot]' &&
+      github.event.pull_request.head.repo.full_name == github.repository
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: write
+    steps:
+      - name: Mark validated AI insight pull request ready
+        env:
+          GH_TOKEN: ${{ github.token }}
+          PR_URL: ${{ github.event.pull_request.html_url }}
+        run: gh pr ready "$PR_URL"

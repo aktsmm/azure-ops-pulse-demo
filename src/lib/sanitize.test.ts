@@ -44,8 +44,38 @@ describe("public sanitization boundary", () => {
   });
 
   it("publishes rounded approximate JPY only", () => {
+    expect(formatApproximateJpy(0)).toBe("約¥0");
     expect(formatApproximateJpy(12_345)).toBe("約¥1.2万");
     expect(formatApproximateJpy(4_321_000)).toBe("約¥432.1万");
+  });
+
+  it("does not infer flow health from network inventory when telemetry is unavailable", () => {
+    const raw = createDemoRawSnapshot();
+    raw.networkTelemetry = {
+      availability: "unavailable",
+      message: "Flow telemetry was not collected.",
+      flows: raw.networkTelemetry.flows
+    };
+    const snapshot = sanitizeSnapshot(raw);
+
+    expect(snapshot.network.inventory.total).toBeGreaterThan(0);
+    expect(snapshot.network.telemetry).toMatchObject({
+      availability: "unavailable",
+      healthyConnections: null,
+      degradedConnections: null,
+      blockedFlows: null,
+      flows: []
+    });
+  });
+
+  it("keeps unavailable forecast and budget values explicit", () => {
+    const raw = createDemoRawSnapshot();
+    raw.forecastCostJpy = null;
+    raw.budgetUsedPercent = null;
+    const snapshot = sanitizeSnapshot(raw);
+
+    expect(snapshot.cost.forecastApproximate).toBe("Unavailable");
+    expect(snapshot.cost.budgetUsedPercent).toBeNull();
   });
 
   it("aliases a live Azure subscription display name and keeps public IDs unique", () => {

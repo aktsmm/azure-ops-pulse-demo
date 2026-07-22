@@ -34,7 +34,8 @@ flowchart LR
   R --> J[public/data/snapshot.json]
   J --> W[GitHub Pages SPA]
   J --> G[GitHub Agentic Workflow]
-  G --> Q[Draft AI insight PR]
+  G --> A[Agent post-validation]
+  A -->|success only| Q[Draft AI insight PR]
   Q --> V
 ```
 
@@ -63,8 +64,9 @@ npm run build
 ```
 
 The production build is emitted to `dist/`. `npm run build` also scans the complete Pages artifact
-for full GUIDs, email addresses, unmasked IPv4 addresses, private keys, cloud access keys, and
-suspicious secret assignments.
+for full GUIDs, email addresses, every complete unmasked IPv4 address (including private ranges),
+complete unmasked IPv6 addresses, private keys, cloud access keys, and suspicious secret
+assignments.
 
 ## Public data contract and privacy boundary
 
@@ -80,7 +82,8 @@ contracts in [`src/data/contracts.ts`](src/data/contracts.ts).
 | User / email | Fully replaced with a deterministic identity alias |
 | Tags | Only `environment`, `team`, `workload`, and `criticality`; unknown values are aliased |
 | Defender | Recommendation title and aggregate counts only; no asset, exploit, or vulnerability detail |
-| Cost | Percentage changes and rounded approximate JPY labels only; no exact amount |
+| Cost | Current/prior percentage changes and rounded approximate JPY labels only; unavailable forecast or budget data stays explicitly unavailable |
+| Network | Sanitized resource inventory is separate from flow telemetry; resource existence never implies traffic or connection health |
 
 Raw Azure responses, IDs, names, addresses, exact costs, tokens, and secrets must never be committed,
 uploaded as artifacts, printed to logs, or passed to the AI workflow. Unit tests cover each
@@ -113,11 +116,13 @@ stored in the repository.
 5. Run **Collect Azure snapshot** manually and review the generated data pull request.
 
 The collector reads Azure Resource Graph `Resources`, `HealthResources`, and `SecurityResources`;
-Cost Management Query; Activity Log; Resource/Service Health; Defender assessments,
+Cost Management Query for current and prior comparable periods; Activity Log;
+Resource/Service Health; Defender assessments,
 subassessment counts, secure score controls, active-alert counts, regulatory-compliance aggregates;
-and network inventory with supported Azure Monitor metric series. APIs, metrics, or Defender plans
-that are unavailable are marked `partial` or `unavailable` in the snapshot. A failed core inventory
-query exits without opening a PR or changing published data.
+and network resource inventory. Forecast, budget, cost trend, and network flow telemetry are not
+fabricated when their dedicated sources are absent; they are marked unavailable. APIs, metrics, or
+Defender plans that are unavailable are marked `partial` or `unavailable` in the snapshot. A failed
+core inventory query exits without opening a PR or changing published data.
 
 No Azure resources are created or remediated.
 
@@ -140,8 +145,15 @@ The agent:
 - must use existing numeric evidence and bounded language;
 - cannot call Azure or perform remediation;
 - may change only the `aiInsights` field in the one allowlisted file;
-- is followed by deterministic schema, evidence, and privacy checks; and
+- is followed by deterministic schema, evidence, and privacy checks, with safe outputs conditioned
+  on the complete agent job succeeding; and
 - can request only a **draft pull request** for human review.
+
+Configure `GH_AW_CI_TRIGGER_TOKEN` with contents read/write permission so gh-aw can add its
+documented CI-trigger commit. `Validate AI insight PR / validate` independently checks the draft
+against the base branch, then its trusted publication job marks a passing bot PR ready. That
+ready-for-review transition starts the full `CI / quality` gate; make both checks required in the
+repository ruleset. Do not publish or merge an AI insight PR until both checks succeed.
 
 `gh aw audit` requires a real GitHub Actions run ID or URL, so it is used after the first configured
 run:
@@ -157,7 +169,10 @@ validates the merged snapshot again before deployment.
 
 ## GitHub Pages and CI
 
-- `ci.yml`: lint, typecheck, tests, public-schema validation, build, and privacy scan
+- `ci.yml`: trusted lint, typecheck, tests, public-schema validation, build, and privacy scan on PR
+  updates and ready-for-review transitions
+- `validate-ai-insights.yml`: AI-only diff, evidence, and privacy validation before a bot draft is
+  marked ready for review
 - `pages.yml`: official Pages configure/upload/deploy actions with the `github-pages` environment,
   least permissions, base-path verification, and a final artifact privacy gate
 - `collect-azure.yml`: OIDC collection into a review-gated data PR

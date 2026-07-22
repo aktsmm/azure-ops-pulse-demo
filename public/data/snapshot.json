@@ -1,11 +1,11 @@
 {
   "schemaVersion": "1.0.0",
-  "generatedAt": "2026-07-22T17:53:25.793Z",
+  "generatedAt": "2026-07-22T18:23:53.868Z",
   "mode": "DEMO",
   "freshness": {
     "state": "fresh",
     "ageMinutes": 0,
-    "lastSuccessfulCollection": "2026-07-22T17:53:25.793Z",
+    "lastSuccessfulCollection": "2026-07-22T18:23:53.868Z",
     "nextScheduledCollection": "Tuesday / Friday 06:00 JST"
   },
   "scope": {
@@ -37,7 +37,12 @@
     {
       "source": "Network inventory",
       "availability": "available",
-      "message": "Endpoints are masked or reduced to service classification."
+      "message": "Synthetic network resource inventory is separate from flow telemetry."
+    },
+    {
+      "source": "Network flow telemetry",
+      "availability": "available",
+      "message": "Synthetic flow telemetry demonstrates masked endpoints and explicit health signals."
     }
   ],
   "overview": {
@@ -488,56 +493,77 @@
     ]
   },
   "network": {
-    "healthyConnections": 3,
-    "degradedConnections": 1,
-    "blockedFlows": 1,
-    "flows": [
-      {
-        "id": "flow-4ba9f67b",
-        "source": "10.24.*.*",
-        "destination": "Azure Front Door endpoint",
-        "protocol": "HTTPS",
-        "status": "Allowed",
-        "latency": "24 ms",
-        "throughput": "182 Mbps"
-      },
-      {
-        "id": "flow-4ca9f80e",
-        "source": "10.24.*.*",
-        "destination": "Azure SQL endpoint",
-        "protocol": "TDS",
-        "status": "Allowed",
-        "latency": "7 ms",
-        "throughput": "64 Mbps"
-      },
-      {
-        "id": "flow-4da9f9a1",
-        "source": "10.31.*.*",
-        "destination": "203.0.*.*",
-        "protocol": "HTTPS",
-        "status": "Degraded",
-        "latency": "168 ms",
-        "throughput": "11 Mbps"
-      },
-      {
-        "id": "flow-4ea9fb34",
-        "source": "2603:1030:*",
-        "destination": "Microsoft service endpoint",
-        "protocol": "HTTPS",
-        "status": "Allowed",
-        "latency": "38 ms",
-        "throughput": "32 Mbps"
-      },
-      {
-        "id": "flow-4fa9fcc7",
-        "source": "10.24.*.*",
-        "destination": "External service endpoint",
-        "protocol": "HTTPS",
-        "status": "Blocked",
-        "latency": "—",
-        "throughput": "0 Mbps"
-      }
-    ]
+    "inventory": {
+      "total": 2,
+      "resources": [
+        {
+          "id": "network-b2a7d82d",
+          "name": "globa…tdoor-adae19da",
+          "type": "Front Door",
+          "region": "Global"
+        },
+        {
+          "id": "network-d09d01a7",
+          "name": "commerc…gateway-afd06756",
+          "type": "Application Gateway",
+          "region": "Japan East"
+        }
+      ]
+    },
+    "telemetry": {
+      "availability": "available",
+      "message": "Synthetic flow telemetry; Azure inventory alone is never treated as traffic evidence.",
+      "healthyConnections": 3,
+      "degradedConnections": 1,
+      "blockedFlows": 1,
+      "flows": [
+        {
+          "id": "flow-4ba9f67b",
+          "source": "10.24.*.*",
+          "destination": "Azure Front Door endpoint",
+          "protocol": "HTTPS",
+          "status": "Allowed",
+          "latency": "24 ms",
+          "throughput": "182 Mbps"
+        },
+        {
+          "id": "flow-4ca9f80e",
+          "source": "10.24.*.*",
+          "destination": "Azure SQL endpoint",
+          "protocol": "TDS",
+          "status": "Allowed",
+          "latency": "7 ms",
+          "throughput": "64 Mbps"
+        },
+        {
+          "id": "flow-4da9f9a1",
+          "source": "10.31.*.*",
+          "destination": "203.0.*.*",
+          "protocol": "HTTPS",
+          "status": "Degraded",
+          "latency": "168 ms",
+          "throughput": "11 Mbps"
+        },
+        {
+          "id": "flow-4ea9fb34",
+          "source": "2603:1030:*",
+          "destination": "Microsoft service endpoint",
+          "protocol": "HTTPS",
+          "status": "Allowed",
+          "latency": "38 ms",
+          "throughput": "32 Mbps"
+        },
+        {
+          "id": "flow-4fa9fcc7",
+          "source": "10.24.*.*",
+          "destination": "External service endpoint",
+          "protocol": "HTTPS",
+          "status": "Blocked",
+          "latency": "—",
+          "throughput": "0 Mbps"
+        }
+      ]
+    }
   },
   "aiInsights": [
     {
@@ -629,17 +655,17 @@
         {
           "label": "Degraded flows",
           "value": "1",
-          "source": "network.degradedConnections"
+          "source": "network.telemetry.degradedConnections"
         },
         {
           "label": "Observed latency",
           "value": "168 ms",
-          "source": "network.flows.2.latency"
+          "source": "network.telemetry.flows.2.latency"
         },
         {
           "label": "Healthy flows",
           "value": "3",
-          "source": "network.healthyConnections"
+          "source": "network.telemetry.healthyConnections"
         }
       ],
       "recommendedAction": "Validate provider status and compare the path against private network telemetry.",

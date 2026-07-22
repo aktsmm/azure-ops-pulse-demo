@@ -25,14 +25,34 @@ steps:
 
 post-steps:
   - name: Validate generated insight schema, evidence, and privacy
-    run: npm run validate:insights && npm run scan:privacy -- public
+    if: always()
+    env:
+      AGENT_OUTCOME: ${{ steps.agentic_execution.outcome }}
+      GH_AW_SAFE_OUTPUTS: ${{ steps.set-runtime-paths.outputs.GH_AW_SAFE_OUTPUTS }}
+    run: |
+      validation_status=0
+      if [ "$AGENT_OUTCOME" != "success" ]; then
+        validation_status=1
+      fi
+      if ! npm run validate:insights || ! npm run scan:privacy -- public; then
+        validation_status=1
+      fi
+      if [ "$validation_status" -eq 0 ]; then
+        exit 0
+      fi
+      printf '{"items":[]}\n' > /tmp/gh-aw/agent_output.json
+      : > /tmp/gh-aw/safeoutputs.jsonl
+      : > "$GH_AW_SAFE_OUTPUTS"
+      exit 1
 
 safe-outputs:
   create-pull-request:
     title-prefix: "[ai-insights] "
     draft: true
+    auto-merge: false
     fallback-as-issue: false
     if-no-changes: warn
+    github-token-for-extra-empty-commit: ${{ secrets.GH_AW_CI_TRIGGER_TOKEN }}
     allowed-files:
       - public/data/snapshot.json
     max-patch-files: 1
@@ -60,7 +80,7 @@ Each insight must contain:
 - `impact`
 - `numericEvidence`: one to six objects containing `label`, `value`, and `source`; `source` must be
   an exact dot path under `overview`, `cost`, `inventory`, `reliability`, `security`, or `network`,
-  and the numeric token in `value` must equal the scalar at that path
+  and every normalized numeric token in `value` must exist in the scalar at that path
 - `recommendedAction`
 - `confidence`: a number from 0 through 1
 - `period`

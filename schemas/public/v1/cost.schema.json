@@ -4,15 +4,36 @@
   "title": "Azure Ops Pulse public cost v1",
   "description": "Contains approximate JPY labels, percentage changes, and normalized trends only.",
   "type": "object",
-  "required": ["currentApproximate", "previousApproximate", "deltaPercent", "categories"],
+  "required": [
+    "currentApproximate",
+    "previousApproximate",
+    "deltaPercent",
+    "forecastApproximate",
+    "budgetUsedPercent",
+    "normalizedTrend",
+    "categories"
+  ],
   "properties": {
     "currentApproximate": { "type": "string", "pattern": "^(約¥|Unavailable)" },
     "previousApproximate": { "type": "string", "pattern": "^(約¥|Unavailable)" },
-    "deltaPercent": { "type": "number" },
+    "deltaPercent": { "type": ["number", "null"] },
     "forecastApproximate": { "type": "string", "pattern": "^(約¥|Unavailable)" },
-    "budgetUsedPercent": { "type": "number", "minimum": 0, "maximum": 100 },
+    "budgetUsedPercent": { "type": ["number", "null"], "minimum": 0, "maximum": 100 },
     "normalizedTrend": { "type": "array", "items": { "type": "number" } },
-    "categories": { "type": "array" }
+    "categories": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["name", "approximateAmount", "sharePercent", "deltaPercent"],
+        "properties": {
+          "name": { "type": "string" },
+          "approximateAmount": { "type": "string", "pattern": "^(約¥|Unavailable)" },
+          "sharePercent": { "type": "number", "minimum": 0, "maximum": 100 },
+          "deltaPercent": { "type": ["number", "null"] }
+        },
+        "additionalProperties": false
+      }
+    }
   },
   "additionalProperties": false
 }

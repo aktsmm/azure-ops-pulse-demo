@@ -9,6 +9,11 @@ import type {
   SourceStatus
 } from "../src/data/contracts";
 import { sanitizeSnapshot } from "../src/lib/sanitize";
+import {
+  comparableCostPeriods,
+  transformCostPeriods,
+  type CostQueryProperties
+} from "./azure-transforms";
 import { publicSnapshotSchema } from "./public-schema";
 
 interface GraphResponse<T> {
@@ -198,82 +203,76 @@ const security = optionalSource(
   "Defender data is unavailable; plans may be disabled or permissions may be insufficient."
 );
 
-const cost = optionalSource(
-  "Cost Management",
-  () => {
-    const end = new Date();
-    const start = new Date(end);
-    start.setUTCDate(start.getUTCDate() - 30);
-    const result = runAzJson<{
-      properties?: { rows?: unknown[][]; columns?: Array<{ name?: string }> };
-    }>([
-      "rest",
-      "--method",
-      "post",
-      "--url",
-      `https://management.azure.com/subscriptions/${subscriptionId}/providers/Microsoft.CostManagement/query?api-version=2025-03-01`,
-      "--body",
-      JSON.stringify({
-        type: "ActualCost",
-        timeframe: "Custom",
-        timePeriod: { from: start.toISOString(), to: end.toISOString() },
-        dataset: {
-          granularity: "None",
-          aggregation: { totalCost: { name: "Cost", function: "Sum" } },
-          grouping: [{ type: "Dimension", name: "ServiceName" }]
-        }
-      })
-    ]);
-    return result.properties;
-  },
-  "Cost Management percentages and rounded approximations were collected.",
-  "Cost Management is unavailable; billing scope or role access may be required."
+const costPeriods = comparableCostPeriods(new Date());
+
+function queryCostPeriod(start: Date, end: Date): CostQueryProperties | undefined {
+  return runAzJson<{ properties?: CostQueryProperties }>([
+    "rest",
+    "--method",
+    "post",
+    "--url",
+    `https://management.azure.com/subscriptions/${subscriptionId}/providers/Microsoft.CostManagement/query?api-version=2025-03-01`,
+    "--body",
+    JSON.stringify({
+      type: "ActualCost",
+      timeframe: "Custom",
+      timePeriod: { from: start.toISOString(), to: end.toISOString() },
+      dataset: {
+        granularity: "None",
+        aggregation: { totalCost: { name: "Cost", function: "Sum" } },
+        grouping: [{ type: "Dimension", name: "ServiceName" }]
+      }
+    })
+  ]).properties;
+}
+
+const currentCost = optionalSource(
+  "Cost Management current period",
+  () => queryCostPeriod(costPeriods.current.start, costPeriods.current.end),
+  "Current-period Cost Management data was collected.",
+  "Current-period Cost Management data is unavailable; billing scope or role access may be required."
 );
+const previousCost = optionalSource(
+  "Cost Management previous period",
+  () => queryCostPeriod(costPeriods.previous.start, costPeriods.previous.end),
+  "Previous comparable Cost Management data was collected.",
+  "Previous comparable Cost Management data is unavailable; period comparison is not published."
+);
+const transformedCost = transformCostPeriods(currentCost.value, previousCost.value);
+const costStatus: SourceStatus =
+  !transformedCost.current
+    ? {
+        source: "Cost Management",
+        availability: "unavailable",
+        message: "Current cost or JPY billing currency could not be verified; cost values are unavailable."
+      }
+    : !transformedCost.previous
+      ? {
+          source: "Cost Management",
+          availability: "partial",
+          message: "Current cost was collected; the previous comparable period is unavailable."
+        }
+      : {
+          source: "Cost Management",
+          availability: "available",
+          message: "Current and previous comparable actual-cost periods were collected in JPY."
+        };
 
 const network = optionalSource(
-  "Network inventory and metrics",
-  () => {
-    const inventory = graphQuery<{ id: string; name: string; type: string; location?: string }>(
+  "Network inventory",
+  () =>
+    graphQuery<{ id: string; name: string; type: string; location?: string }>(
       subscriptionId,
       "Resources | where type startswith 'microsoft.network/' | project id, name, type, location"
-    );
-    let metricSeries = 0;
-    let metricFailures = 0;
-    for (const resource of inventory.slice(0, 20)) {
-      try {
-        const metrics = runAzJson<{ value?: Array<{ timeseries?: unknown[] }> }>([
-          "monitor",
-          "metrics",
-          "list",
-          "--resource",
-          resource.id,
-          "--offset",
-          "24h",
-          "--interval",
-          "PT1H"
-        ]);
-        metricSeries += (metrics.value ?? []).reduce(
-          (count, metric) => count + (metric.timeseries?.length ?? 0),
-          0
-        );
-      } catch {
-        metricFailures += 1;
-      }
-    }
-    return { inventory, metricSeries, metricFailures };
-  },
-  "Network inventory and supported Azure Monitor metric series were collected.",
-  "Network inventory and metrics are unavailable."
+    ),
+  "Network resource inventory was collected.",
+  "Network resource inventory is unavailable."
 );
-const networkStatus: SourceStatus =
-  network.status.availability === "available" &&
-  ((network.value?.metricSeries ?? 0) === 0 || (network.value?.metricFailures ?? 0) > 0)
-    ? {
-        source: "Network inventory and metrics",
-        availability: "partial",
-        message: `Network inventory was collected; metric coverage was unavailable for ${network.value?.metricFailures ?? 0} of ${network.value?.inventory.length ?? 0} sampled resources.`
-      }
-    : network.status;
+const networkTelemetryStatus: SourceStatus = {
+  source: "Network flow telemetry",
+  availability: "unavailable",
+  message: "Traffic flows, connection health, latency, and throughput are not collected."
+};
 
 const healthByResource = new Map(
   (health.value ?? []).map((item) => [
@@ -294,34 +293,7 @@ const resources: RawResource[] = rawResources.map((resource) => ({
   change: "Collected from Azure Resource Graph"
 }));
 
-const costRows = cost.value?.rows ?? [];
-const costColumns = (cost.value?.columns ?? []).map((column) => column.name?.toLowerCase() ?? "");
-const costIndex = costColumns.indexOf("cost");
-const serviceIndex = costColumns.indexOf("servicename");
-const currencyIndex = costColumns.indexOf("currency");
-const currencies = new Set(
-  costRows
-    .map((row) => (currencyIndex >= 0 ? String(row[currencyIndex] ?? "").toUpperCase() : ""))
-    .filter(Boolean)
-);
-const costIsJpy = currencies.size === 1 && currencies.has("JPY");
-const costStatus: SourceStatus =
-  cost.status.availability === "available" && !costIsJpy
-    ? {
-        source: "Cost Management",
-        availability: "unavailable",
-        message: "Billing currency is not verified as JPY; no unverified conversion was published."
-      }
-    : cost.status;
-const categories =
-  costIsJpy && costIndex >= 0
-    ? costRows.slice(0, 8).map((row) => ({
-        name: String(serviceIndex >= 0 ? row[serviceIndex] ?? "Other" : "Other"),
-        amountJpy: percent(row[costIndex]),
-        deltaPercent: 0
-      }))
-    : [];
-const totalCost = categories.reduce((sum, item) => sum + item.amountJpy, 0);
+const categories = transformedCost.categories;
 
 const recommendationCounts = new Map<string, SecurityRecommendation>();
 for (const item of security.value?.assessments ?? []) {
@@ -374,7 +346,8 @@ const unavailableCount = [
   activity.status,
   security.status,
   costStatus,
-  networkStatus
+  network.status,
+  networkTelemetryStatus
 ].filter((item) => item.availability === "unavailable").length;
 const healthyCount = resources.filter((resource) => resource.status === "Healthy").length;
 const healthPercent = Math.round((healthyCount / Math.max(1, resources.length)) * 100);
@@ -397,7 +370,8 @@ const raw: RawSnapshot = {
     serviceHealth.status,
     activity.status,
     security.status,
-    networkStatus
+    network.status,
+    networkTelemetryStatus
   ],
   metrics: [
     {
@@ -476,9 +450,11 @@ const raw: RawSnapshot = {
       const score = Math.round((counts.healthy / Math.max(1, counts.total)) * 100);
       return { region, score, status: score >= 90 ? ("healthy" as const) : ("warning" as const) };
     }),
-  exactCostJpy: totalCost,
-  exactPreviousCostJpy: totalCost,
-  forecastCostJpy: totalCost || 1,
+  exactCostJpy: transformedCost.current?.totalJpy ?? null,
+  exactPreviousCostJpy: transformedCost.previous?.totalJpy ?? null,
+  forecastCostJpy: null,
+  budgetUsedPercent: null,
+  normalizedCostTrend: [],
   costCategories: categories,
   resources,
   reliability: {
@@ -496,15 +472,12 @@ const raw: RawSnapshot = {
         ? [{ framework: "Regulatory compliance aggregate", score: secureScore }]
         : []
   },
-  networkFlows: (network.value?.inventory ?? []).slice(0, 20).map((item) => ({
-    id: item.id,
-    source: item.name,
-    destination: item.type,
-    protocol: "Inventory",
-    status: "Allowed",
-    latency: "Not collected",
-    throughput: "Not collected"
-  })),
+  networkInventory: network.value ?? [],
+  networkTelemetry: {
+    availability: "unavailable",
+    message: networkTelemetryStatus.message,
+    flows: []
+  },
   aiInsights: insights
 };
 

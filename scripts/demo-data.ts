@@ -35,7 +35,12 @@ export function createDemoRawSnapshot(generatedAt = new Date().toISOString()): R
       {
         source: "Network inventory",
         availability: "available",
-        message: "Endpoints are masked or reduced to service classification."
+        message: "Synthetic network resource inventory is separate from flow telemetry."
+      },
+      {
+        source: "Network flow telemetry",
+        availability: "available",
+        message: "Synthetic flow telemetry demonstrates masked endpoints and explicit health signals."
       }
     ],
     metrics: [
@@ -116,6 +121,8 @@ export function createDemoRawSnapshot(generatedAt = new Date().toISOString()): R
     exactCostJpy: 1_248_730,
     exactPreviousCostJpy: 1_158_380,
     forecastCostJpy: 1_430_000,
+    budgetUsedPercent: 87,
+    normalizedCostTrend: [68, 72, 69, 76, 81, 79, 86, 83, 89, 92, 88, 94],
     costCategories: [
       { name: "Compute", amountJpy: 508_000, deltaPercent: 11.4 },
       { name: "Databases", amountJpy: 281_000, deltaPercent: 4.1 },
@@ -287,7 +294,24 @@ export function createDemoRawSnapshot(generatedAt = new Date().toISOString()): R
         { framework: "PCI DSS", score: 72 }
       ]
     },
-    networkFlows: [
+    networkInventory: [
+      {
+        id: "/subscriptions/demo/resourceGroups/edge-network/providers/Microsoft.Network/frontDoors/global-edge",
+        name: "global-edge-frontdoor",
+        type: "Front Door",
+        location: "Global"
+      },
+      {
+        id: "/subscriptions/demo/resourceGroups/gateway/providers/Microsoft.Network/applicationGateways/commerce-gateway",
+        name: "commerce-application-gateway",
+        type: "Application Gateway",
+        location: "Japan East"
+      }
+    ],
+    networkTelemetry: {
+      availability: "available",
+      message: "Synthetic flow telemetry; Azure inventory alone is never treated as traffic evidence.",
+      flows: [
       {
         id: "flow-01",
         source: address("10", "24", "8", "17"),
@@ -333,7 +357,8 @@ export function createDemoRawSnapshot(generatedAt = new Date().toISOString()): R
         latency: "—",
         throughput: "0 Mbps"
       }
-    ],
+      ]
+    },
     aiInsights: [
       {
         id: "compute-cost-rise",
@@ -408,9 +433,21 @@ export function createDemoRawSnapshot(generatedAt = new Date().toISOString()): R
         impact:
           "The affected integration may contribute to tail latency without indicating a broad network incident.",
         numericEvidence: [
-          { label: "Degraded flows", value: "1", source: "network.degradedConnections" },
-          { label: "Observed latency", value: "168 ms", source: "network.flows.2.latency" },
-          { label: "Healthy flows", value: "3", source: "network.healthyConnections" }
+          {
+            label: "Degraded flows",
+            value: "1",
+            source: "network.telemetry.degradedConnections"
+          },
+          {
+            label: "Observed latency",
+            value: "168 ms",
+            source: "network.telemetry.flows.2.latency"
+          },
+          {
+            label: "Healthy flows",
+            value: "3",
+            source: "network.telemetry.healthyConnections"
+          }
         ],
         recommendedAction:
           "Validate provider status and compare the path against private network telemetry.",

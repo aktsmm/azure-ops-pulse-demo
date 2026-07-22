@@ -38,6 +38,7 @@ import type {
   TrendMetric
 } from "./data/contracts";
 import { useSnapshot } from "./hooks/useSnapshot";
+import { classifyCostTrend } from "./lib/cost-trend";
 
 const NAV_ITEMS = [
   { path: "/overview", label: "Overview", icon: Gauge },
@@ -288,30 +289,48 @@ function OverviewPage({ data }: { data: PublicSnapshotV1 }) {
 }
 
 function CostPage({ data }: { data: PublicSnapshotV1 }) {
+  const currentDelta = data.cost.deltaPercent;
+  const currentTrend = data.cost.normalizedTrend.length ? data.cost.normalizedTrend : [0, 0];
   const metrics: TrendMetric[] = [
     {
       label: "Current period",
       value: data.cost.currentApproximate,
-      change: `${data.cost.deltaPercent > 0 ? "+" : ""}${data.cost.deltaPercent}%`,
-      direction: data.cost.deltaPercent > 0 ? "up" : "down",
-      severity: data.cost.deltaPercent > 5 ? "warning" : "healthy",
-      points: data.cost.normalizedTrend
+      change:
+        currentDelta === null
+          ? "Prior period unavailable"
+          : `${currentDelta > 0 ? "+" : ""}${currentDelta}%`,
+      direction: currentDelta === null || currentDelta === 0 ? "flat" : currentDelta > 0 ? "up" : "down",
+      severity: currentDelta !== null && currentDelta > 5 ? "warning" : "info",
+      points: currentTrend
+    },
+    {
+      label: "Previous period",
+      value: data.cost.previousApproximate,
+      change: "Comparable 30-day period",
+      direction: "flat",
+      severity: data.cost.previousApproximate === "Unavailable" ? "info" : "healthy",
+      points: [0, 0]
     },
     {
       label: "Forecast",
       value: data.cost.forecastApproximate,
-      change: "Month-end estimate",
+      change:
+        data.cost.forecastApproximate === "Unavailable" ? "Not collected" : "Month-end estimate",
       direction: "flat",
       severity: "info",
-      points: [72, 74, 77, 78, 80, 83, 85, 88, 90, 92, 94, 96]
+      points: [0, 0]
     },
     {
       label: "Budget used",
-      value: `${data.cost.budgetUsedPercent}%`,
-      change: "Within guardrail",
+      value:
+        data.cost.budgetUsedPercent === null ? "Unavailable" : `${data.cost.budgetUsedPercent}%`,
+      change: data.cost.budgetUsedPercent === null ? "Budget not collected" : "Configured budget",
       direction: "flat",
-      severity: data.cost.budgetUsedPercent > 85 ? "warning" : "healthy",
-      points: [52, 55, 59, 62, 66, 70, 73, 77, 80, 83, 86, 88]
+      severity:
+        data.cost.budgetUsedPercent !== null && data.cost.budgetUsedPercent > 85
+          ? "warning"
+          : "info",
+      points: [0, 0]
     }
   ];
   return (
@@ -323,14 +342,21 @@ function CostPage({ data }: { data: PublicSnapshotV1 }) {
       <KpiStrip metrics={metrics} />
       <div className="bento-grid">
         <Panel title="Normalized spend trend" className="wide-panel">
-          <div className="chart-shell">
-            {data.cost.normalizedTrend.map((value, index) => (
-              <div className="chart-column" key={`${value}-${index}`}>
-                <span style={{ height: `${value}%` }} />
-                <small>W{index + 1}</small>
-              </div>
-            ))}
-          </div>
+          {data.cost.normalizedTrend.length ? (
+            <div className="chart-shell">
+              {data.cost.normalizedTrend.map((value, index) => (
+                <div className="chart-column" key={`${value}-${index}`}>
+                  <span style={{ height: `${value}%` }} />
+                  <small>W{index + 1}</small>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <EmptyState
+              title="Trend unavailable"
+              detail="The collector did not receive a time-series cost response."
+            />
+          )}
         </Panel>
         <Panel title="Service mix">
           <div className="ranked-list">
@@ -352,26 +378,50 @@ function CostPage({ data }: { data: PublicSnapshotV1 }) {
           <div className="driver-list">
             {data.cost.categories
               .slice()
-              .sort((a, b) => Math.abs(b.deltaPercent) - Math.abs(a.deltaPercent))
-              .map((category) => (
-                <div className="driver-row" key={category.name}>
-                  <span className="icon-tile">
-                    {category.deltaPercent > 0 ? (
-                      <TrendingUp size={18} aria-hidden="true" />
-                    ) : (
-                      <TrendingDown size={18} aria-hidden="true" />
-                    )}
-                  </span>
-                  <div>
-                    <strong>{category.name}</strong>
-                    <p>{category.deltaPercent > 0 ? "Increased" : "Decreased"} versus prior period</p>
+              .sort(
+                (a, b) =>
+                  (b.deltaPercent === null ? -1 : Math.abs(b.deltaPercent)) -
+                  (a.deltaPercent === null ? -1 : Math.abs(a.deltaPercent))
+              )
+              .map((category) => {
+                const trend = classifyCostTrend(category.deltaPercent);
+                return (
+                  <div className="driver-row" key={category.name}>
+                    <span className="icon-tile">
+                      {trend === "unavailable" || trend === "unchanged" ? (
+                        <Coins size={18} aria-hidden="true" />
+                      ) : trend === "increased" ? (
+                        <TrendingUp size={18} aria-hidden="true" />
+                      ) : (
+                        <TrendingDown size={18} aria-hidden="true" />
+                      )}
+                    </span>
+                    <div>
+                      <strong>{category.name}</strong>
+                      <p>
+                        {trend === "unavailable"
+                          ? "Prior-period comparison unavailable"
+                          : trend === "unchanged"
+                            ? "Unchanged versus prior period"
+                            : `${trend === "increased" ? "Increased" : "Decreased"} versus prior period`}
+                      </p>
+                    </div>
+                    <StatusBadge
+                      severity={
+                        category.deltaPercent !== null && category.deltaPercent > 8
+                          ? "warning"
+                          : trend === "unavailable"
+                            ? "info"
+                            : "healthy"
+                      }
+                    >
+                      {category.deltaPercent === null
+                        ? "Unavailable"
+                        : `${category.deltaPercent > 0 ? "+" : ""}${category.deltaPercent}%`}
+                    </StatusBadge>
                   </div>
-                  <StatusBadge severity={category.deltaPercent > 8 ? "warning" : "healthy"}>
-                    {category.deltaPercent > 0 ? "+" : ""}
-                    {category.deltaPercent}%
-                  </StatusBadge>
-                </div>
-              ))}
+                );
+              })}
           </div>
         </Panel>
       </div>
@@ -723,42 +773,64 @@ function SecurityPage({ data }: { data: PublicSnapshotV1 }) {
 
 function NetworkPage({ data }: { data: PublicSnapshotV1 }) {
   const [filter, setFilter] = useState("All");
-  const rows = data.network.flows.filter((flow) => filter === "All" || flow.status === filter);
+  const telemetry = data.network.telemetry;
+  const rows = telemetry.flows.filter((flow) => filter === "All" || flow.status === filter);
   return (
     <div className="page-stack">
       <div className="inventory-strip">
         <div>
-          <span>Healthy connections</span>
-          <strong>{data.network.healthyConnections}</strong>
+          <span>Network resources</span>
+          <strong>{data.network.inventory.total}</strong>
         </div>
         <div>
-          <span>Degraded</span>
-          <strong>{data.network.degradedConnections}</strong>
+          <span>Flow telemetry</span>
+          <strong>{telemetry.availability === "unavailable" ? "Unavailable" : "Available"}</strong>
+        </div>
+        <div>
+          <span>Healthy connections</span>
+          <strong>{telemetry.healthyConnections ?? "Unavailable"}</strong>
         </div>
         <div>
           <span>Blocked flows</span>
-          <strong>{data.network.blockedFlows}</strong>
-        </div>
-        <div>
-          <span>Endpoint policy</span>
-          <strong>Masked</strong>
+          <strong>{telemetry.blockedFlows ?? "Unavailable"}</strong>
         </div>
       </div>
+      <Panel title="Network resource inventory">
+        {data.network.inventory.resources.length ? (
+          <div className="ranked-list">
+            {data.network.inventory.resources.map((resource) => (
+              <div className="ranked-row" key={resource.id}>
+                <div>
+                  <strong>{resource.type}</strong>
+                  <small>{resource.name}</small>
+                </div>
+                <span>{resource.region}</span>
+              </div>
+            ))}
+          </div>
+        ) : (
+          <EmptyState title="No network inventory" detail="No network resources were collected." />
+        )}
+      </Panel>
       <Panel
-        title="Flow health"
+        title="Flow telemetry"
         action={
-          <label className="select-label compact">
-            <span className="sr-only">Flow status</span>
-            <select value={filter} onChange={(event) => setFilter(event.target.value)}>
-              <option>All</option>
-              <option>Allowed</option>
-              <option>Degraded</option>
-              <option>Blocked</option>
-            </select>
-          </label>
+          telemetry.availability === "unavailable" ? undefined : (
+            <label className="select-label compact">
+              <span className="sr-only">Flow status</span>
+              <select value={filter} onChange={(event) => setFilter(event.target.value)}>
+                <option>All</option>
+                <option>Allowed</option>
+                <option>Degraded</option>
+                <option>Blocked</option>
+              </select>
+            </label>
+          )
         }
       >
-        {rows.length ? (
+        {telemetry.availability === "unavailable" ? (
+          <EmptyState title="Flow telemetry unavailable" detail={telemetry.message} />
+        ) : rows.length ? (
           <div className="flow-list">
             {rows.map((flow) => (
               <article className="flow-row" key={flow.id}>

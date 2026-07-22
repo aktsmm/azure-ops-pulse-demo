@@ -41,7 +41,7 @@ export interface CostCategory {
   name: string;
   approximateAmount: string;
   sharePercent: number;
-  deltaPercent: number;
+  deltaPercent: number | null;
 }
 
 export interface ReliabilityService {
@@ -68,6 +68,13 @@ export interface NetworkFlow {
   status: "Allowed" | "Degraded" | "Blocked";
   latency: string;
   throughput: string;
+}
+
+export interface NetworkInventoryItem {
+  id: string;
+  name: string;
+  type: string;
+  region: string;
 }
 
 export interface AiInsight {
@@ -112,9 +119,9 @@ export interface PublicSnapshotV1 {
   cost: {
     currentApproximate: string;
     previousApproximate: string;
-    deltaPercent: number;
+    deltaPercent: number | null;
     forecastApproximate: string;
-    budgetUsedPercent: number;
+    budgetUsedPercent: number | null;
     normalizedTrend: number[];
     categories: CostCategory[];
   };
@@ -137,10 +144,18 @@ export interface PublicSnapshotV1 {
     compliance: Array<{ framework: string; score: number }>;
   };
   network: {
-    healthyConnections: number;
-    degradedConnections: number;
-    blockedFlows: number;
-    flows: NetworkFlow[];
+    inventory: {
+      total: number;
+      resources: NetworkInventoryItem[];
+    };
+    telemetry: {
+      availability: Availability;
+      message: string;
+      healthyConnections: number | null;
+      degradedConnections: number | null;
+      blockedFlows: number | null;
+      flows: NetworkFlow[];
+    };
   };
   aiInsights: AiInsight[];
 }
@@ -157,6 +172,13 @@ export interface RawResource {
   change?: string;
 }
 
+export interface RawNetworkResource {
+  id: string;
+  name: string;
+  type: string;
+  location?: string;
+}
+
 export interface RawSnapshot {
   generatedAt: string;
   mode: "DEMO" | "AZURE";
@@ -168,13 +190,20 @@ export interface RawSnapshot {
   postureScore: number;
   events: ActivityEvent[];
   regionalHealth: Array<{ region: string; score: number; status: Severity }>;
-  exactCostJpy: number;
-  exactPreviousCostJpy: number;
-  forecastCostJpy: number;
-  costCategories: Array<{ name: string; amountJpy: number; deltaPercent: number }>;
+  exactCostJpy: number | null;
+  exactPreviousCostJpy: number | null;
+  forecastCostJpy: number | null;
+  budgetUsedPercent: number | null;
+  normalizedCostTrend: number[];
+  costCategories: Array<{ name: string; amountJpy: number; deltaPercent: number | null }>;
   resources: RawResource[];
   reliability: PublicSnapshotV1["reliability"];
   security: PublicSnapshotV1["security"];
-  networkFlows: Array<Omit<NetworkFlow, "source" | "destination"> & { source: string; destination: string }>;
+  networkInventory: RawNetworkResource[];
+  networkTelemetry: {
+    availability: Availability;
+    message: string;
+    flows: Array<Omit<NetworkFlow, "source" | "destination"> & { source: string; destination: string }>;
+  };
   aiInsights: AiInsight[];
 }

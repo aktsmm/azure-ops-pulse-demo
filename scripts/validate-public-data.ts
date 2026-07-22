@@ -3,41 +3,13 @@ import { readFile } from "node:fs/promises";
 import { relative, resolve } from "node:path";
 import { isDeepStrictEqual } from "node:util";
 import { publicSnapshotSchema } from "./public-schema";
+import { validateNumericEvidence } from "./public-data-validation";
 
 const file = resolve(process.argv[2] ?? "public/data/snapshot.json");
 const insightsOnly = process.argv.includes("--insights-only");
 const parsed = publicSnapshotSchema.parse(JSON.parse(await readFile(file, "utf8")));
 
-function valueAtPath(root: unknown, path: string): unknown {
-  let current = root;
-  for (const segment of path.split(".")) {
-    if (current === null || typeof current !== "object") return undefined;
-    current = (current as Record<string, unknown>)[segment];
-  }
-  return current;
-}
-
-function numericTokens(value: unknown): string[] {
-  return String(value).match(/\d+(?:\.\d+)?/g) ?? [];
-}
-
-for (const insight of parsed.aiInsights) {
-  for (const evidence of insight.numericEvidence) {
-    const sourceValue = valueAtPath(parsed, evidence.source);
-    if (sourceValue === undefined || (typeof sourceValue !== "string" && typeof sourceValue !== "number")) {
-      throw new Error(
-        `Insight "${insight.title}" cites an invalid scalar source: ${evidence.source}`
-      );
-    }
-    const citedNumbers = numericTokens(evidence.value);
-    const sourceNumbers = numericTokens(sourceValue);
-    if (!citedNumbers.length || !citedNumbers.some((number) => sourceNumbers.includes(number))) {
-      throw new Error(
-        `Insight "${insight.title}" cites ${evidence.value} but ${evidence.source} contains ${String(sourceValue)}`
-      );
-    }
-  }
-}
+validateNumericEvidence(parsed);
 
 if (insightsOnly) {
   const repositoryPath = relative(process.cwd(), file).replaceAll("\\", "/");
@@ -46,7 +18,8 @@ if (insightsOnly) {
   }
   let baseline: typeof parsed;
   try {
-    const content = execFileSync("git", ["show", `HEAD:${repositoryPath}`], {
+    const baselineRef = process.env.BASELINE_REF ?? "HEAD";
+    const content = execFileSync("git", ["show", `${baselineRef}:${repositoryPath}`], {
       encoding: "utf8",
       stdio: ["ignore", "pipe", "ignore"]
     });

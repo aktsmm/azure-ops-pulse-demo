@@ -104,9 +104,9 @@ export const publicSnapshotSchema = z
       .object({
         currentApproximate: z.union([z.string().startsWith("約¥"), z.literal("Unavailable")]),
         previousApproximate: z.union([z.string().startsWith("約¥"), z.literal("Unavailable")]),
-        deltaPercent: z.number(),
+        deltaPercent: z.number().nullable(),
         forecastApproximate: z.union([z.string().startsWith("約¥"), z.literal("Unavailable")]),
-        budgetUsedPercent: z.number().min(0).max(100),
+        budgetUsedPercent: z.number().min(0).max(100).nullable(),
         normalizedTrend: z.array(z.number()),
         categories: z.array(
           z
@@ -114,7 +114,7 @@ export const publicSnapshotSchema = z
               name: z.string(),
               approximateAmount: z.union([z.string().startsWith("約¥"), z.literal("Unavailable")]),
               sharePercent: z.number().min(0).max(100),
-              deltaPercent: z.number()
+              deltaPercent: z.number().nullable()
             })
             .strict()
         )
@@ -182,22 +182,43 @@ export const publicSnapshotSchema = z
       .strict(),
     network: z
       .object({
-        healthyConnections: z.number().nonnegative(),
-        degradedConnections: z.number().nonnegative(),
-        blockedFlows: z.number().nonnegative(),
-        flows: z.array(
-          z
-            .object({
-              id: z.string().regex(/^flow-[0-9a-f]{8}$/),
-              source: z.string(),
-              destination: z.string(),
-              protocol: z.string(),
-              status: z.enum(["Allowed", "Degraded", "Blocked"]),
-              latency: z.string(),
-              throughput: z.string()
-            })
-            .strict()
-        )
+        inventory: z
+          .object({
+            total: z.number().nonnegative(),
+            resources: z.array(
+              z
+                .object({
+                  id: z.string().regex(/^network-[0-9a-f]{8}$/),
+                  name: z.string(),
+                  type: z.string(),
+                  region: z.string()
+                })
+                .strict()
+            )
+          })
+          .strict(),
+        telemetry: z
+          .object({
+            availability: z.enum(["available", "partial", "unavailable"]),
+            message: z.string(),
+            healthyConnections: z.number().nonnegative().nullable(),
+            degradedConnections: z.number().nonnegative().nullable(),
+            blockedFlows: z.number().nonnegative().nullable(),
+            flows: z.array(
+              z
+                .object({
+                  id: z.string().regex(/^flow-[0-9a-f]{8}$/),
+                  source: z.string(),
+                  destination: z.string(),
+                  protocol: z.string(),
+                  status: z.enum(["Allowed", "Degraded", "Blocked"]),
+                  latency: z.string(),
+                  throughput: z.string()
+                })
+                .strict()
+            )
+          })
+          .strict()
       })
       .strict(),
     aiInsights: z.array(insightSchema)

@@ -1,15 +1,76 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://aktsmm.github.io/azure-ops-pulse-demo/schemas/public/v1/network.schema.json",
-  "title": "Azure Ops Pulse masked network v1",
+  "title": "Azure Ops Pulse network inventory and telemetry v1",
   "type": "object",
-  "required": ["healthyConnections", "degradedConnections", "blockedFlows", "flows"],
+  "required": ["inventory", "telemetry"],
   "properties": {
-    "healthyConnections": { "type": "integer", "minimum": 0 },
-    "degradedConnections": { "type": "integer", "minimum": 0 },
-    "blockedFlows": { "type": "integer", "minimum": 0 },
-    "flows": { "type": "array" }
+    "inventory": {
+      "type": "object",
+      "required": ["total", "resources"],
+      "properties": {
+        "total": { "type": "integer", "minimum": 0 },
+        "resources": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["id", "name", "type", "region"],
+            "properties": {
+              "id": { "type": "string", "pattern": "^network-[0-9a-f]{8}$" },
+              "name": { "type": "string" },
+              "type": { "type": "string" },
+              "region": { "type": "string" }
+            },
+            "additionalProperties": false
+          }
+        }
+      },
+      "additionalProperties": false
+    },
+    "telemetry": {
+      "type": "object",
+      "required": [
+        "availability",
+        "message",
+        "healthyConnections",
+        "degradedConnections",
+        "blockedFlows",
+        "flows"
+      ],
+      "properties": {
+        "availability": { "enum": ["available", "partial", "unavailable"] },
+        "message": { "type": "string" },
+        "healthyConnections": { "type": ["integer", "null"], "minimum": 0 },
+        "degradedConnections": { "type": ["integer", "null"], "minimum": 0 },
+        "blockedFlows": { "type": ["integer", "null"], "minimum": 0 },
+        "flows": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": [
+              "id",
+              "source",
+              "destination",
+              "protocol",
+              "status",
+              "latency",
+              "throughput"
+            ],
+            "properties": {
+              "id": { "type": "string", "pattern": "^flow-[0-9a-f]{8}$" },
+              "source": { "type": "string" },
+              "destination": { "type": "string" },
+              "protocol": { "type": "string" },
+              "status": { "enum": ["Allowed", "Degraded", "Blocked"] },
+              "latency": { "type": "string" },
+              "throughput": { "type": "string" }
+            },
+            "additionalProperties": false
+          }
+        }
+      },
+      "additionalProperties": false
+    }
   },
   "additionalProperties": false
 }
-
