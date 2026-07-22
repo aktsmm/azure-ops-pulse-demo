@@ -1,0 +1,15 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://aktsmm.github.io/azure-ops-pulse-demo/schemas/public/v1/network.schema.json",
+  "title": "Azure Ops Pulse masked network v1",
+  "type": "object",
+  "required": ["healthyConnections", "degradedConnections", "blockedFlows", "flows"],
+  "properties": {
+    "healthyConnections": { "type": "integer", "minimum": 0 },
+    "degradedConnections": { "type": "integer", "minimum": 0 },
+    "blockedFlows": { "type": "integer", "minimum": 0 },
+    "flows": { "type": "array" }
+  },
+  "additionalProperties": false
+}
+

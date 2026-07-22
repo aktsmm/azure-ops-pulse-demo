@@ -1,0 +1,18 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://aktsmm.github.io/azure-ops-pulse-demo/schemas/public/v1/cost.schema.json",
+  "title": "Azure Ops Pulse public cost v1",
+  "description": "Contains approximate JPY labels, percentage changes, and normalized trends only.",
+  "type": "object",
+  "required": ["currentApproximate", "previousApproximate", "deltaPercent", "categories"],
+  "properties": {
+    "currentApproximate": { "type": "string", "pattern": "^(約¥|Unavailable)" },
+    "previousApproximate": { "type": "string", "pattern": "^(約¥|Unavailable)" },
+    "deltaPercent": { "type": "number" },
+    "forecastApproximate": { "type": "string", "pattern": "^(約¥|Unavailable)" },
+    "budgetUsedPercent": { "type": "number", "minimum": 0, "maximum": 100 },
+    "normalizedTrend": { "type": "array", "items": { "type": "number" } },
+    "categories": { "type": "array" }
+  },
+  "additionalProperties": false
+}
