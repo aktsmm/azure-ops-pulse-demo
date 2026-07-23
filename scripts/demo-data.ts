@@ -218,6 +218,7 @@ export function createDemoRawSnapshot(generatedAt = new Date().toISOString()): R
     ],
     reliability: {
       availability: "99.94%",
+      incidentAvailability: "available",
       incidents: 1,
       meanTimeToRecover: "38 min",
       services: [

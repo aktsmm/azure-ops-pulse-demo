@@ -231,6 +231,7 @@ describe("public sanitization boundary", () => {
     const raw = createDemoRawSnapshot();
     const resourceHealth = raw.sources.find((source) => source.source === "Resource Health")!;
     resourceHealth.availability = "unavailable";
+    raw.reliability.incidentAvailability = "available";
     raw.reliability.incidents = 0;
 
     const snapshot = sanitizeSnapshot(raw);
@@ -239,23 +240,40 @@ describe("public sanitization boundary", () => {
     expect(() => publicSnapshotSchema.parse(snapshot)).not.toThrow();
   });
 
-  it("preserves an observed zero incidents when Resource Health is available", () => {
+  it("preserves an actually collected zero incidents when the metric is available", () => {
     const raw = createDemoRawSnapshot();
+    raw.reliability.incidentAvailability = "available";
     raw.reliability.incidents = 0;
 
     const snapshot = sanitizeSnapshot(raw);
 
     expect(snapshot.reliability.incidents).toBe(0);
+    expect(snapshot.reliability.incidentAvailability).toBe("available");
     expect(() => publicSnapshotSchema.parse(snapshot)).not.toThrow();
   });
 
   it("keeps incidents null when Resource Health has no evaluated observations", () => {
     const raw = createDemoRawSnapshot();
+    raw.reliability.incidentAvailability = "unavailable";
     raw.reliability.incidents = null;
 
     const snapshot = sanitizeSnapshot(raw);
 
     expect(snapshot.reliability.incidents).toBeNull();
+    expect(snapshot.reliability.incidentAvailability).toBe("unavailable");
     expect(() => publicSnapshotSchema.parse(snapshot)).not.toThrow();
+  });
+
+  it("does not infer incidents from available Resource Health without a count source", () => {
+    const raw = createDemoRawSnapshot();
+    raw.reliability.incidentAvailability = "unavailable";
+    raw.reliability.incidents = 0;
+
+    const snapshot = sanitizeSnapshot(raw);
+
+    expect(snapshot.reliability).toMatchObject({
+      incidentAvailability: "unavailable",
+      incidents: null
+    });
   });
 });

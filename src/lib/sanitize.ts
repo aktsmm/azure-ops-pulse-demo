@@ -179,6 +179,10 @@ export function sanitizeSnapshot(raw: RawSnapshot): PublicSnapshotV1 {
   const resources = raw.resources.map(sanitizeResource);
   const resourceHealthAvailable =
     raw.sources.find((source) => source.source === "Resource Health")?.availability === "available";
+  const incidentsAvailable =
+    resourceHealthAvailable &&
+    raw.reliability.incidentAvailability === "available" &&
+    raw.reliability.incidents !== null;
   const defenderAvailable =
     raw.sources.find((source) => source.source === "Defender for Cloud")?.availability ===
     "available";
@@ -295,7 +299,8 @@ export function sanitizeSnapshot(raw: RawSnapshot): PublicSnapshotV1 {
     },
     reliability: {
       ...raw.reliability,
-      incidents: resourceHealthAvailable ? raw.reliability.incidents : null
+      incidentAvailability: incidentsAvailable ? "available" : "unavailable",
+      incidents: incidentsAvailable ? raw.reliability.incidents : null
     },
     security: {
       secureScore: defenderAvailable ? raw.security.secureScore : null,

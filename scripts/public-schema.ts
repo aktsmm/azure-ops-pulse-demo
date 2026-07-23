@@ -174,6 +174,7 @@ export const publicSnapshotSchema = z
     reliability: z
       .object({
         availability: z.string(),
+        incidentAvailability: z.enum(["available", "unavailable"]),
         incidents: z.number().nonnegative().nullable(),
         meanTimeToRecover: z.string(),
         services: z.array(
@@ -189,7 +190,16 @@ export const publicSnapshotSchema = z
             .strict()
         )
       })
-      .strict(),
+      .strict()
+      .superRefine((value, context) => {
+        if ((value.incidentAvailability === "available") !== (value.incidents !== null)) {
+          context.addIssue({
+            code: z.ZodIssueCode.custom,
+            path: ["incidents"],
+            message: "Incident availability must match the incidents value"
+          });
+        }
+      }),
     security: z
       .object({
         secureScore: z.number().min(0).max(100).nullable(),
@@ -276,11 +286,15 @@ export const publicSnapshotSchema = z
         message: "Resource Health posture must be null unless the source is available"
       });
     }
-    if (resourceHealth?.availability !== "available" && snapshot.reliability.incidents !== null) {
+    if (
+      resourceHealth?.availability !== "available" &&
+      (snapshot.reliability.incidentAvailability !== "unavailable" ||
+        snapshot.reliability.incidents !== null)
+    ) {
       context.addIssue({
         code: z.ZodIssueCode.custom,
         path: ["reliability", "incidents"],
-        message: "Reliability incidents must be null unless Resource Health is available"
+        message: "Reliability incidents must be unavailable unless Resource Health is available"
       });
     }
 

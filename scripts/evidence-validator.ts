@@ -44,6 +44,13 @@ function requireAvailableEvidenceSource(snapshot: unknown, sourcePath: string): 
   if (status?.availability !== "available") {
     throw new Error(`Evidence source ${requiredSource} is not available for ${sourcePath}`);
   }
+  if (
+    sourcePath === "reliability.incidents" &&
+    (snapshot as { reliability?: { incidentAvailability?: unknown } }).reliability
+      ?.incidentAvailability !== "available"
+  ) {
+    throw new Error(`Incident observations are not available for ${sourcePath}`);
+  }
 }
 
 export function validateEvidenceItem(

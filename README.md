@@ -72,13 +72,17 @@ syntactically valid IPv4 ranges, including RFC1918 and loopback addresses, are r
 ## Public data contract and privacy boundary
 
 The authoritative public JSON Schema for `schemaVersion: 1.2.0` is under
-[`schemas/public/v1.2`](schemas/public/v1.2), with matching runtime validation in
+[`schemas/public/v1.2`](schemas/public/v1.2). The immutable `1.1.0` contract is retained under
+[`schemas/public/v1.1`](schemas/public/v1.1) for historical consumers; there is no moving `v1`
+alias. The v1.2 schema has matching runtime validation in
 [`scripts/public-schema.ts`](scripts/public-schema.ts) and TypeScript contracts in
 [`src/data/contracts.ts`](src/data/contracts.ts). `npm run validate:data` validates the published
 snapshot against both contracts so nullable availability fields cannot drift.
 In v1.2, `overview.postureScore`, `reliability.incidents`, `security.secureScore`, and
 `security.activeAlerts` are nullable. `null` means uncollected or unevaluated; an available,
-evidence-backed measurement of zero remains numeric `0`.
+evidence-backed measurement of zero remains numeric `0`. `reliability.incidentAvailability`
+qualifies the incident metric separately from general Resource Health availability; the Azure
+collector publishes it as `unavailable` until a real incident-count source is implemented.
 
 | Data | Public representation |
 | --- | --- |

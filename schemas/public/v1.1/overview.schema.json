@@ -1,0 +1,14 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://aktsmm.github.io/azure-ops-pulse-demo/schemas/public/v1.1/overview.schema.json",
+  "title": "Azure Ops Pulse overview v1.1",
+  "type": "object",
+  "required": ["metrics", "postureScore", "eventTimeline", "regionalHealth"],
+  "properties": {
+    "metrics": { "type": "array" },
+    "postureScore": { "type": "number", "minimum": 0, "maximum": 100 },
+    "eventTimeline": { "type": "array" },
+    "regionalHealth": { "type": "array" }
+  },
+  "additionalProperties": false
+}

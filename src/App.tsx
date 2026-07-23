@@ -844,7 +844,7 @@ function ReliabilityPage({ data }: { data: PublicSnapshotV1 }) {
   const serviceHealthSource = data.sources.find((source) => source.source === "Service Health");
   const observedIncidents = metricWhenSourceAvailable(
     resourceHealthSource,
-    data.reliability.incidents
+    data.reliability.incidentAvailability === "available" ? data.reliability.incidents : null
   );
   const reliabilitySources = [resourceHealthSource, serviceHealthSource].filter(
     (source): source is NonNullable<typeof source> => source !== undefined
@@ -872,11 +872,11 @@ function ReliabilityPage({ data }: { data: PublicSnapshotV1 }) {
         />
         <MetricCard
           label="観測中の障害"
-          value={observedIncidents === null ? "未評価" : `${observedIncidents} 件`}
+          value={observedIncidents === null ? "未取得" : `${observedIncidents} 件`}
           note={
             observedIncidents === null
               ? resourceHealthSource?.availability === "available"
-                ? "評価済みの Resource Health 観測がありません"
+                ? "障害件数を取得する観測ソースは未実装です"
                 : resourceHealthSource
                   ? formatSourceMessage(resourceHealthSource)
                   : "Resource Health のソース状態がありません"

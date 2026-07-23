@@ -14,7 +14,10 @@ type MutableSnapshot = {
     availability: "available" | "partial" | "unavailable";
   }>;
   overview: { postureScore: number | null };
-  reliability: { incidents?: number | null };
+  reliability: {
+    incidentAvailability: "available" | "unavailable";
+    incidents?: number | null;
+  };
   security: {
     secureScore: number | null;
     activeAlerts: number | null;
@@ -40,16 +43,55 @@ describe("public JSON Schema contract", () => {
     snapshot.overview.postureScore = null;
     snapshot.security.secureScore = null;
     snapshot.security.activeAlerts = null;
+    snapshot.reliability.incidentAvailability = "unavailable";
     snapshot.reliability.incidents = null;
 
     expect(() => validatePublicJsonSchema(snapshot)).not.toThrow();
     expect(() => publicSnapshotSchema.parse(snapshot)).not.toThrow();
   });
 
-  it("rejects stale versions and missing reliability availability fields", () => {
+  it("rejects incident availability and value drift", () => {
+    const unavailableWithZero = currentSnapshot();
+    unavailableWithZero.reliability.incidentAvailability = "unavailable";
+    unavailableWithZero.reliability.incidents = 0;
+    expect(() => validatePublicJsonSchema(unavailableWithZero)).toThrow(/1\.2\.0/);
+    expect(() => publicSnapshotSchema.parse(unavailableWithZero)).toThrow();
+
+    const availableWithoutValue = currentSnapshot();
+    availableWithoutValue.reliability.incidentAvailability = "available";
+    availableWithoutValue.reliability.incidents = null;
+    expect(() => validatePublicJsonSchema(availableWithoutValue)).toThrow(/1\.2\.0/);
+    expect(() => publicSnapshotSchema.parse(availableWithoutValue)).toThrow();
+  });
+
+  it("preserves the historical non-null v1.1 schema identity", () => {
+    const snapshotSchema = JSON.parse(
+      readFileSync("schemas/public/v1.1/snapshot.schema.json", "utf8")
+    ) as {
+      $id: string;
+      properties: { schemaVersion: { const: string } };
+    };
+    const healthSchema = JSON.parse(
+      readFileSync("schemas/public/v1.1/health-activity.schema.json", "utf8")
+    ) as {
+      properties: { incidents: { type: string } };
+    };
+
+    expect(snapshotSchema.$id).toContain("/schemas/public/v1.1/");
+    expect(snapshotSchema.properties.schemaVersion.const).toBe("1.1.0");
+    expect(healthSchema.properties.incidents.type).toBe("integer");
+  });
+
+  it("rejects stale versions, wrong types, and missing reliability availability fields", () => {
     const stale = currentSnapshot();
     stale.schemaVersion = "1.1.0";
     expect(() => validatePublicJsonSchema(stale)).toThrow(/1\.2\.0/);
+
+    const wrongType = currentSnapshot() as unknown as {
+      reliability: { incidents: unknown };
+    };
+    wrongType.reliability.incidents = "0";
+    expect(() => validatePublicJsonSchema(wrongType)).toThrow(/1\.2\.0/);
 
     const missingIncidents = currentSnapshot();
     delete missingIncidents.reliability.incidents;

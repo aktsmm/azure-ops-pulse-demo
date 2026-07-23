@@ -93,7 +93,10 @@
           },
           "reliability": {
             "type": "object",
-            "properties": { "incidents": { "type": "null" } }
+            "properties": {
+              "incidentAvailability": { "const": "unavailable" },
+              "incidents": { "type": "null" }
+            }
           }
         }
       }

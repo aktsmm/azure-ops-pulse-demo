@@ -1,0 +1,15 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://aktsmm.github.io/azure-ops-pulse-demo/schemas/public/v1.1/defender.schema.json",
+  "title": "Azure Ops Pulse Defender aggregate v1.1",
+  "description": "Recommendation titles and aggregate counts only; no assets or exploit detail.",
+  "type": "object",
+  "required": ["secureScore", "activeAlerts", "recommendations", "compliance"],
+  "properties": {
+    "secureScore": { "type": "number", "minimum": 0, "maximum": 100 },
+    "activeAlerts": { "type": "integer", "minimum": 0 },
+    "recommendations": { "type": "array" },
+    "compliance": { "type": "array" }
+  },
+  "additionalProperties": false
+}
