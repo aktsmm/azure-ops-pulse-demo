@@ -1,5 +1,5 @@
 {
-  "schemaVersion": "1.1.0",
+  "schemaVersion": "1.2.0",
   "generatedAt": "2026-07-23T05:27:06.878Z",
   "mode": "AZURE",
   "freshness": {
@@ -97,7 +97,7 @@
         ]
       }
     ],
-    "postureScore": 0,
+    "postureScore": null,
     "eventTimeline": [
       {
         "id": "event-55b8dadb",
@@ -952,7 +952,7 @@
     "services": []
   },
   "security": {
-    "secureScore": 0,
+    "secureScore": null,
     "activeAlerts": 0,
     "recommendations": [],
     "compliance": []

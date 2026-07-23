@@ -102,6 +102,11 @@ function percent(value: unknown, fallback = 0): number {
   return Number.isFinite(number) ? number : fallback;
 }
 
+function optionalNumber(value: unknown): number | null {
+  const number = Number(value);
+  return value !== null && value !== undefined && Number.isFinite(number) ? number : null;
+}
+
 function queryCostPeriod(
   subscriptionId: string,
   start: Date,
@@ -224,10 +229,10 @@ const security = optionalSource(
     )[0]?.count_;
     return {
       assessments,
-      subassessmentCount: percent(subassessmentCount),
+      subassessmentCount: optionalNumber(subassessmentCount),
       controls,
-      alertCount: percent(alertCount),
-      regulatoryCount: percent(regulatoryCount)
+      alertCount: optionalNumber(alertCount),
+      regulatoryCount: optionalNumber(regulatoryCount)
     };
   },
   "Defender assessments, subassessment counts, secure score controls, alerts, and compliance aggregates were collected.",
@@ -380,7 +385,7 @@ const recommendations = [...recommendationCounts.values()].slice(0, 12);
 const secureScoreValues = (security.value?.controls ?? [])
   .map((item) => percent(item.percentageScore, Number.NaN))
   .filter(Number.isFinite);
-const secureScore = secureScoreValues.length
+const secureScore: number | null = secureScoreValues.length
   ? Math.max(
       0,
       Math.min(
@@ -390,7 +395,7 @@ const secureScore = secureScoreValues.length
         )
       )
     )
-  : 0;
+  : null;
 
 const unavailableCount = [
   health.status,
@@ -446,14 +451,20 @@ const raw: RawSnapshot = {
       severity: costStatus.availability === "available" ? "healthy" : "warning",
       points: [1, 1]
     },
-    {
-      label: "Defender recommendations",
-      value: String(recommendations.filter((item) => item.status === "Open").length),
-      change: "Aggregate titles only",
-      direction: "flat",
-      severity: recommendations.some((item) => item.severity === "critical") ? "warning" : "info",
-      points: [recommendations.length, recommendations.length]
-    },
+    ...(security.status.availability === "available"
+      ? [
+          {
+            label: "Defender recommendations",
+            value: String(recommendations.filter((item) => item.status === "Open").length),
+            change: "Aggregate titles only",
+            direction: "flat" as const,
+            severity: recommendations.some((item) => item.severity === "critical")
+              ? ("warning" as const)
+              : ("info" as const),
+            points: [recommendations.length, recommendations.length]
+          }
+        ]
+      : []),
     {
       label: "Unavailable sources",
       value: String(unavailableCount),
@@ -463,7 +474,7 @@ const raw: RawSnapshot = {
       points: [unavailableCount, unavailableCount]
     }
   ],
-  postureScore: healthPercent ?? 0,
+  postureScore: healthPercent,
   events: [
     {
       id: "collection-complete",
@@ -535,10 +546,13 @@ const raw: RawSnapshot = {
   },
   security: {
     secureScore,
-    activeAlerts: security.value?.alertCount ?? 0,
+    activeAlerts: security.value?.alertCount ?? null,
     recommendations,
     compliance:
-      security.value && security.value.regulatoryCount > 0
+      security.value &&
+      security.value.regulatoryCount !== null &&
+      security.value.regulatoryCount > 0 &&
+      secureScore !== null
         ? [{ framework: "Regulatory compliance aggregate", score: secureScore }]
         : []
   },

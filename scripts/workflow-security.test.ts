@@ -31,6 +31,21 @@ function getUploadBlocks(workflow: string): string[] {
 }
 
 describe("AI insight publication gate", () => {
+  it("scans the Azure collection candidate before promotion and PR creation", () => {
+    const workflow = readFileSync(".github/workflows/collect-azure.yml", "utf8");
+    const collection = workflow.indexOf("Collect directly into a sanitized candidate");
+    const validation = workflow.indexOf("Validate candidate schema, evidence, and privacy");
+    const privacyScan = workflow.indexOf("privacy-scan.ts .candidate");
+    const promotion = workflow.indexOf("Promote candidate in the ephemeral checkout");
+    const pullRequest = workflow.indexOf("Open review-gated snapshot pull request");
+
+    expect(collection).toBeGreaterThan(-1);
+    expect(validation).toBeGreaterThan(collection);
+    expect(privacyScan).toBeGreaterThan(validation);
+    expect(promotion).toBeGreaterThan(privacyScan);
+    expect(pullRequest).toBeGreaterThan(promotion);
+  });
+
   it("pins the compiler and compiles no public agent mutation", () => {
     const source = readFileSync(".github/workflows/ai-insights.md", "utf8");
     const lock = readFileSync(".github/workflows/ai-insights.lock.yml", "utf8");

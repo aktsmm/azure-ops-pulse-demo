@@ -48,4 +48,38 @@ describe("AI numeric evidence validation", () => {
       )
     ).not.toThrow();
   });
+
+  it("rejects a default zero from an unavailable source", () => {
+    expect(() =>
+      validateEvidenceItem(
+        {
+          sources: [
+            {
+              source: "Defender for Cloud",
+              availability: "unavailable",
+              message: "Unavailable."
+            }
+          ],
+          security: { secureScore: 0 }
+        },
+        "Unavailable Defender evidence",
+        { label: "Secure score", value: "0%", source: "security.secureScore" }
+      )
+    ).toThrow(/Defender for Cloud is not available/);
+  });
+
+  it("rejects null posture as numeric evidence", () => {
+    expect(() =>
+      validateEvidenceItem(
+        {
+          sources: [
+            { source: "Resource Health", availability: "available", message: "Collected." }
+          ],
+          overview: { postureScore: null }
+        },
+        "Unknown health evidence",
+        { label: "Health", value: "0%", source: "overview.postureScore" }
+      )
+    ).toThrow(/invalid scalar source/);
+  });
 });

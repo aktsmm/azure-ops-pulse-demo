@@ -110,13 +110,14 @@ Each insight must contain:
 2. Make no root-cause claim unless the snapshot directly proves it. Prefer correlation and bounded
    language such as "may", "is associated with", or "warrants review".
 3. Never invent metrics, identifiers, asset names, endpoints, users, costs, or Defender details.
-4. Do not recommend or execute Azure remediation. Recommend human review and a dashboard route.
-5. Do not add exact JPY amounts. Use only existing approximate labels and percentages.
-6. Do not alter identifiers, resource rows, source status, freshness, or any field outside
+4. Never cite a `null` value or any metric whose corresponding source is `partial` or `unavailable`.
+5. Do not recommend or execute Azure remediation. Recommend human review and a dashboard route.
+6. Do not add exact JPY amounts. Use only existing approximate labels and percentages.
+7. Do not alter identifiers, resource rows, source status, freshness, or any field outside
    `aiInsights`.
-7. Run `npm run validate:insights` and `npm run scan:privacy -- public`.
-8. If validation fails or the evidence is insufficient, leave the existing insights unchanged.
-9. Do not request or emit a safe output. gh-aw requires a non-builtin safe output to avoid
+8. Run `npm run validate:insights` and `npm run scan:privacy -- public`.
+9. If validation fails or the evidence is insufficient, leave the existing insights unchanged.
+10. Do not request or emit a safe output. gh-aw requires a non-builtin safe output to avoid
    auto-injecting `create_issue`, so the only configured capability is a staged, non-publishing
    artifact restricted to the already-sanitized snapshot path. It is not the
    `validated-ai-insights` handoff. The deterministic bounded post-step owns that exact artifact,

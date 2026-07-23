@@ -2,6 +2,7 @@ import { z } from "zod";
 
 const severity = z.enum(["critical", "warning", "healthy", "info"]);
 const statusBadge = z.enum(["Healthy", "Degraded", "Unavailable", "Unknown"]);
+const defenderMetricLabels = new Set(["Defender recommendations", "Open alerts"]);
 const costAmountSchema = z
   .object({
     availability: z.enum(["available", "unavailable"]),
@@ -69,7 +70,7 @@ export const insightSchema = z
 
 export const publicSnapshotSchema = z
   .object({
-    schemaVersion: z.literal("1.1.0"),
+    schemaVersion: z.literal("1.2.0"),
     generatedAt: z.string().datetime(),
     mode: z.enum(["DEMO", "AZURE"]),
     freshness: z
@@ -110,7 +111,7 @@ export const publicSnapshotSchema = z
             })
             .strict()
         ),
-        postureScore: z.number().min(0).max(100),
+        postureScore: z.number().min(0).max(100).nullable(),
         eventTimeline: z.array(
           z
             .object({
@@ -191,8 +192,8 @@ export const publicSnapshotSchema = z
       .strict(),
     security: z
       .object({
-        secureScore: z.number().min(0).max(100),
-        activeAlerts: z.number().nonnegative(),
+        secureScore: z.number().min(0).max(100).nullable(),
+        activeAlerts: z.number().nonnegative().nullable(),
         recommendations: z.array(
           z
             .object({
@@ -265,4 +266,30 @@ export const publicSnapshotSchema = z
       .strict(),
     aiInsights: z.array(insightSchema)
   })
-  .strict();
+  .strict()
+  .superRefine((snapshot, context) => {
+    const resourceHealth = snapshot.sources.find((source) => source.source === "Resource Health");
+    if (resourceHealth?.availability !== "available" && snapshot.overview.postureScore !== null) {
+      context.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ["overview", "postureScore"],
+        message: "Resource Health posture must be null unless the source is available"
+      });
+    }
+
+    const defender = snapshot.sources.find((source) => source.source === "Defender for Cloud");
+    if (
+      defender?.availability !== "available" &&
+      (snapshot.security.secureScore !== null ||
+        snapshot.security.activeAlerts !== null ||
+        snapshot.security.recommendations.length > 0 ||
+        snapshot.security.compliance.length > 0 ||
+        snapshot.overview.metrics.some((metric) => defenderMetricLabels.has(metric.label)))
+    ) {
+      context.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ["security"],
+        message: "Unavailable or partial Defender data must not expose aggregate values"
+      });
+    }
+  });

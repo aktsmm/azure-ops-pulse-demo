@@ -30,8 +30,8 @@ export function createDemoRawSnapshot(generatedAt = new Date().toISOString()): R
       },
       {
         source: "Defender for Cloud",
-        availability: "partial",
-        message: "Recommendations and aggregate counts; advanced plan data omitted."
+        availability: "available",
+        message: "Synthetic recommendations and aggregate counts were collected."
       },
       {
         source: "Network inventory",

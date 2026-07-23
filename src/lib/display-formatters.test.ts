@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
   formatDateTimeJa,
   formatEventTimestamp,
+  metricWhenSourceAvailable,
   resourceStatusLabel,
   resourceStatusSeverity,
   summarizeResourceHealth
@@ -34,5 +35,26 @@ describe("Japanese display formatters", () => {
   it("formats snapshot timestamps in ja-JP and handles collection labels", () => {
     expect(formatDateTimeJa("2026-07-23T05:27:06.878Z")).toContain("2026");
     expect(formatEventTimestamp("Current snapshot")).toBe("現在のスナップショット");
+  });
+
+  it("shows source metrics only when available while preserving a real zero", () => {
+    expect(
+      metricWhenSourceAvailable(
+        { source: "Defender for Cloud", availability: "available", message: "Collected." },
+        0
+      )
+    ).toBe(0);
+    expect(
+      metricWhenSourceAvailable(
+        { source: "Defender for Cloud", availability: "partial", message: "Partial." },
+        0
+      )
+    ).toBeNull();
+    expect(
+      metricWhenSourceAvailable(
+        { source: "Defender for Cloud", availability: "unavailable", message: "Unavailable." },
+        0
+      )
+    ).toBeNull();
   });
 });

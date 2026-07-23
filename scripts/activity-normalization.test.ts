@@ -14,18 +14,36 @@ describe("Activity Log operation normalization", () => {
     ).toBe("リソース グループの作成または更新");
   });
 
-  it("uses a string category when operationName is absent", () => {
-    expect(normalizeActivityOperationLabel({ category: "Administrative" })).toBe("Administrative");
+  it("uses a privacy-safe category label when operationName is absent", () => {
+    expect(normalizeActivityOperationLabel({ category: "Administrative" })).toBe("管理操作");
   });
 
-  it("never stringifies objects or publishes sensitive tokens", () => {
+  it("never stringifies objects", () => {
     expect(normalizeActivityOperationLabel({ category: { value: { nested: true } } })).toBe(
-      "Azure 操作"
+      "変更操作"
     );
+  });
+
+  it.each([
+    "payroll-prod-secret の作成",
+    "本番顧客DBを削除",
+    "2001:db8::1234 の削除",
+    "Delete admin@example.com",
+    "Update 01234567-89ab-cdef-0123-456789abcdef",
+    "Create payroll-prod-secret.example.com",
+    "Delete 203.0.113.42"
+  ])("never publishes arbitrary operation text: %s", (operationName) => {
+    const label = normalizeActivityOperationLabel({ operationName });
+    expect(label).toBe("変更操作");
+    expect(operationName).not.toContain(label);
+  });
+
+  it("falls back to an allowlisted category without exposing an unknown operation", () => {
     expect(
       normalizeActivityOperationLabel({
-        operationName: "Update 01234567-89ab-cdef-0123-456789abcdef"
+        category: { value: "Security", localizedValue: "セキュリティ" },
+        operationName: "Delete payroll-prod-secret"
       })
-    ).toBe("Azure 操作");
+    ).toBe("セキュリティ操作");
   });
 });

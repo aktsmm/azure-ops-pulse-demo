@@ -32,6 +32,13 @@ export function availabilitySeverity(availability: Availability): Severity {
   return "info";
 }
 
+export function metricWhenSourceAvailable<T>(
+  source: SourceStatus | undefined,
+  value: T | null
+): T | null {
+  return source?.availability === "available" ? value : null;
+}
+
 export function resourceStatusLabel(status: ResourceItem["status"]): string {
   if (status === "Healthy") return "正常";
   if (status === "Degraded") return "低下";
