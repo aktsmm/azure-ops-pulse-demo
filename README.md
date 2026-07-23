@@ -145,7 +145,7 @@ gh aw lint .github/workflows/ai-insights.lock.yml
 The agent:
 
 - receives only `public/data/snapshot.json`;
-- has read-only repository permissions;
+- has read-only repository-data permissions plus `copilot-requests: write` for inference;
 - must use existing numeric evidence and bounded language;
 - cannot call Azure or perform remediation;
 - may change only the `aiInsights` field in the one allowlisted file;
@@ -159,8 +159,10 @@ installs trusted dependencies from scratch, downloads only the candidate JSON, a
 deterministic gate. It then emits a one-day trusted artifact. A separate publication job receives
 write permissions only after validation succeeds and may open a **draft pull request** for human
 review. The compiled agent workflow has no issue, discussion, comment, pull-request, or repository-content
-write permission. `npm run compile:ai-insights` downloads and checksum-verifies the exact gh-aw
-v0.82.14 release without changing the globally installed extension, then performs strict compilation.
+write permission. Its sole write scope is `copilot-requests: write`, which lets gh-aw use the
+ephemeral `GITHUB_TOKEN` for Copilot inference instead of a `COPILOT_GITHUB_TOKEN` PAT.
+`npm run compile:ai-insights` downloads and checksum-verifies the exact gh-aw v0.82.14 release without
+changing the globally installed extension, then performs strict compilation.
 gh-aw still auto-injects `create_issue` when no non-builtin safe output exists, so this workflow keeps
 one staged `upload-artifact` capability that cannot publish a final artifact and is not consumed by
 the publisher. The publisher downloads only the exact `validated-ai-insights` artifact from the exact
@@ -175,6 +177,7 @@ every mandatory upload, so the deterministic post-compile hardener sets every ge
 exactly one regular non-symlink `public/data/snapshot.json` no larger than 1,048,576 bytes.
 
 References: [gh-aw v0.82.14 release](https://github.com/github/gh-aw/releases/tag/v0.82.14),
+[gh-aw v0.82.14 Copilot billing and keyless authentication](https://github.com/github/gh-aw/blob/v0.82.14/docs/src/content/docs/reference/billing.md),
 [mandatory unified artifact compiler](https://github.com/github/gh-aw/blob/v0.82.14/pkg/workflow/compiler_yaml_artifacts.go),
 and [default safe-output injection](https://github.com/github/gh-aw/blob/v0.82.14/pkg/workflow/safe_outputs_state.go).
 
@@ -185,10 +188,12 @@ run:
 gh aw audit <run-id-or-url> --parse
 ```
 
-GitHub Agentic Workflows is a public-preview capability. Repository owners must configure the
-Copilot engine secret/access required by the installed `gh-aw` version and accept preview terms.
-Automated merging is intentionally disabled: generated public data requires review, and Pages
-validates the merged snapshot again before deployment.
+GitHub Agentic Workflows is a public-preview capability. No Copilot PAT secret is required for this
+workflow. The organization must support centralized Copilot billing and allow organization-billed
+Copilot CLI requests in its Copilot policies; otherwise the workflow exposes the resulting
+authentication or billing error rather than falling back to a PAT. Automated merging is intentionally
+disabled: generated public data requires review, and Pages validates the merged snapshot again before
+deployment.
 
 ## GitHub Pages and CI
 

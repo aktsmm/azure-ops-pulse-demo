@@ -5,6 +5,7 @@ import { resolve } from "node:path";
 const LOCK_PATH = resolve(".github/workflows/ai-insights.lock.yml");
 export const GH_AW_VERSION = "v0.82.14";
 export const GH_AW_SETUP_SHA = "b6d1443e05b8716267fa19425b99aa4f12006b4a";
+const MANIFEST_PREFIX = "# gh-aw-manifest: ";
 const JOB_HEADER = /^ {2}[A-Za-z0-9_-]+:\s*$/;
 const STEP_HEADER = /^ {6}- /;
 
@@ -65,9 +66,41 @@ function getUploadBlocks(content: string): string[] {
   return blocks;
 }
 
+function removeLegacyCopilotSecretDeclaration(lines: string[]): void {
+  const manifestIndex = lines.findIndex((line) => line.startsWith(MANIFEST_PREFIX));
+  if (manifestIndex === -1) throw new Error("Generated workflow is missing the gh-aw manifest");
+
+  const manifest = JSON.parse(lines[manifestIndex]!.slice(MANIFEST_PREFIX.length)) as {
+    secrets?: unknown;
+  };
+  if (!Array.isArray(manifest.secrets)) {
+    throw new Error("Generated workflow manifest must contain a secrets array");
+  }
+  manifest.secrets = manifest.secrets.filter((secret) => secret !== "COPILOT_GITHUB_TOKEN");
+  lines[manifestIndex] = `${MANIFEST_PREFIX}${JSON.stringify(manifest)}`;
+
+  for (let index = lines.length - 1; index >= 0; index -= 1) {
+    if (
+      lines[index] === "#   - COPILOT_GITHUB_TOKEN" ||
+      lines[index]?.trim() === "COPILOT_GITHUB_TOKEN: ${{ secrets.COPILOT_GITHUB_TOKEN }}"
+    ) {
+      lines.splice(index, 1);
+    }
+  }
+}
+
+function removeLegacyCopilotSecretConclusionCheck(lines: string[]): void {
+  const staleCheck = "needs.activation.outputs.secret_verification_result == 'failed' || ";
+  const index = lines.findIndex((line) => line.includes(staleCheck));
+  if (index === -1) return;
+  lines[index] = lines[index]!.replace(staleCheck, "");
+}
+
 export function hardenAgentWorkflowLock(content: string): string {
   const lines = content.replace(/\r\n/g, "\n").replace(/\n$/, "").split("\n");
 
+  removeLegacyCopilotSecretDeclaration(lines);
+  removeLegacyCopilotSecretConclusionCheck(lines);
   const uploadCount = enforceOneDayUploadRetention(lines);
 
   while (lines.at(-1) === "") lines.pop();
@@ -82,8 +115,15 @@ export function hardenAgentWorkflowLock(content: string): string {
   ) {
     throw new Error(`AI workflow setup action must be pinned to gh-aw ${GH_AW_VERSION}`);
   }
+  if (!hardened.includes("copilot-requests: write")) {
+    throw new Error("Compiled AI workflow must use keyless Copilot authentication");
+  }
+  if (!hardened.includes("COPILOT_GITHUB_TOKEN: ${{ github.token }}")) {
+    throw new Error("Copilot inference must use the ephemeral GitHub Actions token");
+  }
 
   const forbidden = [
+    "${{ secrets.COPILOT_GITHUB_TOKEN }}",
     "create_issue",
     "issues: write",
     "pull-requests: write",
