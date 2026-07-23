@@ -67,6 +67,25 @@ const NAV_ITEMS = [
   { path: "/ai-insights", label: "AI 分析", icon: Sparkles }
 ];
 
+const RELATED_DEMOS = [
+  {
+    label: "M365 Message Center Dashboard",
+    href: "https://aktsmm.github.io/m365-message-center-dashboard/"
+  },
+  {
+    label: "M365 Copilot Update Digest",
+    href: "https://aktsmm.github.io/m365-copilot-update-digest/"
+  },
+  {
+    label: "Daily Dev Byte",
+    href: "https://aktsmm.github.io/daily-dev-byte/"
+  },
+  {
+    label: "VS Code Copilot Digest",
+    href: "https://aktsmm.github.io/vscode-copilot-digest/index.html"
+  }
+];
+
 const TITLES: Record<string, { title: string; subtitle: string }> = {
   "/overview": {
     title: "運用概要",
@@ -1649,6 +1668,18 @@ function AppShell({ data }: { data: PublicSnapshotV1 }) {
             </span>
           </div>
         </header>
+        <nav className="demo-navigation" aria-label="関連デモ">
+          <span className="demo-navigation-label">デモ</span>
+          <span className="demo-navigation-current" aria-current="page">
+            Azure Ops Pulse
+            <span className="sr-only">（現在のページ）</span>
+          </span>
+          {RELATED_DEMOS.map((demo) => (
+            <a href={demo.href} key={demo.href}>
+              {demo.label}
+            </a>
+          ))}
+        </nav>
         <main>
           <div className="page-heading">
             <div>

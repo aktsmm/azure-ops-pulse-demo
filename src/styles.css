@@ -347,6 +347,55 @@ h3 {
   font-size: 11px;
 }
 
+.demo-navigation {
+  position: sticky;
+  top: 60px;
+  z-index: 19;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 48px;
+  overflow-x: auto;
+  padding: 7px 22px;
+  border-bottom: 1px solid var(--cp-border);
+  background: var(--cp-panel-strong);
+  scrollbar-width: thin;
+}
+
+.demo-navigation-label {
+  flex: 0 0 auto;
+  color: var(--cp-text-muted);
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.demo-navigation-current,
+.demo-navigation a {
+  display: inline-flex;
+  flex: 0 0 auto;
+  align-items: center;
+  min-height: 31px;
+  padding: 5px 9px;
+  border: 1px solid var(--cp-border);
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 700;
+  text-decoration: none;
+  white-space: nowrap;
+}
+
+.demo-navigation-current {
+  border-color: var(--cp-border-strong);
+  background: var(--cp-surface-soft);
+  color: var(--cp-text);
+}
+
+.demo-navigation a:hover {
+  border-color: var(--cp-border-strong);
+  background: var(--cp-surface-soft);
+  color: var(--cp-text);
+}
+
 .icon-button,
 .menu-button,
 .mobile-close {
@@ -1804,6 +1853,10 @@ td small {
 @media (max-width: 680px) {
   .topbar {
     padding: 8px 12px;
+  }
+
+  .demo-navigation {
+    padding: 7px 12px;
   }
 
   .scope-control {
