@@ -1,4 +1,4 @@
-import { existsSync, readFileSync } from "node:fs";
+import { existsSync, lstatSync, readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import Ajv2020 from "ajv/dist/2020.js";
 import addFormats from "ajv-formats";
@@ -27,6 +27,16 @@ type MutableSnapshot = {
   };
 };
 
+const LEGACY_SCHEMA_FILES = [
+  "overview.schema.json",
+  "cost.schema.json",
+  "inventory.schema.json",
+  "health-activity.schema.json",
+  "defender.schema.json",
+  "network.schema.json",
+  "ai-insights.schema.json"
+] as const;
+
 function currentSnapshot(): MutableSnapshot {
   return JSON.parse(readFileSync("public/data/snapshot.json", "utf8")) as MutableSnapshot;
 }
@@ -35,15 +45,7 @@ function validateLegacyV1Snapshot(snapshot: unknown): void {
   const directory = resolve("schemas/public/v1");
   const ajv = new Ajv2020({ allErrors: true, strict: false });
   addFormats(ajv);
-  for (const schemaFile of [
-    "overview.schema.json",
-    "cost.schema.json",
-    "inventory.schema.json",
-    "health-activity.schema.json",
-    "defender.schema.json",
-    "network.schema.json",
-    "ai-insights.schema.json"
-  ]) {
+  for (const schemaFile of LEGACY_SCHEMA_FILES) {
     ajv.addSchema(JSON.parse(readFileSync(resolve(directory, schemaFile), "utf8")) as object);
   }
   const validate = ajv.compile(
@@ -147,9 +149,18 @@ describe("public JSON Schema contract", () => {
 
   it("preserves the published v1 path and validates its legacy 1.1 contract", () => {
     const legacyPath = "schemas/public/v1/snapshot.schema.json";
+    const explicitLegacyPath = "schemas/public/v1.1/snapshot.schema.json";
     const currentPath = "schemas/public/v1.2/snapshot.schema.json";
     expect(existsSync(legacyPath)).toBe(true);
+    expect(existsSync(explicitLegacyPath)).toBe(true);
     expect(existsSync(currentPath)).toBe(true);
+    for (const schemaFile of [...LEGACY_SCHEMA_FILES, "snapshot.schema.json"]) {
+      const compatibilityPath = `schemas/public/v1/${schemaFile}`;
+      const versionedPath = `schemas/public/v1.1/${schemaFile}`;
+      expect(lstatSync(compatibilityPath).isSymbolicLink()).toBe(false);
+      expect(lstatSync(versionedPath).isSymbolicLink()).toBe(false);
+      expect(readFileSync(compatibilityPath)).toEqual(readFileSync(versionedPath));
+    }
 
     const legacySchema = JSON.parse(
       readFileSync(legacyPath, "utf8")
