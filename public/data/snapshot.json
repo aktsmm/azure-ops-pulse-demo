@@ -53,11 +53,11 @@
   "overview": {
     "metrics": [
       {
-        "label": "Resources healthy",
+        "label": "Resource Health coverage",
         "value": "0%",
-        "change": "56 monitored",
+        "change": "0 of 56 evaluated",
         "direction": "flat",
-        "severity": "warning",
+        "severity": "info",
         "points": [
           0,
           0
@@ -68,7 +68,7 @@
         "value": "Available",
         "change": "Rounded public view",
         "direction": "flat",
-        "severity": "healthy",
+        "severity": "info",
         "points": [
           1,
           1
@@ -79,7 +79,7 @@
         "value": "0",
         "change": "Aggregate titles only",
         "direction": "flat",
-        "severity": "healthy",
+        "severity": "info",
         "points": [
           0,
           0
@@ -103,85 +103,44 @@
         "id": "event-55b8dadb",
         "timestamp": "Current snapshot",
         "severity": "healthy",
-        "title": "Azure collection completed",
-        "detail": "56 resources sanitized; 0 optional sources unavailable.",
+        "title": "Azure データ収集が完了",
+        "detail": "56 件のリソースをサニタイズし、利用不可の任意ソースは 0 件でした。",
         "route": "/overview"
       },
       {
         "id": "event-cd198459",
         "timestamp": "2026-07-23T05:07:21.3424768Z",
         "severity": "info",
-        "title": "[object Object] activity observed",
-        "detail": "Actor, resource, and operation details were removed before publication.",
+        "title": "Azure 操作を検出",
+        "detail": "公開前に実行者と対象リソースの詳細を削除しています。",
         "route": "/overview"
       },
       {
         "id": "event-cc1982c6",
         "timestamp": "2026-07-23T05:07:19.7174697Z",
         "severity": "info",
-        "title": "[object Object] activity observed",
-        "detail": "Actor, resource, and operation details were removed before publication.",
+        "title": "Azure 操作を検出",
+        "detail": "公開前に実行者と対象リソースの詳細を削除しています。",
         "route": "/overview"
       },
       {
         "id": "event-cb198133",
         "timestamp": "2026-07-23T05:07:11.682943Z",
         "severity": "info",
-        "title": "[object Object] activity observed",
-        "detail": "Actor, resource, and operation details were removed before publication.",
+        "title": "Azure 操作を検出",
+        "detail": "公開前に実行者と対象リソースの詳細を削除しています。",
         "route": "/overview"
       },
       {
         "id": "event-ca197fa0",
         "timestamp": "2026-07-23T05:07:08.6828606Z",
         "severity": "info",
-        "title": "[object Object] activity observed",
-        "detail": "Actor, resource, and operation details were removed before publication.",
+        "title": "Azure 操作を検出",
+        "detail": "公開前に実行者と対象リソースの詳細を削除しています。",
         "route": "/overview"
       }
     ],
-    "regionalHealth": [
-      {
-        "region": "global",
-        "score": 0,
-        "status": "warning"
-      },
-      {
-        "region": "japaneast",
-        "score": 0,
-        "status": "warning"
-      },
-      {
-        "region": "southeastasia",
-        "score": 0,
-        "status": "warning"
-      },
-      {
-        "region": "eastasia",
-        "score": 0,
-        "status": "warning"
-      },
-      {
-        "region": "eastus",
-        "score": 0,
-        "status": "warning"
-      },
-      {
-        "region": "germanywestcentral",
-        "score": 0,
-        "status": "warning"
-      },
-      {
-        "region": "japanwest",
-        "score": 0,
-        "status": "warning"
-      },
-      {
-        "region": "southcentralus",
-        "score": 0,
-        "status": "warning"
-      }
-    ]
+    "regionalHealth": []
   },
   "cost": {
     "current": {
@@ -987,7 +946,7 @@
     ]
   },
   "reliability": {
-    "availability": "0%",
+    "availability": "Unavailable from public snapshot",
     "incidents": 0,
     "meanTimeToRecover": "Unavailable from public snapshot",
     "services": []
@@ -1051,37 +1010,37 @@
     {
       "id": "insight-a1f3c2e4",
       "severity": "warning",
-      "title": "Period-over-period cost nearly doubled",
-      "observation": "Total spend increased approximately 92.3% compared with the prior comparable period. The snapshot provides no forecast or budget threshold, so the full exposure cannot be bounded.",
-      "impact": "Sustained cost growth at this rate is associated with budget overruns. Human review of spend drivers is warranted before the next billing period closes.",
+      "title": "比較可能な前期間からコストが約 92.3% 増加",
+      "observation": "現在期間の合計支出は、比較可能な前期間から約 92.3% 増加しました。予測値と予算しきい値はスナップショットに含まれないため、影響範囲の上限は判断できません。",
+      "impact": "この増加が継続した場合、予算への影響が大きくなる可能性があります。次の請求期間が終了する前に、支出要因を人が確認する必要があります。",
       "numericEvidence": [
         {
-          "label": "Cost period-over-period delta (%)",
+          "label": "期間コストの前期間比 (%)",
           "value": "92.3",
           "source": "cost.deltaPercent"
         }
       ],
-      "recommendedAction": "Review the Cost Management dashboard for spend breakdown by service. Verify whether recent capacity or tier changes were planned.",
+      "recommendedAction": "Cost Management ダッシュボードでサービス別の支出内訳を確認し、最近の容量または価格レベルの変更が計画されたものかを確認してください。",
       "confidence": 0.85,
-      "period": "Current vs prior comparable period",
+      "period": "現在期間と比較可能な前期間",
       "route": "/cost"
     },
     {
       "id": "insight-4e1b7a3f",
       "severity": "info",
-      "title": "Network telemetry unavailable for all 7 network watchers",
-      "observation": "Seven Network Watcher resources are present across 7 regions, but flow telemetry was not collected. The snapshot notes that network resource existence is not interpreted as connection health.",
-      "impact": "Without flow telemetry, network-level anomalies such as blocked or degraded connections cannot be detected from this snapshot. Coverage gaps may obscure security or connectivity issues.",
+      "title": "7 件の Network Watcher でフロー テレメトリが未収集",
+      "observation": "7 リージョンに 7 件の Network Watcher リソースがありますが、フロー テレメトリは収集されていません。ネットワーク リソースの存在は接続状態として解釈しないことがスナップショットに明記されています。",
+      "impact": "フロー テレメトリがないため、このスナップショットだけではブロックまたは低下した接続などのネットワーク異常を検出できません。収集範囲外のセキュリティや接続状況は判断できません。",
       "numericEvidence": [
         {
-          "label": "Network Watcher resources present",
+          "label": "Network Watcher リソース数",
           "value": "7",
           "source": "network.inventory.total"
         }
       ],
-      "recommendedAction": "Review Network Watcher flow log configuration and ensure NSG flow logs or traffic analytics are enabled for key subnets. Check the /network route for details.",
+      "recommendedAction": "Network Watcher のフロー ログ設定を確認し、主要サブネットで NSG フロー ログまたは Traffic Analytics の収集設定を確認してください。詳細はネットワーク画面で確認できます。",
       "confidence": 0.7,
-      "period": "Current snapshot",
+      "period": "現在のスナップショット",
       "route": "/network"
     }
   ]

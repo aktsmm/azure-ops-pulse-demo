@@ -11,9 +11,9 @@ snapshot through GitHub Actions OIDC.
 
 ## Dashboard
 
-- Seven responsive pages: Overview, Cost, Resources, Reliability, Security, Network, and AI
-  Insights
-- Dense navigation, scope/time controls, KPI sparklines, bento panels, event timeline, filters,
+- Seven Japanese-localized responsive pages: Overview, Cost, Resources, Reliability, Security,
+  Network, and AI Insights
+- Dense navigation, evidence-grounded KPI and coverage panels, event timeline, functional filters,
   accessible tables, contextual detail drawer, and explicit loading/empty/error states
 - Warm off-white / charcoal Clawpilot theme with a deep rose accent and `scoutTheme` query support
 - Hash routing and a Vite base of `/azure-ops-pulse-demo/` for reliable GitHub Pages navigation

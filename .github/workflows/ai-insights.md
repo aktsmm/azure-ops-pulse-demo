@@ -83,6 +83,11 @@ logs, artifacts, commit history, or external services.
 Update only the `aiInsights` array in `public/data/snapshot.json` with zero to four high-signal
 insights. Preserve every other byte-level data value and the existing schema version.
 
+Write every human-facing prose field in natural Japanese: `title`, `observation`, `impact`,
+`numericEvidence[].label`, `recommendedAction`, and `period`. Keep Azure product names, resource
+types, regions, sanitized values, numeric values, and source paths unchanged. Do not emit complete
+English sentences except where an official product or technical term has no useful Japanese form.
+
 Each insight must contain:
 
 - `id`: `insight-` followed by exactly eight lowercase hexadecimal characters
