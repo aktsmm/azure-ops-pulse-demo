@@ -71,11 +71,12 @@ syntactically valid IPv4 ranges, including RFC1918 and loopback addresses, are r
 
 ## Public data contract and privacy boundary
 
-The legacy `schemaVersion: 1.1.0` public contract remains unchanged at
-[`schemas/public/v1`](schemas/public/v1) to preserve its published paths. The current
-`schemaVersion: 1.2.0` contract is authoritative at
-[`schemas/public/v1.2`](schemas/public/v1.2). The current snapshot and `npm run validate:data`
-use v1.2, with matching runtime validation in
+[`schemas/public/v1`](schemas/public/v1) is the legacy compatibility alias for the immutable
+`schemaVersion: 1.1.0` public contract, while
+[`schemas/public/v1.1`](schemas/public/v1.1) is its explicit immutable version path. Both contain
+the same schema files. The current `schemaVersion: 1.2.0` contract is authoritative at
+[`schemas/public/v1.2`](schemas/public/v1.2). The current snapshot and `npm run validate:data` use
+v1.2, with matching runtime validation in
 [`scripts/public-schema.ts`](scripts/public-schema.ts) and TypeScript contracts in
 [`src/data/contracts.ts`](src/data/contracts.ts), so nullable availability fields cannot drift.
 In v1.2, `overview.postureScore`, `reliability.incidents`, `security.secureScore`, and
