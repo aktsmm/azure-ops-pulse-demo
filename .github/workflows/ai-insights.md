@@ -25,7 +25,7 @@ steps:
     run: npm ci --ignore-scripts
 
 post-steps:
-  - name: Validate generated insight schema, evidence, and privacy
+  - name: Validate generated insight schema, Japanese prose, evidence, and privacy
     id: validate_candidate
     if: success()
     run: npm run validate:insights && npm run scan:privacy -- public

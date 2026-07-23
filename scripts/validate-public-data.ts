@@ -3,6 +3,7 @@ import { readFile } from "node:fs/promises";
 import { relative, resolve } from "node:path";
 import { isDeepStrictEqual } from "node:util";
 import { validateNumericEvidence } from "./evidence-validator";
+import { validateJapaneseInsights } from "./japanese-insights-validator";
 import { publicSnapshotSchema } from "./public-schema";
 
 const file = resolve(process.argv[2] ?? "public/data/snapshot.json");
@@ -13,6 +14,7 @@ const baselineArgument = process.argv
 const parsed = publicSnapshotSchema.parse(JSON.parse(await readFile(file, "utf8")));
 
 validateNumericEvidence(parsed);
+validateJapaneseInsights(parsed.aiInsights);
 
 if (insightsOnly) {
   const repositoryPath = relative(process.cwd(), file).replaceAll("\\", "/");
@@ -39,5 +41,5 @@ if (insightsOnly) {
 }
 
 console.log(
-  `Validated ${insightsOnly ? "AI insights" : "public snapshot"} schema and numeric evidence: ${file}`
+  `Validated ${insightsOnly ? "AI insights" : "public snapshot"} schema, Japanese prose, and numeric evidence: ${file}`
 );

@@ -4,7 +4,11 @@ import { existsSync } from "node:fs";
 import { chmod, mkdir, readFile, rename, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
-import { hardenAgentWorkflowLock, GH_AW_VERSION } from "./harden-ai-insights-lock";
+import {
+  hardenAgentWorkflowLock,
+  GH_AW_SETUP_SHA,
+  GH_AW_VERSION
+} from "./harden-ai-insights-lock";
 
 type ReleaseAsset = {
   name: string;
@@ -24,6 +28,7 @@ const RELEASE_ASSETS: Partial<Record<`${NodeJS.Platform}-${string}`, ReleaseAsse
 };
 
 const LOCK_PATH = resolve(".github/workflows/ai-insights.lock.yml");
+const ACTIONS_LOCK_PATH = resolve(".github/aw/actions-lock.json");
 
 async function sha256(path: string): Promise<string> {
   return createHash("sha256").update(await readFile(path)).digest("hex");
@@ -80,6 +85,22 @@ function run(executable: string, args: string[], capture = false): string {
   return capture ? `${result.stdout ?? ""}${result.stderr ?? ""}` : "";
 }
 
+async function pinGhAwSetupAction(): Promise<void> {
+  const lock = JSON.parse(await readFile(ACTIONS_LOCK_PATH, "utf8")) as {
+    entries?: Record<string, { repo?: string; version?: string; sha?: string }>;
+  };
+  if (!lock.entries) throw new Error("Actions lock is missing entries");
+  for (const [key, entry] of Object.entries(lock.entries)) {
+    if (entry.repo === "github/gh-aw-actions/setup") delete lock.entries[key];
+  }
+  lock.entries[`github/gh-aw-actions/setup@${GH_AW_VERSION}`] = {
+    repo: "github/gh-aw-actions/setup",
+    version: GH_AW_VERSION,
+    sha: GH_AW_SETUP_SHA
+  };
+  await writeFile(ACTIONS_LOCK_PATH, `${JSON.stringify(lock, null, 2)}\n`, "utf8");
+}
+
 async function main(): Promise<void> {
   const compiler = await getCompilerPath();
   const version = run(compiler, ["version"], true);
@@ -98,6 +119,7 @@ async function main(): Promise<void> {
 
   const compiled = await readFile(LOCK_PATH, "utf8");
   await writeFile(LOCK_PATH, hardenAgentWorkflowLock(compiled), "utf8");
+  await pinGhAwSetupAction();
 }
 
 await main();

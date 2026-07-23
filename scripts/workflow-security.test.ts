@@ -50,6 +50,7 @@ describe("AI insight publication gate", () => {
     const source = readFileSync(".github/workflows/ai-insights.md", "utf8");
     const lock = readFileSync(".github/workflows/ai-insights.lock.yml", "utf8");
     const actionsLock = readFileSync(".github/aw/actions-lock.json", "utf8");
+    const deterministicValidation = readFileSync("scripts/validate-public-data.ts", "utf8");
 
     for (const output of [
       "create-issue",
@@ -91,6 +92,10 @@ describe("AI insight publication gate", () => {
     expect(lock).toContain('GH_AW_SAFE_OUTPUTS_STAGED: "true"');
     expect(lock).toContain('GH_AW_SAFE_OUTPUTS_HANDLER_CONFIG: "{\\"upload_artifact\\"');
     expect(source).toContain("Analyze only `public/data/snapshot.json`");
+    expect(source).toContain(
+      "Validate generated insight schema, Japanese prose, evidence, and privacy"
+    );
+    expect(deterministicValidation).toContain("validateJapaneseInsights(parsed.aiInsights)");
     expect(source).toContain("Do not inspect Azure, workflow secrets,");
     expect(source).toContain("logs, artifacts, commit history, or external services");
     expect(hardenAgentWorkflowLock(lock)).toBe(lock);
