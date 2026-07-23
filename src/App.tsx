@@ -111,12 +111,14 @@ function StatusBadge({
 }
 
 function Panel({
+  id,
   title,
   description,
   action,
   className = "",
   children
 }: {
+  id?: string;
   title?: string;
   description?: string;
   action?: ReactNode;
@@ -124,7 +126,7 @@ function Panel({
   children: ReactNode;
 }) {
   return (
-    <section className={`panel ${className}`}>
+    <section className={`panel ${className}`} id={id}>
       {(title || description || action) && (
         <header className="panel-header">
           <div>
@@ -249,6 +251,12 @@ function SourceList({ data }: { data: PublicSnapshotV1 }) {
 
 function OverviewPage({ data }: { data: PublicSnapshotV1 }) {
   const navigate = useNavigate();
+  const scrollToAutomationPipeline = () => {
+    document.getElementById("automation-pipeline")?.scrollIntoView({
+      behavior: "smooth",
+      block: "start"
+    });
+  };
   const health = summarizeResourceHealth(data.inventory.resources);
   const defenderSource = data.sources.find((source) => source.source === "Defender for Cloud");
   const defenderRecommendationCount = metricWhenSourceAvailable(
@@ -281,9 +289,15 @@ function OverviewPage({ data }: { data: PublicSnapshotV1 }) {
             公開までを、監査できるワークフローとしてつなぎます。
           </p>
           <div className="hero-actions">
-            <a className="primary-cta" href="#automation-pipeline">
+            <button
+              type="button"
+              className="primary-cta"
+              aria-label="自動更新パイプラインへ移動"
+              aria-controls="automation-pipeline"
+              onClick={scrollToAutomationPipeline}
+            >
               自動化の仕組みを見る <ChevronRight size={16} aria-hidden="true" />
-            </a>
+            </button>
             <a
               className="secondary-link"
               href="https://github.com/aktsmm/azure-ops-pulse-demo"
@@ -340,11 +354,12 @@ function OverviewPage({ data }: { data: PublicSnapshotV1 }) {
       </section>
 
       <Panel
+        id="automation-pipeline"
         title="自動更新パイプライン"
         description={`構成として有効な処理を示しています。現在の公開スナップショットの最終収集は ${formatDateTimeJa(data.freshness.lastSuccessfulCollection)} です。`}
         className="automation-panel"
       >
-        <div className="pipeline-steps" id="automation-pipeline">
+        <div className="pipeline-steps">
           <article>
             <span className="pipeline-number">1</span>
             <Cloud size={21} aria-hidden="true" />
