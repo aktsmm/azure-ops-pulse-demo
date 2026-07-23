@@ -1,0 +1,60 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://aktsmm.github.io/azure-ops-pulse-demo/schemas/public/v1/network.schema.json",
+  "title": "Azure Ops Pulse network inventory and masked telemetry v1",
+  "type": "object",
+  "required": ["inventory", "telemetry"],
+  "properties": {
+    "inventory": {
+      "type": "object",
+      "required": ["total", "byType", "byRegion"],
+      "properties": {
+        "total": { "type": "integer", "minimum": 0 },
+        "byType": { "type": "array" },
+        "byRegion": { "type": "array" }
+      },
+      "additionalProperties": false
+    },
+    "telemetry": {
+      "type": "object",
+      "required": [
+        "availability",
+        "message",
+        "healthyConnections",
+        "degradedConnections",
+        "blockedFlows",
+        "flows"
+      ],
+      "properties": {
+        "availability": { "enum": ["available", "partial", "unavailable"] },
+        "message": { "type": "string" },
+        "healthyConnections": { "type": ["integer", "null"], "minimum": 0 },
+        "degradedConnections": { "type": ["integer", "null"], "minimum": 0 },
+        "blockedFlows": { "type": ["integer", "null"], "minimum": 0 },
+        "flows": { "type": "array" }
+      },
+      "allOf": [
+        {
+          "if": { "properties": { "availability": { "const": "unavailable" } } },
+          "then": {
+            "properties": {
+              "healthyConnections": { "type": "null" },
+              "degradedConnections": { "type": "null" },
+              "blockedFlows": { "type": "null" },
+              "flows": { "maxItems": 0 }
+            }
+          },
+          "else": {
+            "properties": {
+              "healthyConnections": { "type": "integer", "minimum": 0 },
+              "degradedConnections": { "type": "integer", "minimum": 0 },
+              "blockedFlows": { "type": "integer", "minimum": 0 }
+            }
+          }
+        }
+      ],
+      "additionalProperties": false
+    }
+  },
+  "additionalProperties": false
+}
