@@ -2,8 +2,6 @@
 description: "Generate evidence-bound Azure Ops Pulse insights from the sanitized public snapshot"
 on:
   workflow_dispatch:
-  schedule:
-    - cron: "45 21 * * 1,4"
 
 permissions:
   contents: read

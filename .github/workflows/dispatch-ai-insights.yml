@@ -1,0 +1,27 @@
+name: Dispatch AI insights after snapshot merge
+
+on:
+  pull_request:
+    branches: [main]
+    types: [closed]
+
+permissions:
+  actions: write
+  contents: read
+  pull-requests: read
+
+jobs:
+  dispatch:
+    if: >-
+      github.event.pull_request.merged == true &&
+      github.event.pull_request.base.ref == 'main' &&
+      github.event.pull_request.head.repo.fork == false &&
+      github.event.pull_request.head.repo.full_name == github.repository &&
+      startsWith(github.event.pull_request.head.ref, 'automation/azure-snapshot-') &&
+      github.event.pull_request.title == 'Update sanitized Azure operations snapshot'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Dispatch compiled AI insight workflow on latest main
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh workflow run ai-insights.lock.yml --ref main
