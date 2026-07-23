@@ -83,7 +83,7 @@ export interface NetworkFlow {
 export interface NetworkInventoryItem {
   id: string;
   type: string;
-  location?: string;
+  location?: string | null;
 }
 
 export interface AiInsight {
@@ -175,10 +175,10 @@ export interface RawResource {
   name: string;
   resourceGroup: string;
   type: string;
-  location?: string;
+  location?: string | null;
   status?: string;
   owner?: string;
-  tags?: Record<string, string>;
+  tags?: Record<string, unknown> | null;
   change?: string;
 }
 
