@@ -1047,5 +1047,42 @@
       "flows": []
     }
   },
-  "aiInsights": []
+  "aiInsights": [
+    {
+      "id": "insight-a1f3c2e4",
+      "severity": "warning",
+      "title": "Period-over-period cost nearly doubled",
+      "observation": "Total spend increased approximately 92.3% compared with the prior comparable period. The snapshot provides no forecast or budget threshold, so the full exposure cannot be bounded.",
+      "impact": "Sustained cost growth at this rate is associated with budget overruns. Human review of spend drivers is warranted before the next billing period closes.",
+      "numericEvidence": [
+        {
+          "label": "Cost period-over-period delta (%)",
+          "value": "92.3",
+          "source": "cost.deltaPercent"
+        }
+      ],
+      "recommendedAction": "Review the Cost Management dashboard for spend breakdown by service. Verify whether recent capacity or tier changes were planned.",
+      "confidence": 0.85,
+      "period": "Current vs prior comparable period",
+      "route": "/cost"
+    },
+    {
+      "id": "insight-4e1b7a3f",
+      "severity": "info",
+      "title": "Network telemetry unavailable for all 7 network watchers",
+      "observation": "Seven Network Watcher resources are present across 7 regions, but flow telemetry was not collected. The snapshot notes that network resource existence is not interpreted as connection health.",
+      "impact": "Without flow telemetry, network-level anomalies such as blocked or degraded connections cannot be detected from this snapshot. Coverage gaps may obscure security or connectivity issues.",
+      "numericEvidence": [
+        {
+          "label": "Network Watcher resources present",
+          "value": "7",
+          "source": "network.inventory.total"
+        }
+      ],
+      "recommendedAction": "Review Network Watcher flow log configuration and ensure NSG flow logs or traffic analytics are enabled for key subnets. Check the /network route for details.",
+      "confidence": 0.7,
+      "period": "Current snapshot",
+      "route": "/network"
+    }
+  ]
 }
