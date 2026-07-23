@@ -9,6 +9,27 @@ import {
 const STEP_HEADER = /^ {6}- /;
 const JOB_HEADER = /^ {2}[A-Za-z0-9_-]+:\s*$/;
 
+type PullRequestCase = {
+  merged: boolean;
+  base: string;
+  fork: boolean;
+  repository: string;
+  headRepository: string;
+  head: string;
+  title: string;
+};
+
+function shouldDispatchAiInsights(event: PullRequestCase): boolean {
+  return (
+    event.merged &&
+    event.base === "main" &&
+    !event.fork &&
+    event.headRepository === event.repository &&
+    event.head.startsWith("automation/azure-snapshot-") &&
+    event.title === "Update sanitized Azure operations snapshot"
+  );
+}
+
 function getUploadBlocks(workflow: string): string[] {
   const lines = workflow.replace(/\r\n/g, "\n").split("\n");
   const blocks: string[] = [];
@@ -31,6 +52,75 @@ function getUploadBlocks(workflow: string): string[] {
 }
 
 describe("AI insight publication gate", () => {
+  it("dispatches AI only for a merged trusted snapshot pull request", () => {
+    const valid: PullRequestCase = {
+      merged: true,
+      base: "main",
+      fork: false,
+      repository: "aktsmm/azure-ops-pulse-demo",
+      headRepository: "aktsmm/azure-ops-pulse-demo",
+      head: "automation/azure-snapshot-12345",
+      title: "Update sanitized Azure operations snapshot"
+    };
+
+    expect(shouldDispatchAiInsights(valid)).toBe(true);
+    expect(shouldDispatchAiInsights({ ...valid, merged: false })).toBe(false);
+    expect(shouldDispatchAiInsights({ ...valid, base: "release" })).toBe(false);
+    expect(shouldDispatchAiInsights({ ...valid, fork: true })).toBe(false);
+    expect(shouldDispatchAiInsights({ ...valid, headRepository: "attacker/fork" })).toBe(false);
+    expect(shouldDispatchAiInsights({ ...valid, head: "automation/ai-insights-12345" })).toBe(false);
+    expect(shouldDispatchAiInsights({ ...valid, title: "Regular product change" })).toBe(false);
+  });
+
+  it("keeps the dispatcher deterministic and least privileged", () => {
+    const dispatcher = readFileSync(
+      ".github/workflows/dispatch-ai-insights.yml",
+      "utf8"
+    );
+
+    expect(dispatcher).toMatch(/pull_request:\r?\n\s+branches: \[main\]\r?\n\s+types: \[closed\]/);
+    expect(dispatcher).not.toContain("pull_request_target");
+    expect(dispatcher).toMatch(
+      /permissions:\r?\n\s+actions: write\r?\n\s+contents: read\r?\n\s+pull-requests: read/
+    );
+    expect(dispatcher).toContain("github.event.pull_request.merged == true");
+    expect(dispatcher).toContain("github.event.pull_request.base.ref == 'main'");
+    expect(dispatcher).toContain("github.event.pull_request.head.repo.fork == false");
+    expect(dispatcher).toContain(
+      "github.event.pull_request.head.repo.full_name == github.repository"
+    );
+    expect(dispatcher).toContain(
+      "startsWith(github.event.pull_request.head.ref, 'automation/azure-snapshot-')"
+    );
+    expect(dispatcher).toContain(
+      "github.event.pull_request.title == 'Update sanitized Azure operations snapshot'"
+    );
+    expect(dispatcher).toContain(
+      "run: gh workflow run ai-insights.lock.yml --ref main"
+    );
+    expect(dispatcher).not.toMatch(
+      /run:[\s\S]*\$\{\{\s*github\.event\.pull_request\.(?:head|title)/
+    );
+    expect(dispatcher).not.toMatch(/(?:issues|deployments|id-token|pages|security-events): write/);
+  });
+
+  it("keeps collection scheduled and AI analysis event driven", () => {
+    const collection = readFileSync(".github/workflows/collect-azure.yml", "utf8");
+    const agentSource = readFileSync(".github/workflows/ai-insights.md", "utf8");
+    const agentLock = readFileSync(".github/workflows/ai-insights.lock.yml", "utf8");
+    const readme = readFileSync("README.md", "utf8");
+
+    expect(collection).toContain('cron: "0 21 * * 1,4"');
+    expect(agentSource).toContain("workflow_dispatch:");
+    expect(agentSource).not.toContain("schedule:");
+    expect(agentSource).not.toContain('cron: "45 21 * * 1,4"');
+    expect(agentLock).not.toContain("schedule:");
+    expect(agentLock).not.toContain('cron: "45 21 * * 1,4"');
+    expect(readme).toContain("火・金 06:00（JST）");
+    expect(readme).toContain("snapshot PR の merge");
+    expect(readme).not.toContain("火・金 06:45");
+  });
+
   it("scans the Azure collection candidate before promotion and PR creation", () => {
     const workflow = readFileSync(".github/workflows/collect-azure.yml", "utf8");
     const collection = workflow.indexOf("Collect directly into a sanitized candidate");

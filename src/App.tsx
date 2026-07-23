@@ -16,6 +16,7 @@ import {
   Server,
   ShieldCheck,
   Sparkles,
+  Workflow,
   X
 } from "lucide-react";
 import {
@@ -32,6 +33,7 @@ import type {
   ResourceItem,
   Severity
 } from "./data/contracts";
+import { ThemeToggle } from "./components/ThemeToggle";
 import { useSnapshot } from "./hooks/useSnapshot";
 import {
   availabilityLabel,
@@ -270,6 +272,44 @@ function OverviewPage({ data }: { data: PublicSnapshotV1 }) {
 
   return (
     <div className="page-stack">
+      <section className="mission-hero" aria-labelledby="mission-title">
+        <div className="mission-copy">
+          <p className="eyebrow">GitHubでつなぐ Azure 運用</p>
+          <h2 id="mission-title">Azure運用を、収集からAI分析・公開までシンプルに。</h2>
+          <p>
+            読み取り専用の収集、公開前検証、根拠付き分析、人のレビュー、GitHub Pages
+            公開までを、監査できるワークフローとしてつなぎます。
+          </p>
+          <div className="hero-actions">
+            <a className="primary-cta" href="#automation-pipeline">
+              自動化の仕組みを見る <ChevronRight size={16} aria-hidden="true" />
+            </a>
+            <a
+              className="secondary-link"
+              href="https://github.com/aktsmm/azure-ops-pulse-demo"
+              target="_blank"
+              rel="noreferrer"
+            >
+              GitHubで実装を見る <ExternalLink size={14} aria-hidden="true" />
+            </a>
+          </div>
+        </div>
+        <div className="mission-chips" aria-label="デモの特徴">
+          <span>
+            <ExternalLink size={15} aria-hidden="true" />
+            Live site
+          </span>
+          <span>
+            <Workflow size={15} aria-hidden="true" />
+            火・金 自動更新
+          </span>
+          <span>
+            <ShieldCheck size={15} aria-hidden="true" />
+            レビュー保護
+          </span>
+        </div>
+      </section>
+
       <section className="status-strip" aria-label="スナップショット状態">
         <div>
           <span>公開モード</span>
@@ -298,6 +338,71 @@ function OverviewPage({ data }: { data: PublicSnapshotV1 }) {
           <small>未評価 {health.unknown} 件は正常・異常に含めません</small>
         </div>
       </section>
+
+      <Panel
+        title="自動更新パイプライン"
+        description={`構成として有効な処理を示しています。現在の公開スナップショットの最終収集は ${formatDateTimeJa(data.freshness.lastSuccessfulCollection)} です。`}
+        className="automation-panel"
+      >
+        <div className="pipeline-steps" id="automation-pipeline">
+          <article>
+            <span className="pipeline-number">1</span>
+            <Cloud size={21} aria-hidden="true" />
+            <h3>Azureから収集</h3>
+            <p>読み取り専用で運用シグナルを取得</p>
+            <strong>構成: 火・金 06:00 JST</strong>
+            <small>GitHub Actions / OIDC</small>
+          </article>
+          <article>
+            <span className="pipeline-number">2</span>
+            <ShieldCheck size={21} aria-hidden="true" />
+            <h3>公開前検証</h3>
+            <p>匿名化・Schema・Privacyを確認</p>
+            <strong>構成: PR作成前に必須</strong>
+            <small>TypeScript / JSON Schema</small>
+          </article>
+          <article>
+            <span className="pipeline-number">3</span>
+            <Bot size={21} aria-hidden="true" />
+            <h3>根拠付きAI分析</h3>
+            <p>公開JSONだけから分析候補を作成</p>
+            <strong>構成: snapshot merge後</strong>
+            <small>gh-aw / Copilot</small>
+          </article>
+          <article>
+            <span className="pipeline-number">4</span>
+            <CircleCheck size={21} aria-hidden="true" />
+            <h3>人間レビュー</h3>
+            <p>差分と根拠を確認して公開を判断</p>
+            <strong>必須: 人がmerge</strong>
+            <small>Pull Request</small>
+          </article>
+          <article>
+            <span className="pipeline-number">5</span>
+            <ExternalLink size={21} aria-hidden="true" />
+            <h3>Pagesへ公開</h3>
+            <p>承認済みのmainから静的サイトを配信</p>
+            <strong>構成: merge後に自動</strong>
+            <small>GitHub Pages</small>
+          </article>
+        </div>
+        <div className="approval-boundary">
+          <div>
+            <Bot size={18} aria-hidden="true" />
+            <span>
+              <strong>自動で行うこと</strong>
+              <small>収集・匿名化・検証・AI分析・PR作成・merge後のPages公開</small>
+            </span>
+          </div>
+          <div>
+            <ShieldCheck size={18} aria-hidden="true" />
+            <span>
+              <strong>人間が承認すること</strong>
+              <small>snapshot PRとAI draft PRの内容確認・merge判断</small>
+            </span>
+          </div>
+        </div>
+      </Panel>
 
       <section className="metric-grid four" aria-label="主要指標">
         <MetricCard
@@ -1448,7 +1553,7 @@ function AppShell({ data }: { data: PublicSnapshotV1 }) {
           </span>
           <span>
             <strong>Azure Ops Pulse</strong>
-            <small>公開運用ダッシュボード</small>
+            <small>Azure運用自動化デモ</small>
           </span>
           <button
             type="button"
@@ -1460,7 +1565,7 @@ function AppShell({ data }: { data: PublicSnapshotV1 }) {
           </button>
         </div>
         <nav aria-label="メイン ナビゲーション">
-          <span className="nav-section">ワークスペース</span>
+          <span className="nav-section">公開運用ビュー</span>
           {NAV_ITEMS.map((item) => {
             const Icon = item.icon;
             return (
@@ -1480,8 +1585,8 @@ function AppShell({ data }: { data: PublicSnapshotV1 }) {
           <div className="demo-badge">{modeLabel(data.mode)}</div>
           <p>
             {data.mode === "DEMO"
-              ? "合成データをサニタイズして表示しています。"
-              : "Azure の読み取り専用収集結果をサニタイズして表示しています。"}
+              ? "開発用の合成データで安全な公開フローを確認できます。"
+              : "承認済みのAzure公開スナップショットを表示しています。"}
           </p>
           <a
             href="https://github.com/aktsmm/azure-ops-pulse-demo"
@@ -1517,6 +1622,7 @@ function AppShell({ data }: { data: PublicSnapshotV1 }) {
             </select>
           </label>
           <div className="topbar-spacer" />
+          <ThemeToggle />
           <div className="freshness" aria-label={`データ鮮度: ${fresh ? "最新" : "期限超過"}`}>
             <span
               className={`health-dot severity-${fresh ? "healthy" : "warning"}`}

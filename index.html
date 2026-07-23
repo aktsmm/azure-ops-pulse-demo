@@ -2,9 +2,26 @@
 <html lang="ja">
   <head>
     <script>(()=>{const param=new URLSearchParams(window.location.search).get("scoutTheme");const theme=param||(window.matchMedia("(prefers-color-scheme: dark)").matches?"dark":"light");document.documentElement.setAttribute("data-theme",theme);})();</script>
+    <script>
+      (() => {
+        const key = "azure-ops-pulse-theme";
+        const parse = (value) => (value === "dark" || value === "light" ? value : null);
+        const explicit = parse(new URLSearchParams(window.location.search).get("scoutTheme"));
+        let saved = null;
+        try {
+          saved = parse(window.localStorage.getItem(key));
+        } catch {
+          saved = null;
+        }
+        document.documentElement.setAttribute("data-theme", explicit || saved || "light");
+      })();
+    </script>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <meta name="description" content="Azure Ops Pulse 公開運用ダッシュボード" />
+    <meta
+      name="description"
+      content="Azure運用情報をGitHub Actionsで収集し、Agentic Workflowsで根拠付き分析して公開するデモ"
+    />
     <link rel="icon" href="data:," />
     <title>Azure Ops Pulse</title>
   </head>
