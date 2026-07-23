@@ -1,5 +1,7 @@
 export type Severity = "critical" | "warning" | "healthy" | "info";
 export type Availability = "available" | "partial" | "unavailable";
+/** "known" = at least one resource in the region has a confirmed health signal; "unknown" = no health data was collected. */
+export type RegionCoverage = "known" | "unknown";
 
 export interface SourceStatus {
   source: string;
@@ -123,7 +125,12 @@ export interface PublicSnapshotV1 {
     metrics: TrendMetric[];
     postureScore: number;
     eventTimeline: ActivityEvent[];
-    regionalHealth: Array<{ region: string; score: number; status: Severity }>;
+    regionalHealth: Array<{
+      region: string;
+      score: number;
+      status: Severity;
+      coverage: RegionCoverage;
+    }>;
   };
   cost: {
     current: CostAmount;
@@ -192,7 +199,12 @@ export interface RawSnapshot {
   metrics: TrendMetric[];
   postureScore: number;
   events: ActivityEvent[];
-  regionalHealth: Array<{ region: string; score: number; status: Severity }>;
+  regionalHealth: Array<{
+    region: string;
+    score: number;
+    status: Severity;
+    coverage: RegionCoverage;
+  }>;
   exactCostJpy: number | null;
   exactPreviousCostJpy: number | null;
   forecastCostJpy: number | null;

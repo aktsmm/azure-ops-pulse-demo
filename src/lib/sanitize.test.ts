@@ -77,7 +77,7 @@ describe("public sanitization boundary", () => {
   it("publishes rounded approximate JPY only", () => {
     expect(formatApproximateJpy(12_345)).toBe("約¥1.2万");
     expect(formatApproximateJpy(4_321_000)).toBe("約¥432.1万");
-    expect(formatApproximateJpy(-12_345)).toBe("約¥1.2万 credit");
+    expect(formatApproximateJpy(-12_345)).toBe("約¥1.2万（クレジット）");
   });
 
   it("aliases a live Azure subscription display name and keeps public IDs unique", () => {
@@ -86,7 +86,7 @@ describe("public sanitization boundary", () => {
     raw.subscriptionDisplayName = "private-subscription-name";
     const snapshot = sanitizeSnapshot(raw);
 
-    expect(snapshot.scope.displayName).toMatch(/^Azure subscription [0-9a-f]{8}$/);
+    expect(snapshot.scope.displayName).toMatch(/^Azureサブスクリプション [0-9a-f]{8}$/);
     expect(snapshot.scope.displayName).not.toContain(raw.subscriptionDisplayName);
     expect(new Set(snapshot.inventory.resources.map((resource) => resource.id)).size).toBe(
       snapshot.inventory.resources.length
@@ -142,8 +142,8 @@ describe("public sanitization boundary", () => {
         deltaPercent: 5
       },
       {
-        name: "Refund credit",
-        approximateAmount: "約¥1千未満 credit",
+        name: "Refund（クレジット）",
+        approximateAmount: "約¥1千未満（クレジット）",
         sharePercent: 9.1,
         deltaPercent: null
       }

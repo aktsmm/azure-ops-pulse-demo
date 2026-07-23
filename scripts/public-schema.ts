@@ -124,7 +124,14 @@ export const publicSnapshotSchema = z
             .strict()
         ),
         regionalHealth: z.array(
-          z.object({ region: z.string(), score: z.number().min(0).max(100), status: severity }).strict()
+          z
+            .object({
+              region: z.string(),
+              score: z.number().min(0).max(100),
+              status: severity,
+              coverage: z.enum(["known", "unknown"])
+            })
+            .strict()
         )
       })
       .strict(),

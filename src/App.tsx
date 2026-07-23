@@ -12,6 +12,7 @@ import {
   Coins,
   ExternalLink,
   Gauge,
+  ListChecks,
   Menu,
   Minus,
   Network,
@@ -40,54 +41,69 @@ import type {
 } from "./data/contracts";
 import { useSnapshot } from "./hooks/useSnapshot";
 import { describeCostDelta } from "./lib/cost-delta";
+import {
+  availabilityLabelJa,
+  costDeltaLabelJa,
+  formatAgeJa,
+  formatDateTimeJa,
+  formatPercentDeltaJa,
+  modeLabelJa,
+  networkFlowStatusLabelJa,
+  networkFlowStatusSeverity,
+  recommendationStatusLabelJa,
+  regionLabelJa,
+  resourceStatusLabelJa,
+  resourceStatusSeverity,
+  severityLabelJa
+} from "./lib/format";
+import {
+  buildActionQueue,
+  resourceStatusCoverage,
+  sourceCoverageSummary,
+  type ActionQueueItem,
+  type SourceCoverageSummary
+} from "./lib/overview";
 
 const NAV_ITEMS = [
-  { path: "/overview", label: "Overview", icon: Gauge },
-  { path: "/cost", label: "Cost", icon: Coins },
-  { path: "/resources", label: "Resources", icon: Boxes },
-  { path: "/reliability", label: "Reliability", icon: Activity },
-  { path: "/security", label: "Security", icon: ShieldCheck },
-  { path: "/network", label: "Network", icon: Network },
-  { path: "/ai-insights", label: "AI Insights", icon: Sparkles }
+  { path: "/overview", label: "概要", icon: Gauge },
+  { path: "/cost", label: "コスト", icon: Coins },
+  { path: "/resources", label: "リソース", icon: Boxes },
+  { path: "/reliability", label: "信頼性", icon: Activity },
+  { path: "/security", label: "セキュリティ", icon: ShieldCheck },
+  { path: "/network", label: "ネットワーク", icon: Network },
+  { path: "/ai-insights", label: "AI インサイト", icon: Sparkles }
 ];
 
 const TITLES: Record<string, { title: string; subtitle: string }> = {
   "/overview": {
-    title: "Operations overview",
-    subtitle: "A unified pulse across cost, reliability, security, and change."
+    title: "運用概要",
+    subtitle: "コスト・信頼性・セキュリティ・変更を横断した収集状況と要確認事項"
   },
   "/cost": {
-    title: "Cost intelligence",
-    subtitle: "Approximate public-safe spend signals and directional movement."
+    title: "コスト分析",
+    subtitle: "公開安全性のために丸めた概算コストと変動の方向性"
   },
   "/resources": {
-    title: "Resource inventory",
-    subtitle: "Sanitized estate coverage with ownership and health context."
+    title: "リソース一覧",
+    subtitle: "サニタイズ済みのリソース状況と保有者情報"
   },
   "/reliability": {
-    title: "Reliability",
-    subtitle: "Service objectives, error budgets, and operational health."
+    title: "信頼性",
+    subtitle: "サービス目標・エラーバジェット・収集時点の運用状況"
   },
   "/security": {
-    title: "Security posture",
-    subtitle: "Aggregate Defender signals without exposed asset or exploit detail."
+    title: "セキュリティ体制",
+    subtitle: "資産名・脆弱性詳細を含まないDefenderの集計シグナル"
   },
   "/network": {
-    title: "Network",
-    subtitle: "Masked flow health, latency, throughput, and policy outcomes."
+    title: "ネットワーク",
+    subtitle: "マスク済みのフロー状況・レイテンシ・スループット・ポリシー結果"
   },
   "/ai-insights": {
-    title: "AI insights",
-    subtitle: "Evidence-bound analysis of the sanitized operational snapshot."
+    title: "AI インサイト",
+    subtitle: "サニタイズ済み運用スナップショットに基づく根拠付き分析（読み取り専用）"
   }
 };
-
-function severityLabel(severity: Severity): string {
-  if (severity === "critical") return "Critical";
-  if (severity === "warning") return "Warning";
-  if (severity === "healthy") return "Healthy";
-  return "Info";
-}
 
 function Sparkline({ points, severity }: { points: number[]; severity: Severity }) {
   const width = 112;
@@ -108,7 +124,7 @@ function Sparkline({ points, severity }: { points: number[]; severity: Severity 
       className={`sparkline severity-${severity}`}
       viewBox={`0 0 ${width} ${height}`}
       role="img"
-      aria-label={`Trend with ${points.length} observations`}
+      aria-label={`${points.length}件の収集値による推移`}
     >
       <path d={path} fill="none" stroke="var(--cp-accent)" strokeWidth="2.5" />
     </svg>
@@ -168,7 +184,11 @@ function KpiStrip({ metrics }: { metrics: TrendMetric[] }) {
               {metric.change}
             </span>
           </div>
-          <Sparkline points={metric.points} severity={metric.severity} />
+          {metric.points.length > 0 ? (
+            <Sparkline points={metric.points} severity={metric.severity} />
+          ) : (
+            <span className="sparkline-empty">収集時点の値のみ</span>
+          )}
         </article>
       ))}
     </div>
@@ -206,75 +226,254 @@ function EmptyState({ title, detail }: { title: string; detail: string }) {
   );
 }
 
-function OverviewPage({ data }: { data: PublicSnapshotV1 }) {
+function StatusBar({
+  data,
+  sourceCoverage
+}: {
+  data: PublicSnapshotV1;
+  sourceCoverage: SourceCoverageSummary;
+}) {
+  return (
+    <div className="status-bar">
+      <div className="status-bar-item">
+        <span className="eyebrow">スコープ</span>
+        <strong>{data.scope.displayName}</strong>
+      </div>
+      <div className="status-bar-item">
+        <span className="eyebrow">最終収集</span>
+        <strong>{formatDateTimeJa(data.freshness.lastSuccessfulCollection)}</strong>
+        <small>{formatAgeJa(data.freshness.ageMinutes)}</small>
+      </div>
+      <div className="status-bar-item">
+        <span className="eyebrow">次回収集予定</span>
+        <strong>{data.freshness.nextScheduledCollection}</strong>
+      </div>
+      <div className="status-bar-item">
+        <span className="eyebrow">モード</span>
+        <strong>{modeLabelJa(data.mode)}</strong>
+      </div>
+      <div className="status-bar-item">
+        <span className="eyebrow">鮮度</span>
+        <StatusBadge severity={data.freshness.state === "fresh" ? "healthy" : "warning"}>
+          {data.freshness.state === "fresh" ? "最新" : "古い"}
+        </StatusBadge>
+      </div>
+      <div className="status-bar-item">
+        <span className="eyebrow">データソース網羅</span>
+        <strong>
+          {sourceCoverage.available}/{sourceCoverage.total} 件が利用可能
+        </strong>
+        {(sourceCoverage.partial > 0 || sourceCoverage.unavailable > 0) && (
+          <small>
+            部分的 {sourceCoverage.partial}件・取得不可 {sourceCoverage.unavailable}件
+          </small>
+        )}
+      </div>
+    </div>
+  );
+}
+
+function ActionQueuePanel({ items }: { items: ActionQueueItem[] }) {
   const navigate = useNavigate();
   return (
+    <Panel
+      title="要確認アクション"
+      action={<ListChecks size={18} aria-hidden="true" />}
+      className="action-panel"
+    >
+      {items.length ? (
+        <div className="action-list">
+          {items.map((item) => (
+            <button className="action-row" key={item.id} onClick={() => navigate(item.route)}>
+              <StatusBadge severity={item.severity}>{severityLabelJa(item.severity)}</StatusBadge>
+              <div>
+                <strong>{item.title}</strong>
+                <p>{item.detail}</p>
+              </div>
+              <ChevronRight size={16} aria-hidden="true" />
+            </button>
+          ))}
+        </div>
+      ) : (
+        <EmptyState
+          title="要確認事項なし"
+          detail="根拠となる大きなコスト変動・未検証インサイト・未取得データソースは検出されていません。"
+        />
+      )}
+    </Panel>
+  );
+}
+
+function OverviewPage({ data }: { data: PublicSnapshotV1 }) {
+  const navigate = useNavigate();
+  const coverage = useMemo(
+    () => resourceStatusCoverage(data.inventory.resources),
+    [data.inventory.resources]
+  );
+  const sourceCoverage = useMemo(() => sourceCoverageSummary(data.sources), [data.sources]);
+  const actionQueue = useMemo(() => buildActionQueue(data), [data]);
+
+  const costValue = data.cost.current.approximateAmount ?? "取得不可";
+  const costDetail =
+    data.cost.current.availability !== "available"
+      ? "現在期間のコストは未取得"
+      : data.cost.deltaPercent === null
+        ? "比較可能な前期データが未取得"
+        : formatPercentDeltaJa(data.cost.deltaPercent);
+  const costSeverity: Severity =
+    data.cost.current.availability !== "available"
+      ? "info"
+      : data.cost.deltaPercent !== null && Math.abs(data.cost.deltaPercent) >= 20
+        ? "warning"
+        : "healthy";
+
+  const openRecommendations = data.security.recommendations.filter(
+    (item) => item.status !== "Resolved"
+  ).length;
+
+  const topServices = data.cost.categories
+    .slice()
+    .sort((a, b) => b.sharePercent - a.sharePercent)
+    .slice(0, 6);
+
+  return (
     <div className="page-stack">
-      <KpiStrip metrics={data.overview.metrics} />
-      <div className="bento-grid">
+      <StatusBar data={data} sourceCoverage={sourceCoverage} />
+      <div className="overview-kpi-grid">
+        <article className="kpi-card">
+          <p className="eyebrow">現在のコスト</p>
+          <strong>{costValue}</strong>
+          <span className={`metric-change severity-${costSeverity}`}>{costDetail}</span>
+        </article>
+        <article className="kpi-card">
+          <p className="eyebrow">リソース数</p>
+          <strong>{data.inventory.total}</strong>
+          <span className="metric-change">
+            正常 {coverage.healthy}・低下 {coverage.degraded}・取得不可 {coverage.unavailable}
+            ・不明 {coverage.unknown}
+          </span>
+        </article>
+        <article className="kpi-card">
+          <p className="eyebrow">Defender シグナル</p>
+          <strong>Secure Score {data.security.secureScore}</strong>
+          <span
+            className={`metric-change severity-${
+              data.security.activeAlerts > 0 ? "warning" : "healthy"
+            }`}
+          >
+            未対応アラート {data.security.activeAlerts}件・未解決の推奨事項 {openRecommendations}
+            件
+          </span>
+        </article>
+        <article className="kpi-card">
+          <p className="eyebrow">ネットワーク在庫</p>
+          <strong>{data.network.inventory.total} 件</strong>
+          <span
+            className={`metric-change severity-${
+              data.network.telemetry.availability === "available" ? "healthy" : "info"
+            }`}
+          >
+            テレメトリ: {availabilityLabelJa(data.network.telemetry.availability)}
+          </span>
+        </article>
+        <article className="kpi-card">
+          <p className="eyebrow">AI インサイト</p>
+          <strong>{data.aiInsights.length} 件</strong>
+          <span className={`metric-change severity-${data.aiInsights.length ? "warning" : "info"}`}>
+            {data.aiInsights.length ? "確認が必要な根拠付きインサイトあり" : "検証済みインサイトなし"}
+          </span>
+        </article>
+      </div>
+      <ActionQueuePanel items={actionQueue} />
+      <div className="bento-grid overview-bento">
         <Panel
-          title="Operational posture"
+          title="コスト上位サービス"
           action={
-            <button className="text-button" onClick={() => navigate("/ai-insights")}>
-              View insights <ChevronRight size={15} aria-hidden="true" />
+            <button className="text-button" onClick={() => navigate("/cost")}>
+              コストを見る <ChevronRight size={15} aria-hidden="true" />
             </button>
           }
-          className="posture-panel"
         >
-          <div className="score-row">
-            <div className="score-block">
-              <span>Composite score</span>
-              <strong>{data.overview.postureScore}</strong>
-              <small>of 100</small>
+          {topServices.length ? (
+            <div className="ranked-list">
+              {topServices.map((category) => (
+                <div className="ranked-row" key={category.name}>
+                  <div>
+                    <strong>{category.name}</strong>
+                    <small>
+                      {category.deltaPercent === null
+                        ? "前期データ未取得"
+                        : formatPercentDeltaJa(category.deltaPercent)}
+                    </small>
+                  </div>
+                  <div className="bar-track">
+                    <span style={{ width: `${category.sharePercent}%` }} />
+                  </div>
+                  <span>{category.sharePercent}%</span>
+                </div>
+              ))}
             </div>
-            <div className="score-detail">
-              <ProgressBar value={data.overview.postureScore} label="Overall posture" />
-              <p>
-                Stable service health with two cost and security signals requiring focused
-                review.
-              </p>
+          ) : (
+            <EmptyState
+              title="コスト内訳が未取得"
+              detail="サービス別のコスト構成はまだ収集されていません。"
+            />
+          )}
+        </Panel>
+        <Panel title="リソース種別の分布">
+          {data.inventory.byType.length ? (
+            <div className="ranked-list">
+              {data.inventory.byType.map((item) => (
+                <div className="ranked-row" key={item.label}>
+                  <strong>{item.label}</strong>
+                  <span>{item.count} 件</span>
+                </div>
+              ))}
             </div>
-          </div>
+          ) : (
+            <EmptyState title="種別データなし" detail="リソースの種別集計は未取得です。" />
+          )}
         </Panel>
-        <Panel title="Regional health" className="regions-panel">
-          <div className="region-list">
-            {data.overview.regionalHealth.map((region) => (
-              <div className="region-row" key={region.region}>
-                <span className={`health-dot severity-${region.status}`} aria-hidden="true" />
-                <strong>{region.region}</strong>
-                <span>{region.score}%</span>
-                <StatusBadge severity={region.status}>{severityLabel(region.status)}</StatusBadge>
-              </div>
-            ))}
-          </div>
+        <Panel title="地域別の分布">
+          {data.inventory.byRegion.length ? (
+            <div className="ranked-list">
+              {data.inventory.byRegion.map((item) => {
+                const health = data.overview.regionalHealth.find(
+                  (region) => region.region === item.label
+                );
+                return (
+                  <div className="ranked-row" key={item.label}>
+                    <strong>{regionLabelJa(item.label)}</strong>
+                    <span>{item.count} 件</span>
+                    {health ? (
+                      <StatusBadge severity={health.status}>
+                        {health.coverage === "unknown" ? "健全性未取得" : `${health.score}%`}
+                      </StatusBadge>
+                    ) : (
+                      <span className="muted-cell">—</span>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          ) : (
+            <EmptyState title="地域データなし" detail="リソースの地域集計は未取得です。" />
+          )}
         </Panel>
-        <Panel title="Activity timeline" className="timeline-panel">
-          <div className="timeline">
-            {data.overview.eventTimeline.map((event) => (
-              <button
-                className="timeline-item"
-                key={event.id}
-                onClick={() => navigate(event.route)}
-              >
-                <span className={`timeline-marker severity-${event.severity}`} />
-                <span>
-                  <small>{event.timestamp}</small>
-                  <strong>{event.title}</strong>
-                  <p>{event.detail}</p>
-                </span>
-                <ChevronRight size={16} aria-hidden="true" />
-              </button>
-            ))}
-          </div>
-        </Panel>
-        <Panel title="Data source coverage" className="sources-panel">
+        <Panel title="データソース網羅状況">
           <div className="source-list">
             {data.sources.map((source) => (
               <div className="source-row" key={source.source}>
                 {source.availability === "available" ? (
                   <CircleCheck className="severity-healthy" size={18} aria-hidden="true" />
                 ) : (
-                  <CircleAlert className="severity-warning" size={18} aria-hidden="true" />
+                  <CircleAlert
+                    className={
+                      source.availability === "partial" ? "severity-warning" : "severity-critical"
+                    }
+                    size={18}
+                    aria-hidden="true"
+                  />
                 )}
                 <div>
                   <strong>{source.source}</strong>
@@ -283,6 +482,61 @@ function OverviewPage({ data }: { data: PublicSnapshotV1 }) {
               </div>
             ))}
           </div>
+        </Panel>
+        <Panel title="アクティビティタイムライン" className="timeline-panel">
+          {data.overview.eventTimeline.length ? (
+            <div className="timeline">
+              {data.overview.eventTimeline.map((event) => (
+                <button
+                  className="timeline-item"
+                  key={event.id}
+                  onClick={() => navigate(event.route)}
+                >
+                  <span className={`timeline-marker severity-${event.severity}`} />
+                  <span>
+                    <small>{formatDateTimeJa(event.timestamp)}</small>
+                    <strong>{event.title}</strong>
+                    <p>{event.detail}</p>
+                  </span>
+                  <ChevronRight size={16} aria-hidden="true" />
+                </button>
+              ))}
+            </div>
+          ) : (
+            <EmptyState
+              title="アクティビティなし"
+              detail="直近のアクティビティイベントは記録されていません。"
+            />
+          )}
+        </Panel>
+        <Panel
+          title="AI インサイトの概要"
+          action={
+            <button className="text-button" onClick={() => navigate("/ai-insights")}>
+              詳細を見る <ChevronRight size={15} aria-hidden="true" />
+            </button>
+          }
+        >
+          {data.aiInsights.length ? (
+            <div className="ranked-list">
+              {data.aiInsights.map((insight) => (
+                <div className="ranked-row" key={insight.id}>
+                  <StatusBadge severity={insight.severity}>
+                    {severityLabelJa(insight.severity)}
+                  </StatusBadge>
+                  <div>
+                    <strong>{insight.title}</strong>
+                    <small>{insight.period}</small>
+                  </div>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <EmptyState
+              title="検証済みインサイトなし"
+              detail="直近の分析では公開ゲートを通過した根拠は生成されませんでした。"
+            />
+          )}
         </Panel>
       </div>
     </div>
@@ -297,10 +551,9 @@ function CostPage({ data }: { data: PublicSnapshotV1 }) {
   );
   const metrics: TrendMetric[] = [
     {
-      label: "Current period",
-      value: data.cost.current.approximateAmount ?? "Unavailable",
-      change:
-        delta === null ? "Prior period unavailable" : `${delta > 0 ? "+" : ""}${delta}%`,
+      label: "現在の期間",
+      value: data.cost.current.approximateAmount ?? "取得不可",
+      change: delta === null ? "前期データ未取得" : `${delta > 0 ? "+" : ""}${delta}%`,
       direction: delta === null ? "flat" : delta > 0 ? "up" : delta < 0 ? "down" : "flat",
       severity:
         data.cost.current.availability === "unavailable"
@@ -311,20 +564,18 @@ function CostPage({ data }: { data: PublicSnapshotV1 }) {
       points: data.cost.normalizedTrend
     },
     {
-      label: "Forecast",
-      value: data.cost.forecast.approximateAmount ?? "Unavailable",
+      label: "予測",
+      value: data.cost.forecast.approximateAmount ?? "取得不可",
       change:
-        data.cost.forecast.availability === "available"
-          ? "Collected month-end estimate"
-          : "Not collected",
+        data.cost.forecast.availability === "available" ? "月末見込みを収集済み" : "未収集",
       direction: "flat",
       severity: "info",
       points: data.cost.forecast.availability === "available" ? data.cost.normalizedTrend : []
     },
     {
-      label: "Budget used",
-      value: budgetUsed === null ? "Unavailable" : `${budgetUsed}%`,
-      change: budgetUsed === null ? "Budget not collected" : "Configured budget utilization",
+      label: "予算消化率",
+      value: budgetUsed === null ? "取得不可" : `${budgetUsed}%`,
+      change: budgetUsed === null ? "予算が未収集" : "設定予算に対する消化率",
       direction: "flat",
       severity: budgetUsed === null ? "info" : budgetUsed > 85 ? "warning" : "healthy",
       points: budgetUsed === null ? [] : [budgetUsed, budgetUsed]
@@ -334,28 +585,28 @@ function CostPage({ data }: { data: PublicSnapshotV1 }) {
     <div className="page-stack">
       <div className="notice">
         <Coins size={18} aria-hidden="true" />
-        <span>Amounts are rounded public-safe approximations. Exact Azure cost is never stored.</span>
+        <span>金額は公開安全性のために丸めた概算値です。Azureの正確なコストは保存されません。</span>
       </div>
       <KpiStrip metrics={metrics} />
       <div className="bento-grid">
-        <Panel title="Normalized spend trend" className="wide-panel">
+        <Panel title="正規化した支出傾向" className="wide-panel">
           {data.cost.normalizedTrend.length ? (
             <div className="chart-shell">
               {data.cost.normalizedTrend.map((value, index) => (
                 <div className="chart-column" key={`${value}-${index}`}>
                   <span style={{ height: `${value}%` }} />
-                  <small>W{index + 1}</small>
+                  <small>{index + 1}週目</small>
                 </div>
               ))}
             </div>
           ) : (
             <EmptyState
-              title="Trend unavailable"
-              detail="The collector does not publish a synthetic time series for Azure cost."
+              title="傾向データ未取得"
+              detail="コレクターはAzureコストの合成時系列を生成しません。"
             />
           )}
         </Panel>
-        <Panel title="Service mix">
+        <Panel title="サービス別構成比">
           <div className="ranked-list">
             {data.cost.categories.map((category) => (
               <div className="ranked-row" key={category.name}>
@@ -371,7 +622,7 @@ function CostPage({ data }: { data: PublicSnapshotV1 }) {
             ))}
           </div>
         </Panel>
-        <Panel title="Change drivers">
+        <Panel title="変動要因">
           {changeDrivers.length ? (
             <div className="driver-list">
               {changeDrivers
@@ -392,7 +643,7 @@ function CostPage({ data }: { data: PublicSnapshotV1 }) {
                       </span>
                       <div>
                         <strong>{category.name}</strong>
-                        <p>{movement.label} versus prior period</p>
+                        <p>{costDeltaLabelJa(movement.label)}（前期比）</p>
                       </div>
                       <StatusBadge severity={category.deltaPercent > 8 ? "warning" : "healthy"}>
                         {category.deltaPercent > 0 ? "+" : ""}
@@ -404,8 +655,8 @@ function CostPage({ data }: { data: PublicSnapshotV1 }) {
             </div>
           ) : (
             <EmptyState
-              title="Change drivers unavailable"
-              detail="A comparable prior period is required before service deltas can be published."
+              title="変動要因が未取得"
+              detail="サービス別の変動を公開するには比較可能な前期データが必要です。"
             />
           )}
         </Panel>
@@ -433,47 +684,39 @@ function ResourceDrawer({
       >
         <header>
           <div>
-            <p className="eyebrow">Sanitized resource detail</p>
+            <p className="eyebrow">サニタイズ済みリソース詳細</p>
             <h2 id="resource-drawer-title">{resource.name}</h2>
           </div>
-          <button className="icon-button" onClick={onClose} aria-label="Close detail drawer">
+          <button className="icon-button" onClick={onClose} aria-label="詳細パネルを閉じる">
             <X size={20} />
           </button>
         </header>
         <div className="drawer-status">
-          <StatusBadge
-            severity={
-              resource.status === "Healthy"
-                ? "healthy"
-                : resource.status === "Degraded"
-                  ? "warning"
-                  : "critical"
-            }
-          >
-            {resource.status}
+          <StatusBadge severity={resourceStatusSeverity(resource.status)}>
+            {resourceStatusLabelJa(resource.status)}
           </StatusBadge>
           <span>{resource.type}</span>
         </div>
         <dl className="detail-list">
           <div>
-            <dt>Resource group</dt>
+            <dt>リソースグループ</dt>
             <dd>{resource.resourceGroup}</dd>
           </div>
           <div>
-            <dt>Region</dt>
-            <dd>{resource.region}</dd>
+            <dt>リージョン</dt>
+            <dd>{regionLabelJa(resource.region)}</dd>
           </div>
           <div>
-            <dt>Owner</dt>
+            <dt>オーナー</dt>
             <dd>{resource.owner}</dd>
           </div>
           <div>
-            <dt>Recent change</dt>
+            <dt>直近の変更</dt>
             <dd>{resource.change}</dd>
           </div>
         </dl>
         <div>
-          <h3>Allowed tags</h3>
+          <h3>許可されたタグ</h3>
           <div className="tag-list">
             {Object.entries(resource.tags).map(([key, value]) => (
               <span className="tag" key={key}>
@@ -484,7 +727,7 @@ function ResourceDrawer({
         </div>
         <div className="drawer-callout">
           <ShieldCheck size={20} aria-hidden="true" />
-          <p>Names, ownership, identifiers, and tags have passed the public sanitization boundary.</p>
+          <p>名前・保有者・識別子・タグは公開用サニタイズ境界を通過済みです。</p>
         </div>
       </aside>
     </div>
@@ -511,7 +754,7 @@ function ResourcesPage({ data }: { data: PublicSnapshotV1 }) {
     <div className="page-stack">
       <div className="inventory-strip">
         <div>
-          <span>Total resources</span>
+          <span>リソース総数</span>
           <strong>{data.inventory.total}</strong>
         </div>
         {data.inventory.byType.slice(0, 4).map((item) => (
@@ -525,36 +768,36 @@ function ResourcesPage({ data }: { data: PublicSnapshotV1 }) {
         <div className="table-toolbar">
           <label className="search-control">
             <Search size={17} aria-hidden="true" />
-            <span className="sr-only">Search resources</span>
+            <span className="sr-only">リソースを検索</span>
             <input
               value={query}
               onChange={(event) => setQuery(event.target.value)}
-              placeholder="Search resource, type, or region"
+              placeholder="リソース名・種別・リージョンで検索"
             />
           </label>
           <label className="select-label">
-            <span>Status</span>
+            <span>状態</span>
             <select value={status} onChange={(event) => setStatus(event.target.value)}>
-              <option>All</option>
-              <option>Healthy</option>
-              <option>Degraded</option>
-              <option>Unavailable</option>
-              <option>Unknown</option>
+              <option value="All">すべて</option>
+              <option value="Healthy">正常</option>
+              <option value="Degraded">低下</option>
+              <option value="Unavailable">取得不可</option>
+              <option value="Unknown">不明</option>
             </select>
           </label>
-          <span className="result-count">{filtered.length} results</span>
+          <span className="result-count">{filtered.length} 件</span>
         </div>
         {filtered.length ? (
           <div className="table-scroll">
             <table>
               <thead>
                 <tr>
-                  <th>Name</th>
-                  <th>Type</th>
-                  <th>Region</th>
-                  <th>Health</th>
-                  <th>Owner</th>
-                  <th aria-label="Open detail" />
+                  <th>名前</th>
+                  <th>種別</th>
+                  <th>リージョン</th>
+                  <th>状態</th>
+                  <th>オーナー</th>
+                  <th aria-label="詳細を開く" />
                 </tr>
               </thead>
               <tbody>
@@ -564,25 +807,17 @@ function ResourcesPage({ data }: { data: PublicSnapshotV1 }) {
                       <button
                         className="resource-link"
                         onClick={() => setSelected(resource)}
-                        aria-label={`Open details for ${resource.name}`}
+                        aria-label={`${resource.name} の詳細を開く`}
                       >
                         <strong>{resource.name}</strong>
                         <small>{resource.resourceGroup}</small>
                       </button>
                     </td>
                     <td>{resource.type}</td>
-                    <td>{resource.region}</td>
+                    <td>{regionLabelJa(resource.region)}</td>
                     <td>
-                      <StatusBadge
-                        severity={
-                          resource.status === "Healthy"
-                            ? "healthy"
-                            : resource.status === "Degraded"
-                              ? "warning"
-                              : "critical"
-                        }
-                      >
-                        {resource.status}
+                      <StatusBadge severity={resourceStatusSeverity(resource.status)}>
+                        {resourceStatusLabelJa(resource.status)}
                       </StatusBadge>
                     </td>
                     <td>{resource.owner}</td>
@@ -596,8 +831,8 @@ function ResourcesPage({ data }: { data: PublicSnapshotV1 }) {
           </div>
         ) : (
           <EmptyState
-            title="No matching resources"
-            detail="Adjust the search text or health filter to expand the result set."
+            title="該当するリソースがありません"
+            detail="検索キーワードや状態フィルターを調整してください。"
           />
         )}
       </Panel>
@@ -609,145 +844,153 @@ function ResourcesPage({ data }: { data: PublicSnapshotV1 }) {
 function ReliabilityPage({ data }: { data: PublicSnapshotV1 }) {
   const metrics: TrendMetric[] = [
     {
-      label: "Availability",
+      label: "可用性",
       value: data.reliability.availability,
-      change: "Rolling 30 days",
+      change: "収集時点の値",
       direction: "flat",
-      severity: "healthy",
-      points: [99.8, 99.9, 99.8, 99.95, 99.9, 99.92, 99.97, 99.94]
+      severity: "info",
+      points: []
     },
     {
-      label: "Active incidents",
+      label: "アクティブなインシデント",
       value: String(data.reliability.incidents),
-      change: "1 requires attention",
-      direction: "down",
+      change: "収集時点の件数",
+      direction: "flat",
       severity: data.reliability.incidents > 1 ? "warning" : "healthy",
-      points: [4, 3, 3, 2, 4, 2, 2, 1]
+      points: []
     },
     {
-      label: "Mean time to recover",
+      label: "平均復旧時間 (MTTR)",
       value: data.reliability.meanTimeToRecover,
-      change: "Down 18%",
-      direction: "down",
-      severity: "healthy",
-      points: [64, 58, 61, 55, 49, 46, 42, 38]
+      change: "収集時点の値",
+      direction: "flat",
+      severity: "info",
+      points: []
     }
   ];
   return (
     <div className="page-stack">
       <KpiStrip metrics={metrics} />
-      <Panel title="Service objectives">
-        <div className="service-grid">
-          {data.reliability.services.map((service) => (
-            <article className="service-card" key={service.name}>
-              <div className="service-heading">
-                <div>
-                  <span className="service-icon">
-                    <Server size={18} aria-hidden="true" />
-                  </span>
-                  <strong>{service.name}</strong>
+      <Panel title="サービス目標">
+        {data.reliability.services.length ? (
+          <div className="service-grid">
+            {data.reliability.services.map((service) => (
+              <article className="service-card" key={service.name}>
+                <div className="service-heading">
+                  <div>
+                    <span className="service-icon">
+                      <Server size={18} aria-hidden="true" />
+                    </span>
+                    <strong>{service.name}</strong>
+                  </div>
+                  <StatusBadge severity={service.status}>{severityLabelJa(service.status)}</StatusBadge>
                 </div>
-                <StatusBadge severity={service.status}>{severityLabel(service.status)}</StatusBadge>
-              </div>
-              <dl className="mini-stats">
-                <div>
-                  <dt>Objective</dt>
-                  <dd>{service.objective}</dd>
-                </div>
-                <div>
-                  <dt>Actual</dt>
-                  <dd>{service.actual}</dd>
-                </div>
-                <div>
-                  <dt>Incidents</dt>
-                  <dd>{service.incidents}</dd>
-                </div>
-              </dl>
-              <ProgressBar
-                value={service.budgetRemainingPercent}
-                label="Error budget remaining"
-              />
-            </article>
-          ))}
-        </div>
-      </Panel>
-      <Panel title="Incident watch">
-        <div className="incident-callout">
-          <span className="icon-tile severity-warning">
-            <CircleAlert size={20} aria-hidden="true" />
-          </span>
-          <div>
-            <strong>Intermittent latency in a masked application tier</strong>
-            <p>
-              P95 response time exceeded the service target in 3 of 12 normalized intervals.
-            </p>
+                <dl className="mini-stats">
+                  <div>
+                    <dt>目標値</dt>
+                    <dd>{service.objective}</dd>
+                  </div>
+                  <div>
+                    <dt>実測値</dt>
+                    <dd>{service.actual}</dd>
+                  </div>
+                  <div>
+                    <dt>インシデント件数</dt>
+                    <dd>{service.incidents}</dd>
+                  </div>
+                </dl>
+                <ProgressBar value={service.budgetRemainingPercent} label="残エラーバジェット" />
+              </article>
+            ))}
           </div>
-          <StatusBadge severity="warning">Investigating</StatusBadge>
-        </div>
+        ) : (
+          <EmptyState
+            title="サービス目標データなし"
+            detail="今回のスナップショットにはサービスレベル目標の集計が含まれていません。次回収集時に取得できるかを確認してください。"
+          />
+        )}
       </Panel>
     </div>
   );
 }
 
 function SecurityPage({ data }: { data: PublicSnapshotV1 }) {
+  const openRecommendations = data.security.recommendations.filter(
+    (item) => item.status !== "Resolved"
+  ).length;
   const metrics: TrendMetric[] = [
     {
-      label: "Secure score",
+      label: "Secure Score",
       value: `${data.security.secureScore}%`,
-      change: "+2.4 pts",
-      direction: "up",
-      severity: "healthy",
-      points: [68, 69, 70, 69, 72, 74, 75, 77]
-    },
-    {
-      label: "Active alerts",
-      value: String(data.security.activeAlerts),
-      change: "Aggregate only",
-      direction: "down",
-      severity: data.security.activeAlerts > 3 ? "warning" : "healthy",
-      points: [8, 7, 7, 5, 6, 4, 3, 2]
-    },
-    {
-      label: "Open recommendations",
-      value: String(data.security.recommendations.filter((item) => item.status !== "Resolved").length),
-      change: "Across protected estate",
+      change: "収集時点の値",
       direction: "flat",
       severity: "info",
-      points: [7, 7, 6, 6, 5, 5, 4, 4]
+      points: []
+    },
+    {
+      label: "アクティブなアラート",
+      value: String(data.security.activeAlerts),
+      change: "集計値のみ",
+      direction: "flat",
+      severity: data.security.activeAlerts > 3 ? "warning" : "healthy",
+      points: []
+    },
+    {
+      label: "未解決の推奨事項",
+      value: String(openRecommendations),
+      change: "保護対象全体での件数",
+      direction: "flat",
+      severity: "info",
+      points: []
     }
   ];
   return (
     <div className="page-stack">
       <KpiStrip metrics={metrics} />
       <div className="bento-grid">
-        <Panel title="Defender recommendations" className="wide-panel">
-          <div className="recommendation-list">
-            {data.security.recommendations.map((item) => (
-              <div className="recommendation-row" key={item.title}>
-                <span className={`priority-line severity-${item.severity}`} />
-                <div>
-                  <strong>{item.title}</strong>
-                  <p>{item.affectedCount} affected resources · aggregate view</p>
+        <Panel title="Defenderの推奨事項" className="wide-panel">
+          {data.security.recommendations.length ? (
+            <div className="recommendation-list">
+              {data.security.recommendations.map((item) => (
+                <div className="recommendation-row" key={item.title}>
+                  <span className={`priority-line severity-${item.severity}`} />
+                  <div>
+                    <strong>{item.title}</strong>
+                    <p>対象リソース {item.affectedCount} 件・集計表示のみ</p>
+                  </div>
+                  <StatusBadge severity={item.severity}>
+                    {recommendationStatusLabelJa(item.status)}
+                  </StatusBadge>
                 </div>
-                <StatusBadge severity={item.severity}>{item.status}</StatusBadge>
-              </div>
-            ))}
-          </div>
+              ))}
+            </div>
+          ) : (
+            <EmptyState
+              title="推奨事項が未取得"
+              detail="Defenderの推奨事項はこのスナップショットに含まれていません。"
+            />
+          )}
         </Panel>
-        <Panel title="Compliance posture">
-          <div className="compliance-list">
-            {data.security.compliance.map((item) => (
-              <ProgressBar key={item.framework} value={item.score} label={item.framework} />
-            ))}
-          </div>
+        <Panel title="コンプライアンス状況">
+          {data.security.compliance.length ? (
+            <div className="compliance-list">
+              {data.security.compliance.map((item) => (
+                <ProgressBar key={item.framework} value={item.score} label={item.framework} />
+              ))}
+            </div>
+          ) : (
+            <EmptyState
+              title="コンプライアンスデータなし"
+              detail="規制コンプライアンスの集計は未取得です。"
+            />
+          )}
         </Panel>
-        <Panel title="Public detail policy">
+        <Panel title="公開時の詳細レベル">
           <div className="privacy-card">
             <ShieldCheck size={28} aria-hidden="true" />
-            <strong>Aggregate by design</strong>
+            <strong>既定で集計表示</strong>
             <p>
-              Recommendation titles and counts are shown. Asset names, vulnerability detail,
-              exploits, and identities are removed before publication.
+              推奨事項のタイトルと件数のみを表示します。資産名・脆弱性の詳細・攻撃手法・ID情報は公開前に除去されています。
             </p>
           </div>
         </Panel>
@@ -764,70 +1007,70 @@ function NetworkPage({ data }: { data: PublicSnapshotV1 }) {
     <div className="page-stack">
       <div className="inventory-strip">
         <div>
-          <span>Network resources</span>
+          <span>ネットワークリソース</span>
           <strong>{data.network.inventory.total}</strong>
         </div>
         <div>
-          <span>Resource types</span>
+          <span>リソース種別数</span>
           <strong>{data.network.inventory.byType.length}</strong>
         </div>
         <div>
-          <span>Regions</span>
+          <span>リージョン数</span>
           <strong>{data.network.inventory.byRegion.length}</strong>
         </div>
         <div>
-          <span>Endpoint policy</span>
-          <strong>Masked</strong>
+          <span>エンドポイントポリシー</span>
+          <strong>マスク済み</strong>
         </div>
       </div>
       <div className="bento-grid">
-        <Panel title="Network inventory">
+        <Panel title="ネットワーク在庫">
           {data.network.inventory.byType.length ? (
             <div className="ranked-list">
               {data.network.inventory.byType.map((item) => (
                 <div className="ranked-row" key={item.label}>
                   <strong>{item.label}</strong>
-                  <span>{item.count}</span>
+                  <span>{item.count} 件</span>
                 </div>
               ))}
             </div>
           ) : (
             <EmptyState
-              title="No network inventory"
-              detail="No supported network resources were returned in this snapshot."
+              title="ネットワーク在庫がありません"
+              detail="このスナップショットでは対応するネットワークリソースが返されませんでした。"
             />
           )}
         </Panel>
-        <Panel title="Flow telemetry status">
+        <Panel title="フローテレメトリの状況">
           <div className="privacy-card">
             <Network size={28} aria-hidden="true" />
             <strong>
               {telemetry.availability === "unavailable"
-                ? "Unavailable"
-                : `${telemetry.healthyConnections ?? 0} healthy connections`}
+                ? "取得不可"
+                : `正常な接続 ${telemetry.healthyConnections ?? 0} 件`}
             </strong>
             <p>{telemetry.message}</p>
           </div>
         </Panel>
       </div>
       <Panel
-        title="Observed flow telemetry"
+        title="観測されたフローテレメトリ"
         action={
           <label className="select-label compact">
-            <span className="sr-only">Flow status</span>
+            <span className="sr-only">フロー状態</span>
             <select value={filter} onChange={(event) => setFilter(event.target.value)}>
-              <option>All</option>
-              <option>Allowed</option>
-              <option>Degraded</option>
-              <option>Blocked</option>
+              <option value="All">すべて</option>
+              <option value="Allowed">許可</option>
+              <option value="Degraded">低下</option>
+              <option value="Blocked">遮断</option>
             </select>
           </label>
         }
       >
         {telemetry.availability === "unavailable" ? (
           <EmptyState
-            title="Flow telemetry unavailable"
-            detail="Network resources were inventoried, but resource existence is never treated as connection health."
+            title="フローテレメトリが未取得"
+            detail="ネットワークリソースは在庫として収集されていますが、リソースの存在自体を接続の健全性とは判断していません。"
           />
         ) : rows.length ? (
           <div className="flow-list">
@@ -837,46 +1080,52 @@ function NetworkPage({ data }: { data: PublicSnapshotV1 }) {
                   <Network size={18} aria-hidden="true" />
                 </span>
                 <div className="flow-endpoint">
-                  <small>Source</small>
+                  <small>送信元</small>
                   <strong>{flow.source}</strong>
                 </div>
                 <ChevronRight size={18} aria-hidden="true" />
                 <div className="flow-endpoint">
-                  <small>Destination</small>
+                  <small>宛先</small>
                   <strong>{flow.destination}</strong>
                 </div>
                 <div className="flow-stat">
-                  <small>Protocol</small>
+                  <small>プロトコル</small>
                   <strong>{flow.protocol}</strong>
                 </div>
                 <div className="flow-stat">
-                  <small>Latency</small>
+                  <small>レイテンシ</small>
                   <strong>{flow.latency}</strong>
                 </div>
                 <div className="flow-stat">
-                  <small>Throughput</small>
+                  <small>スループット</small>
                   <strong>{flow.throughput}</strong>
                 </div>
-                <StatusBadge
-                  severity={
-                    flow.status === "Allowed"
-                      ? "healthy"
-                      : flow.status === "Degraded"
-                        ? "warning"
-                        : "critical"
-                  }
-                >
-                  {flow.status}
+                <StatusBadge severity={networkFlowStatusSeverity(flow.status)}>
+                  {networkFlowStatusLabelJa(flow.status)}
                 </StatusBadge>
               </article>
             ))}
           </div>
         ) : (
-          <EmptyState title="No flows in this state" detail="Choose another flow status filter." />
+          <EmptyState title="該当するフローがありません" detail="別のフロー状態フィルターを選択してください。" />
         )}
       </Panel>
     </div>
   );
+}
+
+function insightDomainLabel(route: string): string {
+  const segment = route.split("/").filter(Boolean)[0] ?? "overview";
+  const domainLabels: Record<string, string> = {
+    overview: "概要",
+    cost: "コスト",
+    resources: "リソース",
+    reliability: "信頼性",
+    security: "セキュリティ",
+    network: "ネットワーク",
+    "ai-insights": "AI インサイト"
+  };
+  return domainLabels[segment] ?? segment;
 }
 
 function InsightCard({ insight }: { insight: AiInsight }) {
@@ -884,29 +1133,33 @@ function InsightCard({ insight }: { insight: AiInsight }) {
   return (
     <article className="insight-card">
       <header>
-        <StatusBadge severity={insight.severity}>{severityLabel(insight.severity)}</StatusBadge>
-        <span className="confidence">{Math.round(insight.confidence * 100)}% confidence</span>
+        <StatusBadge severity={insight.severity}>{severityLabelJa(insight.severity)}</StatusBadge>
+        <span className="confidence">確信度 {Math.round(insight.confidence * 100)}%</span>
       </header>
       <h2>{insight.title}</h2>
-      <p>{insight.observation}</p>
-      <div className="insight-impact">
-        <strong>Potential impact</strong>
+      <div className="insight-block">
+        <strong>観測事実</strong>
+        <p>{insight.observation}</p>
+      </div>
+      <div className="insight-block insight-impact">
+        <strong>想定される影響</strong>
         <p>{insight.impact}</p>
       </div>
       <div className="evidence-list">
         {insight.numericEvidence.map((evidence) => (
           <span key={`${evidence.source}-${evidence.value}`}>
-            {evidence.label} {evidence.value}
+            <strong>{evidence.label}</strong> {evidence.value}
+            <small>（出典: {evidence.source}）</small>
           </span>
         ))}
       </div>
       <footer>
         <div>
-          <small>Recommended action</small>
+          <small>推奨対応</small>
           <strong>{insight.recommendedAction}</strong>
         </div>
         <button className="secondary-button" onClick={() => navigate(insight.route)}>
-          Open context <ExternalLink size={15} aria-hidden="true" />
+          関連データを見る <ExternalLink size={15} aria-hidden="true" />
         </button>
       </footer>
     </article>
@@ -914,6 +1167,21 @@ function InsightCard({ insight }: { insight: AiInsight }) {
 }
 
 function AiInsightsPage({ data }: { data: PublicSnapshotV1 }) {
+  const insights = data.aiInsights;
+  const navigate = useNavigate();
+  const warningCount = insights.filter(
+    (insight) => insight.severity === "warning" || insight.severity === "critical"
+  ).length;
+  const domains = useMemo(
+    () => new Set(insights.map((insight) => insightDomainLabel(insight.route))),
+    [insights]
+  );
+  const latestPeriod = insights[0]?.period ?? "期間データなし";
+  const priorityBoard = useMemo(() => {
+    const rank: Record<Severity, number> = { critical: 0, warning: 1, info: 2, healthy: 3 };
+    return insights.slice().sort((a, b) => rank[a.severity] - rank[b.severity]);
+  }, [insights]);
+
   return (
     <div className="page-stack">
       <div className="ai-banner">
@@ -921,33 +1189,81 @@ function AiInsightsPage({ data }: { data: PublicSnapshotV1 }) {
           <Bot size={22} aria-hidden="true" />
         </span>
         <div>
-          <strong>Evidence-bound, read-only analysis</strong>
+          <strong>根拠に基づく読み取り専用の分析</strong>
           <p>
-            Insights use sanitized structured data only. Recommendations never perform Azure
-            remediation.
+            分析はサニタイズ済みの構造化データのみを使用します。推奨事項はAzureへの変更操作を一切行いません。
           </p>
         </div>
-        <span>Period: {data.aiInsights[0]?.period ?? "No period"}</span>
+        <span>対象期間: {latestPeriod}</span>
       </div>
-      {data.aiInsights.length ? (
-        <div className="insight-grid">
-          {data.aiInsights.map((insight) => (
-            <InsightCard insight={insight} key={insight.id} />
-          ))}
-        </div>
+      <div className="ai-summary-grid">
+        <article className="kpi-card">
+          <p className="eyebrow">検証済みインサイト</p>
+          <strong>{insights.length} 件</strong>
+        </article>
+        <article className="kpi-card">
+          <p className="eyebrow">要注意インサイト</p>
+          <strong>{warningCount} 件</strong>
+        </article>
+        <article className="kpi-card">
+          <p className="eyebrow">対象ドメイン数</p>
+          <strong>{domains.size} 件</strong>
+        </article>
+        <article className="kpi-card">
+          <p className="eyebrow">最終更新</p>
+          <strong>{formatDateTimeJa(data.generatedAt)}</strong>
+        </article>
+      </div>
+      {insights.length ? (
+        <>
+          <Panel title="優先度アクションボード">
+            <div className="action-list">
+              {priorityBoard.map((insight) => (
+                <button
+                  className="action-row"
+                  key={`priority-${insight.id}`}
+                  onClick={() => navigate(insight.route)}
+                >
+                  <StatusBadge severity={insight.severity}>
+                    {severityLabelJa(insight.severity)}
+                  </StatusBadge>
+                  <div>
+                    <strong>{insight.title}</strong>
+                    <p>{insight.recommendedAction}</p>
+                  </div>
+                  <ChevronRight size={16} aria-hidden="true" />
+                </button>
+              ))}
+            </div>
+          </Panel>
+          <div className="insight-grid">
+            {insights.map((insight) => (
+              <InsightCard insight={insight} key={insight.id} />
+            ))}
+          </div>
+        </>
       ) : (
         <EmptyState
-          title="No validated insights"
-          detail="The last analysis did not produce evidence that passed the publication gate."
+          title="検証済みインサイトなし"
+          detail="直近の分析では公開ゲートを通過する根拠が生成されませんでした。"
         />
       )}
+      <div className="privacy-card ai-gate-card">
+        <ShieldCheck size={24} aria-hidden="true" />
+        <div>
+          <strong>スキーマ・根拠・プライバシーゲート</strong>
+          <p>
+            すべてのインサイトは公開スキーマ検証・数値根拠の裏付け確認・匿名化プライバシースキャンを通過したものだけを表示しています。読み取り専用であり、Azureへの操作は行いません。
+          </p>
+        </div>
+      </div>
     </div>
   );
 }
 
 function LoadingState() {
   return (
-    <div className="loading-grid" aria-label="Loading operational snapshot">
+    <div className="loading-grid" aria-label="運用スナップショットを読み込み中">
       {[1, 2, 3, 4, 5, 6].map((item) => (
         <div className="skeleton" key={item} />
       ))}
@@ -959,9 +1275,9 @@ function ErrorState({ error }: { error: string }) {
   return (
     <div className="error-state" role="alert">
       <CircleAlert size={32} aria-hidden="true" />
-      <h2>Operational snapshot unavailable</h2>
+      <h2>運用スナップショットを取得できません</h2>
       <p>{error}</p>
-      <small>Production collection failures never replace the last-known-good snapshot.</small>
+      <small>収集に失敗した場合でも、直前に取得できた正常なスナップショットは上書きされません。</small>
     </div>
   );
 }
@@ -975,6 +1291,10 @@ function AppShell({ data }: { data: PublicSnapshotV1 }) {
     Math.round((Date.now() - new Date(data.generatedAt).getTime()) / 60_000)
   );
   const fresh = ageMinutes <= 4_320;
+  const footerNote =
+    data.mode === "DEMO"
+      ? "既定では合成データを使用します。Azure接続は不要です。"
+      : "匿名化済みのAzure収集データを表示しています。";
 
   return (
     <div className="app-shell">
@@ -985,14 +1305,14 @@ function AppShell({ data }: { data: PublicSnapshotV1 }) {
           </span>
           <span>
             <strong>Azure Ops Pulse</strong>
-            <small>Public operations demo</small>
+            <small>公開運用デモ</small>
           </span>
-          <button className="mobile-close" onClick={() => setMenuOpen(false)} aria-label="Close menu">
+          <button className="mobile-close" onClick={() => setMenuOpen(false)} aria-label="メニューを閉じる">
             <X size={20} />
           </button>
         </div>
-        <nav aria-label="Primary navigation">
-          <span className="nav-section">Workspace</span>
+        <nav aria-label="プライマリナビゲーション">
+          <span className="nav-section">ワークスペース</span>
           {NAV_ITEMS.map((item) => {
             const Icon = item.icon;
             return (
@@ -1009,43 +1329,45 @@ function AppShell({ data }: { data: PublicSnapshotV1 }) {
           })}
         </nav>
         <div className="sidebar-footer">
-          <div className="demo-badge">DEMO</div>
-          <p>Synthetic data by default. No Azure connection required.</p>
+          <div className="demo-badge">{modeLabelJa(data.mode)}</div>
+          <p>{footerNote}</p>
           <a href="https://github.com/aktsmm/azure-ops-pulse-demo">
-            View repository <ExternalLink size={13} aria-hidden="true" />
+            リポジトリを見る <ExternalLink size={13} aria-hidden="true" />
           </a>
         </div>
       </aside>
-      {menuOpen && <button className="nav-scrim" onClick={() => setMenuOpen(false)} aria-label="Close navigation" />}
+      {menuOpen && (
+        <button className="nav-scrim" onClick={() => setMenuOpen(false)} aria-label="ナビゲーションを閉じる" />
+      )}
       <div className="main-column">
         <header className="topbar">
-          <button className="menu-button" onClick={() => setMenuOpen(true)} aria-label="Open navigation">
+          <button className="menu-button" onClick={() => setMenuOpen(true)} aria-label="ナビゲーションを開く">
             <Menu size={20} />
           </button>
           <label className="scope-control">
-            <span>Scope</span>
-            <select aria-label="Subscription scope" defaultValue="current">
+            <span>スコープ</span>
+            <select aria-label="サブスクリプションスコープ" defaultValue="current">
               <option value="current">{data.scope.displayName}</option>
             </select>
           </label>
           <label className="scope-control time-control">
             <Clock3 size={16} aria-hidden="true" />
-            <select aria-label="Time range" defaultValue="30d">
-              <option value="24h">Last 24 hours</option>
-              <option value="7d">Last 7 days</option>
-              <option value="30d">Last 30 days</option>
-              <option value="90d">Last 90 days</option>
+            <select aria-label="期間" defaultValue="30d">
+              <option value="24h">過去24時間</option>
+              <option value="7d">過去7日間</option>
+              <option value="30d">過去30日間</option>
+              <option value="90d">過去90日間</option>
             </select>
           </label>
           <div className="topbar-spacer" />
           <div className="freshness">
             <span className={`health-dot severity-${fresh ? "healthy" : "warning"}`} />
             <span>
-              <strong>{fresh ? "Fresh" : "Stale"}</strong>
-              <small>{new Date(data.generatedAt).toLocaleString()}</small>
+              <strong>{fresh ? "最新" : "古い"}</strong>
+              <small>{formatDateTimeJa(data.generatedAt)}</small>
             </span>
           </div>
-          <button className="icon-button" aria-label="Notifications">
+          <button className="icon-button" aria-label="通知">
             <Bell size={19} />
             <span className="notification-dot" />
           </button>
@@ -1053,13 +1375,13 @@ function AppShell({ data }: { data: PublicSnapshotV1 }) {
         <main>
           <div className="page-heading">
             <div>
-              <p className="breadcrumb">Operations / {page.title}</p>
+              <p className="breadcrumb">運用 / {page.title}</p>
               <h1>{page.title}</h1>
               <p>{page.subtitle}</p>
             </div>
             <div className="mode-chip">
-              <span>{data.mode}</span>
-              <small>schema {data.schemaVersion}</small>
+              <span>{modeLabelJa(data.mode)}</span>
+              <small>スキーマ {data.schemaVersion}</small>
             </div>
           </div>
           <Routes>

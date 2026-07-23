@@ -9,6 +9,7 @@ import type {
   SourceStatus
 } from "../src/data/contracts";
 import { sanitizeSnapshot } from "../src/lib/sanitize";
+import { activityEventSeverity, activityEventTitle } from "./activity-normalize";
 import {
   comparableCostPeriods,
   costCoverageLabel,
@@ -157,8 +158,8 @@ const health = optionalSource(
       subscriptionId,
       "HealthResources | where type =~ 'microsoft.resourcehealth/availabilitystatuses' | project id, properties"
     ),
-  "Resource Health availability was collected.",
-  "Resource Health is unavailable or the current role cannot read it."
+  "Resource Health の可用性情報を収集しました。",
+  "Resource Health は利用できないか、現在のロールでは読み取れません。"
 );
 
 const serviceHealth = optionalSource(
@@ -168,14 +169,14 @@ const serviceHealth = optionalSource(
       subscriptionId,
       "HealthResources | where type =~ 'microsoft.resourcehealth/events' | project properties"
     ),
-  "Service Health events were collected in aggregate.",
-  "Service Health events are unavailable or the current role cannot read them."
+  "Service Health のイベントを集計で収集しました。",
+  "Service Health のイベントは利用できないか、現在のロールでは読み取れません。"
 );
 
 const activity = optionalSource(
   "Activity Log",
   () =>
-    runAzJson<Array<{ category?: string; level?: string; eventTimestamp?: string }>>([
+    runAzJson<Array<{ category?: unknown; level?: unknown; eventTimestamp?: string }>>([
       "monitor",
       "activity-log",
       "list",
@@ -186,8 +187,8 @@ const activity = optionalSource(
       "--max-events",
       "100"
     ]),
-  "Recent Activity Log events were collected without actor or resource detail.",
-  "Activity Log is unavailable or the current role cannot read it."
+  "直近のActivity Logイベントを、実行者・対象リソースの情報を除いて収集しました。",
+  "Activity Log は利用できないか、現在のロールでは読み取れません。"
 );
 
 const security = optionalSource(
@@ -226,8 +227,8 @@ const security = optionalSource(
       regulatoryCount: percent(regulatoryCount)
     };
   },
-  "Defender assessments, subassessment counts, secure score controls, alerts, and compliance aggregates were collected.",
-  "Defender data is unavailable; plans may be disabled or permissions may be insufficient."
+  "Defenderのアセスメント、サブアセスメント件数、セキュアスコアの管理策、アラート、コンプライアンス集計を収集しました。",
+  "Defenderのデータは利用できません。プランが無効、または権限が不足している可能性があります。"
 );
 
 const costPeriods = comparableCostPeriods(new Date());
@@ -235,18 +236,18 @@ const costPeriods = comparableCostPeriods(new Date());
 const currentCost = optionalSource(
   "Cost Management",
   () => queryCostPeriod(subscriptionId, costPeriods.current.start, costPeriods.current.end),
-  "Current Cost Management period was collected.",
-  "Current Cost Management period is unavailable; billing scope or role access may be required."
+  "現在のCost Management期間を収集しました。",
+  "現在のCost Management期間は利用できません。課金スコープまたはロールの権限が必要な可能性があります。"
 );
 const previousCost = optionalSource(
   "Cost Management prior period",
   () => queryCostPeriod(subscriptionId, costPeriods.previous.start, costPeriods.previous.end),
-  "Prior comparable Cost Management period was collected.",
-  "Prior comparable Cost Management period is unavailable."
+  "比較対象となる前期間のCost Managementデータを収集しました。",
+  "比較対象となる前期間のCost Managementデータは利用できません。"
 );
 
 const network = optionalSource(
-  "Network inventory and metrics",
+  "ネットワークインベントリとメトリック",
   () => {
     const inventory = graphQuery<{
       id: string;
@@ -282,15 +283,15 @@ const network = optionalSource(
     }
     return { inventory, metricSeries, metricFailures };
   },
-  "Network inventory and supported Azure Monitor metric series were collected.",
-  "Network inventory and metrics are unavailable."
+  "ネットワークインベントリと対応するAzure Monitorのメトリック系列を収集しました。",
+  "ネットワークインベントリとメトリックは利用できません。"
 );
 const networkStatus: SourceStatus =
   network.status.availability === "available"
     ? {
-        source: "Network inventory and metrics",
+        source: "ネットワークインベントリとメトリック",
         availability: "partial",
-        message: `Network inventory was collected with ${network.value?.metricSeries ?? 0} supported metric series; ${network.value?.metricFailures ?? 0} sampled resources had unavailable metrics. Flow telemetry was not collected.`
+        message: `ネットワークインベントリを収集し、取得できたメトリック系列は${network.value?.metricSeries ?? 0}件、メトリックを取得できなかったサンプリング対象リソースは${network.value?.metricFailures ?? 0}件でした。フロー テレメトリは収集していません。`
       }
     : network.status;
 
@@ -315,7 +316,7 @@ const resources: RawResource[] = rawResources.map((resource) => ({
       : typeof resource.tags?.team === "string"
         ? resource.tags.team
         : "unassigned",
-  change: "Collected from Azure Resource Graph"
+  change: "Azure Resource Graph から収集"
 }));
 
 const costData = transformComparableCost(currentCost.value, previousCost.value);
@@ -327,25 +328,24 @@ const costStatus: SourceStatus =
         message:
           currentCost.status.availability === "unavailable"
             ? currentCost.status.message
-            : "Billing currency is not verified as JPY; no unverified conversion was published."
+            : "課金通貨がJPYであると確認できないため、未検証の換算値は公開していません。"
       }
     : previousCost.status.availability === "unavailable" ||
         !costData.previousCurrencyVerifiedJpy
       ? {
           source: "Cost Management",
           availability: "partial",
-          message:
-            "Current rounded JPY cost was collected; the prior comparable period is unavailable."
+          message: "現在のJPY丸め済みコストは収集できましたが、比較対象の前期間は利用できません。"
         }
       : {
           source: "Cost Management",
           availability: "available",
-          message: "Current and prior comparable rounded JPY periods were collected."
+          message: "現在および比較対象の前期間のJPY丸め済みコストを収集しました。"
         };
 
 const recommendationCounts = new Map<string, SecurityRecommendation>();
 for (const item of security.value?.assessments ?? []) {
-  const title = item.properties?.displayName ?? "Defender recommendation";
+  const title = item.properties?.displayName ?? "Defenderの推奨事項";
   const current = recommendationCounts.get(title);
   const severity = item.properties?.status?.severity?.toLowerCase();
   const isOpen =
@@ -403,14 +403,14 @@ const insights: AiInsight[] = [];
 const raw: RawSnapshot = {
   generatedAt: new Date().toISOString(),
   mode: "AZURE",
-  subscriptionDisplayName: "Azure subscription",
+  subscriptionDisplayName: "Azure サブスクリプション",
   subscriptionId,
   tenantId: account.tenantId,
   sources: [
     {
       source: "Azure Resource Graph",
       availability: "available",
-      message: "Read-only inventory collection completed."
+      message: "読み取り専用のインベントリ収集が完了しました。"
     },
     costStatus,
     health.status,
@@ -461,40 +461,50 @@ const raw: RawSnapshot = {
       id: "collection-complete",
       timestamp: "Current snapshot",
       severity: unavailableCount ? "warning" : "healthy",
-      title: "Azure collection completed",
-      detail: `${resources.length} resources sanitized; ${unavailableCount} optional sources unavailable.`,
+      title: "Azureの収集が完了しました",
+      detail: `${resources.length}件のリソースをサニタイズしました。利用できないオプションのデータソースは${unavailableCount}件です。`,
       route: "/overview"
     },
     ...(activity.value ?? []).slice(0, 4).map((event, eventIndex) => ({
       id: `activity-${eventIndex}`,
       timestamp: event.eventTimestamp ?? "Recent",
-      severity: event.level === "Error" ? ("warning" as const) : ("info" as const),
-      title: `${event.category ?? "Azure"} activity observed`,
-      detail: "Actor, resource, and operation details were removed before publication.",
+      severity: activityEventSeverity(event.level),
+      title: activityEventTitle(event.category),
+      detail: "操作の実行者・対象リソース・操作内容は公開前に除去されています。",
       route: "/overview"
     })),
     ...(serviceHealth.value ?? []).slice(0, 2).map((event, eventIndex) => ({
       id: `service-health-${eventIndex}`,
       timestamp: "Current collection window",
       severity: event.properties?.status === "Active" ? ("warning" as const) : ("info" as const),
-      title: "Service Health event observed",
-      detail: "Service-level status is shown without affected subscription or resource details.",
+      title: "Service Health のイベントを検出",
+      detail: "サブスクリプションやリソースの詳細を含まないサービス単位のステータスです。",
       route: "/reliability"
     }))
   ],
   regionalHealth: Object.entries(
-    resources.reduce<Record<string, { total: number; healthy: number }>>((regions, resource) => {
+    resources.reduce<Record<string, { known: number; healthy: number }>>((regions, resource) => {
       const region = resource.location ?? "Unknown";
-      regions[region] ??= { total: 0, healthy: 0 };
-      regions[region].total += 1;
-      if (resource.status === "Healthy") regions[region].healthy += 1;
+      regions[region] ??= { known: 0, healthy: 0 };
+      if (resource.status !== "Unknown") {
+        regions[region].known += 1;
+        if (resource.status === "Healthy") regions[region].healthy += 1;
+      }
       return regions;
     }, {})
   )
     .slice(0, 8)
     .map(([region, counts]) => {
-      const score = Math.round((counts.healthy / Math.max(1, counts.total)) * 100);
-      return { region, score, status: score >= 90 ? ("healthy" as const) : ("warning" as const) };
+      if (counts.known === 0) {
+        return { region, score: 0, status: "info" as const, coverage: "unknown" as const };
+      }
+      const score = Math.round((counts.healthy / counts.known) * 100);
+      return {
+        region,
+        score,
+        status: score >= 90 ? ("healthy" as const) : ("warning" as const),
+        coverage: "known" as const
+      };
     }),
   exactCostJpy: costData.currentTotalJpy,
   exactPreviousCostJpy: costData.previousTotalJpy,
@@ -506,7 +516,7 @@ const raw: RawSnapshot = {
   reliability: {
     availability: `${healthPercent}%`,
     incidents: resources.filter((resource) => resource.status === "Unavailable").length,
-    meanTimeToRecover: "Unavailable from public snapshot",
+    meanTimeToRecover: "公開スナップショットでは取得できません",
     services: []
   },
   security: {
@@ -515,7 +525,7 @@ const raw: RawSnapshot = {
     recommendations,
     compliance:
       security.value && security.value.regulatoryCount > 0
-        ? [{ framework: "Regulatory compliance aggregate", score: secureScore }]
+        ? [{ framework: "規制コンプライアンス集計", score: secureScore }]
         : []
   },
   networkInventory: (network.value?.inventory ?? []).map((item) => ({
@@ -526,7 +536,7 @@ const raw: RawSnapshot = {
   networkTelemetry: {
     availability: "unavailable",
     message:
-      "Flow telemetry was not collected. Network resource existence is not interpreted as connection health.",
+      "フローテレメトリは収集していません。ネットワークリソースが存在することを、接続の健全性として解釈していません。",
     flows: []
   },
   aiInsights: insights

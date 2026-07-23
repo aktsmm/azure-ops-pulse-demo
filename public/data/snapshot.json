@@ -6,7 +6,7 @@
     "state": "fresh",
     "ageMinutes": 0,
     "lastSuccessfulCollection": "2026-07-23T05:27:06.878Z",
-    "nextScheduledCollection": "Tuesday / Friday 06:00 JST"
+    "nextScheduledCollection": "火曜・金曜 06:00 (JST)"
   },
   "scope": {
     "displayName": "Azure subscription ad7fb9a5",
@@ -17,37 +17,37 @@
     {
       "source": "Azure Resource Graph",
       "availability": "available",
-      "message": "Read-only inventory collection completed."
+      "message": "読み取り専用のインベントリ収集が完了しました。"
     },
     {
       "source": "Cost Management",
       "availability": "available",
-      "message": "Current and prior comparable rounded JPY periods were collected."
+      "message": "現在および比較対象の前期間のJPY丸め済みコストを収集しました。"
     },
     {
       "source": "Resource Health",
       "availability": "available",
-      "message": "Resource Health availability was collected."
+      "message": "Resource Health の可用性情報を収集しました。"
     },
     {
       "source": "Service Health",
       "availability": "available",
-      "message": "Service Health events were collected in aggregate."
+      "message": "Service Health のイベントを集計で収集しました。"
     },
     {
       "source": "Activity Log",
       "availability": "available",
-      "message": "Recent Activity Log events were collected without actor or resource detail."
+      "message": "直近のActivity Logイベントを、実行者・対象リソースの情報を除いて収集しました。"
     },
     {
       "source": "Defender for Cloud",
       "availability": "available",
-      "message": "Defender assessments, subassessment counts, secure score controls, alerts, and compliance aggregates were collected."
+      "message": "Defenderのアセスメント、サブアセスメント件数、セキュアスコアの管理策、アラート、コンプライアンス集計を収集しました。"
     },
     {
-      "source": "Network inventory and metrics",
+      "source": "ネットワークインベントリとメトリック",
       "availability": "partial",
-      "message": "Network inventory was collected with 0 supported metric series; 7 sampled resources had unavailable metrics. Flow telemetry was not collected."
+      "message": "ネットワークインベントリを収集し、取得できたメトリック系列は0件、メトリックを取得できなかったサンプリング対象リソースは7件でした。フロー テレメトリは収集していません。"
     }
   ],
   "overview": {
@@ -103,40 +103,40 @@
         "id": "event-55b8dadb",
         "timestamp": "Current snapshot",
         "severity": "healthy",
-        "title": "Azure collection completed",
-        "detail": "56 resources sanitized; 0 optional sources unavailable.",
+        "title": "Azureの収集が完了しました",
+        "detail": "56件のリソースをサニタイズしました。利用できないオプションのデータソースは0件です。",
         "route": "/overview"
       },
       {
         "id": "event-cd198459",
         "timestamp": "2026-07-23T05:07:21.3424768Z",
         "severity": "info",
-        "title": "[object Object] activity observed",
-        "detail": "Actor, resource, and operation details were removed before publication.",
+        "title": "Azure のアクティビティを検出",
+        "detail": "公開前に実行者・リソース・操作の詳細は除去されています。",
         "route": "/overview"
       },
       {
         "id": "event-cc1982c6",
         "timestamp": "2026-07-23T05:07:19.7174697Z",
         "severity": "info",
-        "title": "[object Object] activity observed",
-        "detail": "Actor, resource, and operation details were removed before publication.",
+        "title": "Azure のアクティビティを検出",
+        "detail": "公開前に実行者・リソース・操作の詳細は除去されています。",
         "route": "/overview"
       },
       {
         "id": "event-cb198133",
         "timestamp": "2026-07-23T05:07:11.682943Z",
         "severity": "info",
-        "title": "[object Object] activity observed",
-        "detail": "Actor, resource, and operation details were removed before publication.",
+        "title": "Azure のアクティビティを検出",
+        "detail": "公開前に実行者・リソース・操作の詳細は除去されています。",
         "route": "/overview"
       },
       {
         "id": "event-ca197fa0",
         "timestamp": "2026-07-23T05:07:08.6828606Z",
         "severity": "info",
-        "title": "[object Object] activity observed",
-        "detail": "Actor, resource, and operation details were removed before publication.",
+        "title": "Azure のアクティビティを検出",
+        "detail": "公開前に実行者・リソース・操作の詳細は除去されています。",
         "route": "/overview"
       }
     ],
@@ -144,42 +144,50 @@
       {
         "region": "global",
         "score": 0,
-        "status": "warning"
+        "status": "info",
+        "coverage": "unknown"
       },
       {
         "region": "japaneast",
         "score": 0,
-        "status": "warning"
+        "status": "info",
+        "coverage": "unknown"
       },
       {
         "region": "southeastasia",
         "score": 0,
-        "status": "warning"
+        "status": "info",
+        "coverage": "unknown"
       },
       {
         "region": "eastasia",
         "score": 0,
-        "status": "warning"
+        "status": "info",
+        "coverage": "unknown"
       },
       {
         "region": "eastus",
         "score": 0,
-        "status": "warning"
+        "status": "info",
+        "coverage": "unknown"
       },
       {
         "region": "germanywestcentral",
         "score": 0,
-        "status": "warning"
+        "status": "info",
+        "coverage": "unknown"
       },
       {
         "region": "japanwest",
         "score": 0,
-        "status": "warning"
+        "status": "info",
+        "coverage": "unknown"
       },
       {
         "region": "southcentralus",
         "score": 0,
-        "status": "warning"
+        "status": "info",
+        "coverage": "unknown"
       }
     ]
   },
@@ -989,7 +997,7 @@
   "reliability": {
     "availability": "0%",
     "incidents": 0,
-    "meanTimeToRecover": "Unavailable from public snapshot",
+    "meanTimeToRecover": "公開スナップショットでは取得できません",
     "services": []
   },
   "security": {
@@ -1040,7 +1048,7 @@
     },
     "telemetry": {
       "availability": "unavailable",
-      "message": "Flow telemetry was not collected. Network resource existence is not interpreted as connection health.",
+      "message": "フローテレメトリは収集していません。ネットワークリソースが存在することを、接続の健全性として解釈していません。",
       "healthyConnections": null,
       "degradedConnections": null,
       "blockedFlows": null,
@@ -1051,37 +1059,37 @@
     {
       "id": "insight-a1f3c2e4",
       "severity": "warning",
-      "title": "Period-over-period cost nearly doubled",
-      "observation": "Total spend increased approximately 92.3% compared with the prior comparable period. The snapshot provides no forecast or budget threshold, so the full exposure cannot be bounded.",
-      "impact": "Sustained cost growth at this rate is associated with budget overruns. Human review of spend drivers is warranted before the next billing period closes.",
+      "title": "前期比コストがほぼ2倍に増加",
+      "observation": "総コストは直前の比較期間と比べて約92.3%増加しました。このスナップショットには予測値や予算しきい値が含まれていないため、影響の全体像は特定できません。",
+      "impact": "このペースでのコスト増加が続くと、予算超過につながる可能性があります。次回の請求期間が確定する前に、コスト増加要因を人の目で確認することを推奨します。",
       "numericEvidence": [
         {
-          "label": "Cost period-over-period delta (%)",
+          "label": "コストの前期比変動率（%）",
           "value": "92.3",
           "source": "cost.deltaPercent"
         }
       ],
-      "recommendedAction": "Review the Cost Management dashboard for spend breakdown by service. Verify whether recent capacity or tier changes were planned.",
+      "recommendedAction": "Cost Management ダッシュボードでサービス別のコスト内訳を確認してください。直近のキャパシティ変更やSKU/プラン変更が計画されたものかどうかも確認してください。",
       "confidence": 0.85,
-      "period": "Current vs prior comparable period",
+      "period": "今期 対 直前の比較期間",
       "route": "/cost"
     },
     {
       "id": "insight-4e1b7a3f",
       "severity": "info",
-      "title": "Network telemetry unavailable for all 7 network watchers",
-      "observation": "Seven Network Watcher resources are present across 7 regions, but flow telemetry was not collected. The snapshot notes that network resource existence is not interpreted as connection health.",
-      "impact": "Without flow telemetry, network-level anomalies such as blocked or degraded connections cannot be detected from this snapshot. Coverage gaps may obscure security or connectivity issues.",
+      "title": "7件のNetwork Watcherすべてでテレメトリが取得不可",
+      "observation": "7つのリージョンにNetwork Watcherリソースが7件存在していますが、フローテレメトリは収集されていません。このスナップショットでは、ネットワークリソースの存在自体を接続の健全性の証拠とはみなしていません。",
+      "impact": "フローテレメトリがないため、このスナップショットからは通信のブロックや劣化といったネットワークレベルの異常を検出できません。収集範囲のギャップにより、セキュリティや接続性の問題が見えなくなっている可能性があります。",
       "numericEvidence": [
         {
-          "label": "Network Watcher resources present",
+          "label": "存在するNetwork Watcherリソース数",
           "value": "7",
           "source": "network.inventory.total"
         }
       ],
-      "recommendedAction": "Review Network Watcher flow log configuration and ensure NSG flow logs or traffic analytics are enabled for key subnets. Check the /network route for details.",
+      "recommendedAction": "Network Watcherのフローログ設定を確認し、主要なサブネットでNSGフローログまたはTraffic Analyticsが有効になっていることを確認してください。詳細は /network ルートを参照してください。",
       "confidence": 0.7,
-      "period": "Current snapshot",
+      "period": "現在のスナップショット",
       "route": "/network"
     }
   ]

@@ -17,7 +17,7 @@ export function useSnapshot(): SnapshotState {
     const controller = new AbortController();
     fetch(`${import.meta.env.BASE_URL}data/snapshot.json`, { signal: controller.signal })
       .then((response) => {
-        if (!response.ok) throw new Error(`Snapshot request failed (${response.status})`);
+        if (!response.ok) throw new Error(`スナップショットの取得に失敗しました (${response.status})`);
         return response.json() as Promise<PublicSnapshotV1>;
       })
       .then((data) => setState({ status: "ready", data, error: null }))
@@ -26,7 +26,7 @@ export function useSnapshot(): SnapshotState {
         setState({
           status: "error",
           data: null,
-          error: error instanceof Error ? error.message : "Unable to load snapshot"
+          error: error instanceof Error ? error.message : "スナップショットを読み込めませんでした"
         });
       });
     return () => controller.abort();

@@ -109,9 +109,9 @@ export function sanitizeTags(tags: unknown): Record<string, string> {
 }
 
 export function formatApproximateJpy(amount: number): string {
-  if (!Number.isFinite(amount)) return "Unavailable";
+  if (!Number.isFinite(amount)) return "取得不可";
   const magnitude = Math.abs(amount);
-  const suffix = amount < 0 ? " credit" : "";
+  const suffix = amount < 0 ? "（クレジット）" : "";
   if (magnitude === 0) return "約¥0";
   if (magnitude >= 100_000_000) {
     return `約¥${(magnitude / 100_000_000).toFixed(1)}億${suffix}`;
@@ -137,7 +137,7 @@ function sanitizeResource(resource: RawResource): PublicSnapshotV1["inventory"][
     status,
     owner: maskIdentity(resource.owner || "unassigned"),
     tags: sanitizeTags(resource.tags),
-    change: resource.change || "No material change"
+    change: resource.change || "変更なし"
   };
 }
 
@@ -225,11 +225,11 @@ export function sanitizeSnapshot(raw: RawSnapshot): PublicSnapshotV1 {
       state: ageMinutes > 4_320 ? "stale" : "fresh",
       ageMinutes,
       lastSuccessfulCollection: generatedAt.toISOString(),
-      nextScheduledCollection: "Tuesday / Friday 06:00 JST"
+      nextScheduledCollection: "火曜・金曜 06:00 (JST)"
     },
     scope: {
       displayName:
-        raw.mode === "DEMO" ? raw.subscriptionDisplayName : `Azure subscription ${stableHash(raw.subscriptionId)}`,
+        raw.mode === "DEMO" ? raw.subscriptionDisplayName : `Azureサブスクリプション ${stableHash(raw.subscriptionId)}`,
       subscriptionId: maskGuid(raw.subscriptionId),
       tenantId: maskGuid(raw.tenantId)
     },
@@ -263,7 +263,7 @@ export function sanitizeSnapshot(raw: RawSnapshot): PublicSnapshotV1 {
       },
       normalizedTrend: raw.normalizedCostTrend,
       categories: raw.costCategories.map((item) => ({
-        name: item.amountJpy < 0 ? `${item.name} credit` : item.name,
+        name: item.amountJpy < 0 ? `${item.name}（クレジット）` : item.name,
         approximateAmount: formatApproximateJpy(item.amountJpy),
         sharePercent: Number(((Math.abs(item.amountJpy) / categoryMagnitude) * 100).toFixed(1)),
         deltaPercent: item.deltaPercent

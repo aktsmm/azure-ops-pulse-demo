@@ -109,10 +109,10 @@ export function createDemoRawSnapshot(generatedAt = new Date().toISOString()): R
       }
     ],
     regionalHealth: [
-      { region: "Japan East", score: 96, status: "healthy" },
-      { region: "Japan West", score: 91, status: "healthy" },
-      { region: "Southeast Asia", score: 84, status: "warning" },
-      { region: "Global", score: 98, status: "healthy" }
+      { region: "Japan East", score: 96, status: "healthy", coverage: "known" },
+      { region: "Japan West", score: 91, status: "healthy", coverage: "known" },
+      { region: "Southeast Asia", score: 84, status: "warning", coverage: "known" },
+      { region: "Global", score: 98, status: "healthy", coverage: "known" }
     ],
     exactCostJpy: 1_248_730,
     exactPreviousCostJpy: 1_158_380,
