@@ -82,4 +82,23 @@ describe("AI numeric evidence validation", () => {
       )
     ).toThrow(/invalid scalar source/);
   });
+
+  it("rejects a default incident zero when Resource Health is unavailable", () => {
+    expect(() =>
+      validateEvidenceItem(
+        {
+          sources: [
+            {
+              source: "Resource Health",
+              availability: "unavailable",
+              message: "Unavailable."
+            }
+          ],
+          reliability: { incidents: 0 }
+        },
+        "Unavailable incident evidence",
+        { label: "障害件数", value: "0", source: "reliability.incidents" }
+      )
+    ).toThrow(/Resource Health is not available/);
+  });
 });

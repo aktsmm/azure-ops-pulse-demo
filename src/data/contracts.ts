@@ -142,7 +142,7 @@ export interface PublicSnapshotV1 {
   };
   reliability: {
     availability: string;
-    incidents: number;
+    incidents: number | null;
     meanTimeToRecover: string;
     services: ReliabilityService[];
   };

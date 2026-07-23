@@ -226,4 +226,36 @@ describe("public sanitization boundary", () => {
       /Resource Health posture must be null/
     );
   });
+
+  it("removes a default incident zero when Resource Health is unavailable", () => {
+    const raw = createDemoRawSnapshot();
+    const resourceHealth = raw.sources.find((source) => source.source === "Resource Health")!;
+    resourceHealth.availability = "unavailable";
+    raw.reliability.incidents = 0;
+
+    const snapshot = sanitizeSnapshot(raw);
+
+    expect(snapshot.reliability.incidents).toBeNull();
+    expect(() => publicSnapshotSchema.parse(snapshot)).not.toThrow();
+  });
+
+  it("preserves an observed zero incidents when Resource Health is available", () => {
+    const raw = createDemoRawSnapshot();
+    raw.reliability.incidents = 0;
+
+    const snapshot = sanitizeSnapshot(raw);
+
+    expect(snapshot.reliability.incidents).toBe(0);
+    expect(() => publicSnapshotSchema.parse(snapshot)).not.toThrow();
+  });
+
+  it("keeps incidents null when Resource Health has no evaluated observations", () => {
+    const raw = createDemoRawSnapshot();
+    raw.reliability.incidents = null;
+
+    const snapshot = sanitizeSnapshot(raw);
+
+    expect(snapshot.reliability.incidents).toBeNull();
+    expect(() => publicSnapshotSchema.parse(snapshot)).not.toThrow();
+  });
 });

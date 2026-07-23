@@ -29,7 +29,7 @@ function requireAvailableEvidenceSource(snapshot: unknown, sourcePath: string): 
 
   const requiredSource = sourcePath.startsWith("security.")
     ? "Defender for Cloud"
-    : sourcePath === "overview.postureScore"
+    : sourcePath === "overview.postureScore" || sourcePath === "reliability.incidents"
       ? "Resource Health"
       : null;
   if (!requiredSource) return;

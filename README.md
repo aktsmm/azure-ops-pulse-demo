@@ -71,8 +71,14 @@ syntactically valid IPv4 ranges, including RFC1918 and loopback addresses, are r
 
 ## Public data contract and privacy boundary
 
-Versioned JSON Schemas are under [`schemas/public/v1`](schemas/public/v1), with matching TypeScript
-contracts in [`src/data/contracts.ts`](src/data/contracts.ts).
+The authoritative public JSON Schema for `schemaVersion: 1.2.0` is under
+[`schemas/public/v1.2`](schemas/public/v1.2), with matching runtime validation in
+[`scripts/public-schema.ts`](scripts/public-schema.ts) and TypeScript contracts in
+[`src/data/contracts.ts`](src/data/contracts.ts). `npm run validate:data` validates the published
+snapshot against both contracts so nullable availability fields cannot drift.
+In v1.2, `overview.postureScore`, `reliability.incidents`, `security.secureScore`, and
+`security.activeAlerts` are nullable. `null` means uncollected or unevaluated; an available,
+evidence-backed measurement of zero remains numeric `0`.
 
 | Data | Public representation |
 | --- | --- |
@@ -149,7 +155,8 @@ The agent:
 - must use existing numeric evidence and bounded language;
 - cannot call Azure or perform remediation;
 - may change only the `aiInsights` field in the one allowlisted file;
-- is followed by deterministic schema, exact numeric evidence, baseline-diff, and privacy checks;
+- is followed by deterministic JSON Schema, runtime schema, Japanese prose, exact numeric evidence,
+  baseline-diff, and privacy checks;
 - has every public safe output disabled; and
 - can only hand off the already-sanitized snapshot through a one-day run artifact.
 

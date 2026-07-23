@@ -947,7 +947,7 @@
   },
   "reliability": {
     "availability": "Unavailable from public snapshot",
-    "incidents": 0,
+    "incidents": null,
     "meanTimeToRecover": "Unavailable from public snapshot",
     "services": []
   },

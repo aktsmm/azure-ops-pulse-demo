@@ -1,7 +1,7 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://aktsmm.github.io/azure-ops-pulse-demo/schemas/public/v1/network.schema.json",
-  "title": "Azure Ops Pulse network inventory and masked telemetry v1",
+  "$id": "https://aktsmm.github.io/azure-ops-pulse-demo/schemas/public/v1.2/network.schema.json",
+  "title": "Azure Ops Pulse network inventory and masked telemetry v1.2",
   "type": "object",
   "required": ["inventory", "telemetry"],
   "properties": {
@@ -41,7 +41,7 @@
               "healthyConnections": { "type": "null" },
               "degradedConnections": { "type": "null" },
               "blockedFlows": { "type": "null" },
-              "flows": { "maxItems": 0 }
+              "flows": { "type": "array", "maxItems": 0 }
             }
           },
           "else": {

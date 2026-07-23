@@ -413,6 +413,11 @@ const healthCoveragePercent = resources.length
 const healthPercent = evaluatedResources.length
   ? Math.round((healthyCount / evaluatedResources.length) * 100)
   : null;
+const observedHealthIncidents = evaluatedResources.length
+  ? resources.filter(
+      (resource) => resource.status === "Degraded" || resource.status === "Unavailable"
+    ).length
+  : null;
 const insights: AiInsight[] = [];
 
 const raw: RawSnapshot = {
@@ -540,7 +545,7 @@ const raw: RawSnapshot = {
       healthPercent === null
         ? "Unavailable from public snapshot"
         : `${healthPercent}% of evaluated resources available`,
-    incidents: 0,
+    incidents: observedHealthIncidents,
     meanTimeToRecover: "Unavailable from public snapshot",
     services: []
   },

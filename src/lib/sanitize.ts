@@ -293,7 +293,10 @@ export function sanitizeSnapshot(raw: RawSnapshot): PublicSnapshotV1 {
         }, {})
       ).map(([label, count]) => ({ label, count }))
     },
-    reliability: raw.reliability,
+    reliability: {
+      ...raw.reliability,
+      incidents: resourceHealthAvailable ? raw.reliability.incidents : null
+    },
     security: {
       secureScore: defenderAvailable ? raw.security.secureScore : null,
       activeAlerts: defenderAvailable ? raw.security.activeAlerts : null,

@@ -174,7 +174,7 @@ export const publicSnapshotSchema = z
     reliability: z
       .object({
         availability: z.string(),
-        incidents: z.number().nonnegative(),
+        incidents: z.number().nonnegative().nullable(),
         meanTimeToRecover: z.string(),
         services: z.array(
           z
@@ -274,6 +274,13 @@ export const publicSnapshotSchema = z
         code: z.ZodIssueCode.custom,
         path: ["overview", "postureScore"],
         message: "Resource Health posture must be null unless the source is available"
+      });
+    }
+    if (resourceHealth?.availability !== "available" && snapshot.reliability.incidents !== null) {
+      context.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ["reliability", "incidents"],
+        message: "Reliability incidents must be null unless Resource Health is available"
       });
     }
 
