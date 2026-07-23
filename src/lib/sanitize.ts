@@ -225,11 +225,13 @@ export function sanitizeSnapshot(raw: RawSnapshot): PublicSnapshotV1 {
       state: ageMinutes > 4_320 ? "stale" : "fresh",
       ageMinutes,
       lastSuccessfulCollection: generatedAt.toISOString(),
-      nextScheduledCollection: "Tuesday / Friday 06:00 JST"
+      nextScheduledCollection: "火曜・金曜 06:00（JST）"
     },
     scope: {
       displayName:
-        raw.mode === "DEMO" ? raw.subscriptionDisplayName : `Azure subscription ${stableHash(raw.subscriptionId)}`,
+        raw.mode === "DEMO"
+          ? raw.subscriptionDisplayName
+          : `Azure サブスクリプション ${stableHash(raw.subscriptionId)}`,
       subscriptionId: maskGuid(raw.subscriptionId),
       tenantId: maskGuid(raw.tenantId)
     },

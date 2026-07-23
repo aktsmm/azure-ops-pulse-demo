@@ -415,6 +415,44 @@ main {
   gap: 14px;
 }
 
+.status-strip {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16px 28px;
+  margin: 0;
+  padding: 14px 20px;
+  border: 1px solid var(--cp-border);
+  border-radius: 16px;
+  background: var(--cp-surface);
+  box-shadow: 0 0 2px var(--cp-border), 0 1px 2px var(--cp-border);
+}
+
+.status-strip > div {
+  display: flex;
+  min-width: 120px;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.status-strip dt {
+  color: var(--cp-text-muted);
+  font-size: 11px;
+}
+
+.status-strip dd {
+  margin: 0;
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.status-strip dd small {
+  display: block;
+  margin-top: 2px;
+  color: var(--cp-text-muted);
+  font-size: 11px;
+  font-weight: 400;
+}
+
 .kpi-card,
 .panel,
 .inventory-strip {
@@ -478,6 +516,20 @@ main {
   display: grid;
   grid-template-columns: minmax(0, 1.55fr) minmax(310px, 0.75fr);
   gap: 18px;
+}
+
+.overview-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 18px;
+}
+
+.overview-grid .span-2 {
+  grid-column: span 2;
+}
+
+.overview-grid .span-4 {
+  grid-column: span 4;
 }
 
 .panel {
@@ -1244,6 +1296,12 @@ td small {
   font-size: 12px;
 }
 
+.insight-context {
+  margin: 0 0 14px;
+  color: var(--cp-text-muted);
+  font-size: 12px;
+}
+
 .evidence-list {
   display: flex;
   flex-wrap: wrap;
@@ -1252,12 +1310,23 @@ td small {
 }
 
 .evidence-list span {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
   padding: 5px 8px;
   border: 1px solid var(--cp-border);
   border-radius: 10px;
   background: var(--cp-surface-soft);
-  font-family: Consolas, "Courier New", Courier, monospace;
   font-size: 11px;
+}
+
+.evidence-list span strong {
+  font-weight: 700;
+}
+
+.evidence-list span small {
+  color: var(--cp-text-muted);
+  font-family: Consolas, "Courier New", Courier, monospace;
 }
 
 .insight-card > footer {
@@ -1354,6 +1423,14 @@ td small {
     grid-template-columns: 1fr;
   }
 
+  .overview-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .overview-grid .span-4 {
+    grid-column: span 2;
+  }
+
   .timeline-panel,
   .sources-panel,
   .wide-panel {
@@ -1436,6 +1513,19 @@ td small {
 
   .insight-grid {
     grid-template-columns: 1fr;
+  }
+
+  .overview-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .overview-grid .span-2,
+  .overview-grid .span-4 {
+    grid-column: 1;
+  }
+
+  .status-strip {
+    gap: 12px 20px;
   }
 
   .flow-row {

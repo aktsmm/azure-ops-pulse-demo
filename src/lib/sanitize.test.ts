@@ -86,7 +86,7 @@ describe("public sanitization boundary", () => {
     raw.subscriptionDisplayName = "private-subscription-name";
     const snapshot = sanitizeSnapshot(raw);
 
-    expect(snapshot.scope.displayName).toMatch(/^Azure subscription [0-9a-f]{8}$/);
+    expect(snapshot.scope.displayName).toMatch(/^Azure サブスクリプション [0-9a-f]{8}$/);
     expect(snapshot.scope.displayName).not.toContain(raw.subscriptionDisplayName);
     expect(new Set(snapshot.inventory.resources.map((resource) => resource.id)).size).toBe(
       snapshot.inventory.resources.length

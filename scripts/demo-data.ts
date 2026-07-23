@@ -15,28 +15,28 @@ export function createDemoRawSnapshot(generatedAt = new Date().toISOString()): R
       {
         source: "Azure Resource Graph",
         availability: "available",
-        message: "Synthetic inventory mirrors a read-only Resource Graph collection."
+        message: "この合成データは読み取り専用の Resource Graph 収集を模したものです。"
       },
       {
         source: "Cost Management",
         availability: "available",
         message:
-          "Synthetic current and prior rounded JPY views; forecast and budget are unavailable."
+          "今回期間と比較期間の概算 JPY を示す合成データです。予測値と予算は利用できません。"
       },
       {
         source: "Resource Health",
         availability: "available",
-        message: "Health and activity signals normalized for the demo."
+        message: "デモ用に正規化した健全性およびアクティビティ信号です。"
       },
       {
         source: "Defender for Cloud",
         availability: "partial",
-        message: "Recommendations and aggregate counts; advanced plan data omitted."
+        message: "推奨事項と集計件数のみを表示し、上位プランのデータは含みません。"
       },
       {
-        source: "Network inventory",
+        source: "ネットワークインベントリ",
         availability: "available",
-        message: "Endpoints are masked or reduced to service classification."
+        message: "エンドポイントはマスクするか、サービス分類のみに縮約しています。"
       }
     ],
     metrics: [
@@ -77,34 +77,34 @@ export function createDemoRawSnapshot(generatedAt = new Date().toISOString()): R
     events: [
       {
         id: "cost-variance-01",
-        timestamp: "18 min ago",
+        timestamp: "18分前",
         severity: "warning",
-        title: "Compute cost variance detected",
-        detail: "Normalized spend moved 11.4% above its trailing baseline.",
+        title: "コンピューティングのコスト変動を検知",
+        detail: "正規化後の支出が直近の基準値から 11.4% 上振れしました。",
         route: "/cost"
       },
       {
         id: "security-closed-02",
-        timestamp: "1 hr ago",
+        timestamp: "1時間前",
         severity: "healthy",
-        title: "Security recommendation resolved",
-        detail: "Aggregate affected-resource count decreased from 5 to 2.",
+        title: "セキュリティ推奨事項が解決済みに",
+        detail: "影響を受けるリソースの集計件数が 5 件から 2 件に減少しました。",
         route: "/security"
       },
       {
         id: "latency-watch-03",
-        timestamp: "3 hrs ago",
+        timestamp: "3時間前",
         severity: "warning",
-        title: "Application latency threshold crossed",
-        detail: "P95 exceeded the service target in 3 of 12 intervals.",
+        title: "アプリケーションのレイテンシがしきい値を超過",
+        detail: "12 回中 3 回の区間で P95 がサービス目標を超えました。",
         route: "/reliability"
       },
       {
         id: "inventory-change-04",
-        timestamp: "Yesterday",
+        timestamp: "昨日",
         severity: "info",
-        title: "Inventory change observed",
-        detail: "Two sanitized resources were added to the monitored estate.",
+        title: "インベントリの変更を検知",
+        detail: "監視対象の構成に、サニタイズ済みリソースが 2 件追加されました。",
         route: "/resources"
       }
     ],
@@ -136,7 +136,7 @@ export function createDemoRawSnapshot(generatedAt = new Date().toISOString()): R
         status: "Healthy",
         owner: identity("commerce-platform", "example.invalid"),
         tags: { environment: "production", team: "commerce", criticality: "high" },
-        change: "Configuration updated 2 days ago"
+        change: "2日前に構成が更新されました"
       },
       {
         id: "/subscriptions/demo/resourceGroups/data-platform/providers/Microsoft.Sql/servers/orders-primary",
@@ -147,7 +147,7 @@ export function createDemoRawSnapshot(generatedAt = new Date().toISOString()): R
         status: "Healthy",
         owner: identity("data-owner", "example.invalid"),
         tags: { environment: "production", team: "data", criticality: "high" },
-        change: "No material change"
+        change: "重大な変更はありません"
       },
       {
         id: "/subscriptions/demo/resourceGroups/edge-network/providers/Microsoft.Network/frontDoors/global-edge",
@@ -158,7 +158,7 @@ export function createDemoRawSnapshot(generatedAt = new Date().toISOString()): R
         status: "Healthy",
         owner: identity("platform-network", "example.invalid"),
         tags: { environment: "production", team: "platform", criticality: "high" },
-        change: "Rule set updated 5 days ago"
+        change: "5日前にルールセットが更新されました"
       },
       {
         id: "/subscriptions/demo/resourceGroups/commerce-prod-west/providers/Microsoft.Web/sites/catalog-api",
@@ -169,7 +169,7 @@ export function createDemoRawSnapshot(generatedAt = new Date().toISOString()): R
         status: "Degraded",
         owner: identity("commerce-apps", "example.invalid"),
         tags: { environment: "production", team: "commerce", criticality: "medium" },
-        change: "Scale-out event 3 hours ago"
+        change: "3時間前にスケールアウトが発生しました"
       },
       {
         id: "/subscriptions/demo/resourceGroups/telemetry/providers/Microsoft.OperationalInsights/workspaces/ops-central",
@@ -180,7 +180,7 @@ export function createDemoRawSnapshot(generatedAt = new Date().toISOString()): R
         status: "Healthy",
         owner: identity("platform-observability", "example.invalid"),
         tags: { environment: "production", team: "platform", criticality: "high" },
-        change: "Retention policy unchanged"
+        change: "保持ポリシーは変更されていません"
       },
       {
         id: "/subscriptions/demo/resourceGroups/ai-insights/providers/Microsoft.CognitiveServices/accounts/pulse-analysis",
@@ -191,7 +191,7 @@ export function createDemoRawSnapshot(generatedAt = new Date().toISOString()): R
         status: "Healthy",
         owner: identity("platform-ai", "example.invalid"),
         tags: { environment: "development", team: "platform", criticality: "low" },
-        change: "Model deployment updated yesterday"
+        change: "昨日モデルのデプロイが更新されました"
       },
       {
         id: "/subscriptions/demo/resourceGroups/storage/providers/Microsoft.Storage/storageAccounts/publicassets",
@@ -202,7 +202,7 @@ export function createDemoRawSnapshot(generatedAt = new Date().toISOString()): R
         status: "Healthy",
         owner: identity("platform-storage", "example.invalid"),
         tags: { environment: "production", team: "platform", criticality: "medium" },
-        change: "No material change"
+        change: "重大な変更はありません"
       },
       {
         id: "/subscriptions/demo/resourceGroups/gateway/providers/Microsoft.Network/applicationGateways/commerce-gateway",
@@ -213,13 +213,13 @@ export function createDemoRawSnapshot(generatedAt = new Date().toISOString()): R
         status: "Degraded",
         owner: identity("platform-network", "example.invalid"),
         tags: { environment: "production", team: "platform", criticality: "high" },
-        change: "Backend health variance observed"
+        change: "バックエンドの健全性に変動を検知しました"
       }
     ],
     reliability: {
       availability: "99.94%",
       incidents: 1,
-      meanTimeToRecover: "38 min",
+      meanTimeToRecover: "38分",
       services: [
         {
           name: "Commerce API",
@@ -299,7 +299,7 @@ export function createDemoRawSnapshot(generatedAt = new Date().toISOString()): R
     ],
     networkTelemetry: {
       availability: "available",
-      message: "Synthetic DEMO flow telemetry; Azure inventory is not treated as connection health.",
+      message: "合成デモのフローテレメトリです。Azure インベントリの存在は接続の健全性として扱いません。",
       flows: [
         {
         id: "flow-01",
@@ -352,95 +352,95 @@ export function createDemoRawSnapshot(generatedAt = new Date().toISOString()): R
       {
         id: "compute-cost-rise",
         severity: "warning",
-        title: "Compute growth is outpacing the overall cost trend",
+        title: "コンピューティングの増加がコスト全体の傾向を上回っています",
         observation:
-          "Compute increased faster than the portfolio while normalized reliability remained stable.",
+          "正規化後の信頼性は安定したまま、コンピューティングはポートフォリオ全体よりも速く増加しました。",
         impact:
-          "Continued divergence may increase the portfolio cost change in the next comparison period.",
+          "この差が続くと、次回の比較期間でポートフォリオ全体のコスト変化が拡大する可能性があります。",
         numericEvidence: [
-          { label: "Compute delta", value: "+11.4%", source: "cost.categories.0.deltaPercent" },
-          { label: "Portfolio delta", value: "+7.8%", source: "cost.deltaPercent" }
+          { label: "コンピューティングの変化率", value: "+11.4%", source: "cost.categories.0.deltaPercent" },
+          { label: "ポートフォリオ全体の変化率", value: "+7.8%", source: "cost.deltaPercent" }
         ],
         recommendedAction:
-          "Review the largest compute change drivers and validate scale settings before the next collection.",
+          "最も影響の大きいコンピューティングの変動要因を確認し、次回収集前にスケール設定を確認してください。",
         confidence: 0.92,
-        period: "Last 30 days",
+        period: "過去30日間",
         route: "/cost"
       },
       {
         id: "edge-error-budget",
         severity: "warning",
-        title: "Global edge error budget is materially lower than peers",
+        title: "グローバルエッジのエラーバジェットが他サービスより大幅に低下",
         observation:
-          "The global edge service is below its objective while other monitored services remain above target.",
+          "他の監視対象サービスが目標を上回る中、グローバルエッジサービスは目標を下回っています。",
         impact:
-          "Further latency or availability degradation could exhaust the remaining error budget.",
+          "さらにレイテンシや可用性が悪化すると、残りのエラーバジェットを使い切る可能性があります。",
         numericEvidence: [
-          { label: "Actual", value: "99.86%", source: "reliability.services.2.actual" },
-          { label: "Objective", value: "99.90%", source: "reliability.services.2.objective" },
+          { label: "実測値", value: "99.86%", source: "reliability.services.2.actual" },
+          { label: "目標値", value: "99.90%", source: "reliability.services.2.objective" },
           {
-            label: "Budget remaining",
+            label: "残エラーバジェット",
             value: "28%",
             source: "reliability.services.2.budgetRemainingPercent"
           }
         ],
         recommendedAction:
-          "Compare recent edge configuration changes with the latency intervals shown in Reliability.",
+          "直近のエッジ構成の変更内容を、信頼性ページに表示されているレイテンシの区間と比較してください。",
         confidence: 0.88,
-        period: "Rolling 30 days",
+        period: "直近30日間（ローリング）",
         route: "/reliability"
       },
       {
         id: "security-concentration",
         severity: "critical",
-        title: "One critical security recommendation remains open",
+        title: "重大なセキュリティ推奨事項が1件未対応です",
         observation:
-          "The aggregate recommendation set includes one critical item affecting one protected resource.",
+          "集計された推奨事項には、保護対象リソース1件に影響する重大な項目が1件含まれています。",
         impact:
-          "Unresolved critical recommendations can reduce the overall secure score and risk tolerance.",
+          "未解決の重大な推奨事項は、全体の Secure Score とリスク許容度を低下させる可能性があります。",
         numericEvidence: [
           {
-            label: "Affected resources",
+            label: "影響を受けるリソース数",
             value: "1",
             source: "security.recommendations.1.affectedCount"
           },
-          { label: "Secure score", value: "77%", source: "security.secureScore" }
+          { label: "Secure Score", value: "77%", source: "security.secureScore" }
         ],
         recommendedAction:
-          "Open Defender for Cloud privately and review the critical recommendation with the asset owner.",
+          "Defender for Cloud を個別に開き、資産の担当者とともに重大な推奨事項を確認してください。",
         confidence: 0.96,
-        period: "Current snapshot",
+        period: "現在のスナップショット",
         route: "/security"
       },
       {
         id: "network-latency",
         severity: "info",
-        title: "A classified external path shows elevated latency",
+        title: "分類済みの外部経路でレイテンシの上昇を検知",
         observation:
-          "One masked external connection is degraded while first-party service paths remain healthy.",
+          "自社サービスの経路は健全なままですが、マスクされた外部接続の1件が劣化しています。",
         impact:
-          "The affected integration may contribute to tail latency without indicating a broad network incident.",
+          "広範なネットワーク障害を示すものではありませんが、対象の連携がテールレイテンシの一因となっている可能性があります。",
         numericEvidence: [
           {
-            label: "Degraded flows",
+            label: "劣化しているフロー数",
             value: "1",
             source: "network.telemetry.degradedConnections"
           },
           {
-            label: "Observed latency",
+            label: "観測されたレイテンシ",
             value: "168 ms",
             source: "network.telemetry.flows.2.latency"
           },
           {
-            label: "Healthy flows",
+            label: "健全なフロー数",
             value: "3",
             source: "network.telemetry.healthyConnections"
           }
         ],
         recommendedAction:
-          "Validate provider status and compare the path against private network telemetry.",
+          "プロバイダーの状態を確認し、この経路をプライベートネットワークのテレメトリと比較してください。",
         confidence: 0.81,
-        period: "Last 24 hours",
+        period: "過去24時間",
         route: "/network"
       }
     ]

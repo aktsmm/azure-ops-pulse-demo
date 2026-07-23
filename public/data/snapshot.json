@@ -6,10 +6,10 @@
     "state": "fresh",
     "ageMinutes": 0,
     "lastSuccessfulCollection": "2026-07-23T05:27:06.878Z",
-    "nextScheduledCollection": "Tuesday / Friday 06:00 JST"
+    "nextScheduledCollection": "火曜・金曜 06:00（JST）"
   },
   "scope": {
-    "displayName": "Azure subscription ad7fb9a5",
+    "displayName": "Azure サブスクリプション ad7fb9a5",
     "subscriptionId": "832c4080-****-****-****-****9596d40a",
     "tenantId": "04879edd-****-****-****-****71c883fa"
   },
@@ -17,37 +17,37 @@
     {
       "source": "Azure Resource Graph",
       "availability": "available",
-      "message": "Read-only inventory collection completed."
+      "message": "読み取り専用のインベントリ収集が完了しました。"
     },
     {
       "source": "Cost Management",
       "availability": "available",
-      "message": "Current and prior comparable rounded JPY periods were collected."
+      "message": "今回期間と比較対象期間の概算 JPY コストを収集しました。"
     },
     {
       "source": "Resource Health",
       "availability": "available",
-      "message": "Resource Health availability was collected."
+      "message": "Resource Health の可用性情報を収集しました。"
     },
     {
       "source": "Service Health",
       "availability": "available",
-      "message": "Service Health events were collected in aggregate."
+      "message": "Service Health のイベントを集計で収集しました。"
     },
     {
       "source": "Activity Log",
       "availability": "available",
-      "message": "Recent Activity Log events were collected without actor or resource detail."
+      "message": "直近の Activity Log イベントを、実行者やリソースの詳細を除いて収集しました。"
     },
     {
       "source": "Defender for Cloud",
       "availability": "available",
-      "message": "Defender assessments, subassessment counts, secure score controls, alerts, and compliance aggregates were collected."
+      "message": "Defender の評価、サブ評価件数、Secure Score の管理項目、アラート、コンプライアンス集計を収集しました。"
     },
     {
-      "source": "Network inventory and metrics",
+      "source": "ネットワークインベントリとメトリクス",
       "availability": "partial",
-      "message": "Network inventory was collected with 0 supported metric series; 7 sampled resources had unavailable metrics. Flow telemetry was not collected."
+      "message": "ネットワークインベントリを収集しました（対応メトリクス系列: 0 件、メトリクス取得不可のサンプリング対象リソース: 7 件）。フローテレメトリは収集していません。"
     }
   ],
   "overview": {
@@ -101,42 +101,42 @@
     "eventTimeline": [
       {
         "id": "event-55b8dadb",
-        "timestamp": "Current snapshot",
+        "timestamp": "現在のスナップショット",
         "severity": "healthy",
-        "title": "Azure collection completed",
-        "detail": "56 resources sanitized; 0 optional sources unavailable.",
+        "title": "Azure の収集が完了しました",
+        "detail": "56 件のリソースをサニタイズしました。オプションのデータソースのうち 0 件が利用できません。",
         "route": "/overview"
       },
       {
         "id": "event-cd198459",
         "timestamp": "2026-07-23T05:07:21.3424768Z",
         "severity": "info",
-        "title": "[object Object] activity observed",
-        "detail": "Actor, resource, and operation details were removed before publication.",
+        "title": "Azureのアクティビティを検知",
+        "detail": "対象者・リソース・操作の詳細は公開前に削除されています。",
         "route": "/overview"
       },
       {
         "id": "event-cc1982c6",
         "timestamp": "2026-07-23T05:07:19.7174697Z",
         "severity": "info",
-        "title": "[object Object] activity observed",
-        "detail": "Actor, resource, and operation details were removed before publication.",
+        "title": "Azureのアクティビティを検知",
+        "detail": "対象者・リソース・操作の詳細は公開前に削除されています。",
         "route": "/overview"
       },
       {
         "id": "event-cb198133",
         "timestamp": "2026-07-23T05:07:11.682943Z",
         "severity": "info",
-        "title": "[object Object] activity observed",
-        "detail": "Actor, resource, and operation details were removed before publication.",
+        "title": "Azureのアクティビティを検知",
+        "detail": "対象者・リソース・操作の詳細は公開前に削除されています。",
         "route": "/overview"
       },
       {
         "id": "event-ca197fa0",
         "timestamp": "2026-07-23T05:07:08.6828606Z",
         "severity": "info",
-        "title": "[object Object] activity observed",
-        "detail": "Actor, resource, and operation details were removed before publication.",
+        "title": "Azureのアクティビティを検知",
+        "detail": "対象者・リソース・操作の詳細は公開前に削除されています。",
         "route": "/overview"
       }
     ],
@@ -265,7 +265,7 @@
         "status": "Unknown",
         "owner": "identity-caac8562",
         "tags": {},
-        "change": "Collected from Azure Resource Graph"
+        "change": "Azure Resource Graph から収集"
       },
       {
         "id": "res-b16f9e95",
@@ -276,7 +276,7 @@
         "status": "Unknown",
         "owner": "identity-caac8562",
         "tags": {},
-        "change": "Collected from Azure Resource Graph"
+        "change": "Azure Resource Graph から収集"
       },
       {
         "id": "res-e52ced7c",
@@ -287,7 +287,7 @@
         "status": "Unknown",
         "owner": "identity-caac8562",
         "tags": {},
-        "change": "Collected from Azure Resource Graph"
+        "change": "Azure Resource Graph から収集"
       },
       {
         "id": "res-fcf8d05e",
@@ -298,7 +298,7 @@
         "status": "Unknown",
         "owner": "identity-caac8562",
         "tags": {},
-        "change": "Collected from Azure Resource Graph"
+        "change": "Azure Resource Graph から収集"
       },
       {
         "id": "res-ab090959",
@@ -309,7 +309,7 @@
         "status": "Unknown",
         "owner": "identity-caac8562",
         "tags": {},
-        "change": "Collected from Azure Resource Graph"
+        "change": "Azure Resource Graph から収集"
       },
       {
         "id": "res-e7a2df7a",
@@ -320,7 +320,7 @@
         "status": "Unknown",
         "owner": "identity-caac8562",
         "tags": {},
-        "change": "Collected from Azure Resource Graph"
+        "change": "Azure Resource Graph から収集"
       },
       {
         "id": "res-f99db5f1",
@@ -331,7 +331,7 @@
         "status": "Unknown",
         "owner": "identity-caac8562",
         "tags": {},
-        "change": "Collected from Azure Resource Graph"
+        "change": "Azure Resource Graph から収集"
       },
       {
         "id": "res-a505ce94",
@@ -342,7 +342,7 @@
         "status": "Unknown",
         "owner": "identity-caac8562",
         "tags": {},
-        "change": "Collected from Azure Resource Graph"
+        "change": "Azure Resource Graph から収集"
       },
       {
         "id": "res-ed3cac31",
@@ -353,7 +353,7 @@
         "status": "Unknown",
         "owner": "identity-caac8562",
         "tags": {},
-        "change": "Collected from Azure Resource Graph"
+        "change": "Azure Resource Graph から収集"
       },
       {
         "id": "res-0e1fc878",
@@ -364,7 +364,7 @@
         "status": "Unknown",
         "owner": "identity-caac8562",
         "tags": {},
-        "change": "Collected from Azure Resource Graph"
+        "change": "Azure Resource Graph から収集"
       },
       {
         "id": "res-beb18c1c",
@@ -375,7 +375,7 @@
         "status": "Unknown",
         "owner": "identity-caac8562",
         "tags": {},
-        "change": "Collected from Azure Resource Graph"
+        "change": "Azure Resource Graph から収集"
       },
       {
         "id": "res-9e8e71a0",
@@ -386,7 +386,7 @@
         "status": "Unknown",
         "owner": "identity-caac8562",
         "tags": {},
-        "change": "Collected from Azure Resource Graph"
+        "change": "Azure Resource Graph から収集"
       },
       {
         "id": "res-210b3db7",
@@ -397,7 +397,7 @@
         "status": "Unknown",
         "owner": "identity-caac8562",
         "tags": {},
-        "change": "Collected from Azure Resource Graph"
+        "change": "Azure Resource Graph から収集"
       },
       {
         "id": "res-d322a95b",
@@ -408,7 +408,7 @@
         "status": "Unknown",
         "owner": "identity-caac8562",
         "tags": {},
-        "change": "Collected from Azure Resource Graph"
+        "change": "Azure Resource Graph から収集"
       },
       {
         "id": "res-f0d4a2f6",
@@ -419,7 +419,7 @@
         "status": "Unknown",
         "owner": "identity-caac8562",
         "tags": {},
-        "change": "Collected from Azure Resource Graph"
+        "change": "Azure Resource Graph から収集"
       },
       {
         "id": "res-dfded8d1",
@@ -430,7 +430,7 @@
         "status": "Unknown",
         "owner": "identity-caac8562",
         "tags": {},
-        "change": "Collected from Azure Resource Graph"
+        "change": "Azure Resource Graph から収集"
       },
       {
         "id": "res-0e7ffe8a",
@@ -441,7 +441,7 @@
         "status": "Unknown",
         "owner": "identity-caac8562",
         "tags": {},
-        "change": "Collected from Azure Resource Graph"
+        "change": "Azure Resource Graph から収集"
       },
       {
         "id": "res-993fff5e",
@@ -452,7 +452,7 @@
         "status": "Unknown",
         "owner": "identity-caac8562",
         "tags": {},
-        "change": "Collected from Azure Resource Graph"
+        "change": "Azure Resource Graph から収集"
       },
       {
         "id": "res-63610b75",
@@ -463,7 +463,7 @@
         "status": "Unknown",
         "owner": "identity-caac8562",
         "tags": {},
-        "change": "Collected from Azure Resource Graph"
+        "change": "Azure Resource Graph から収集"
       },
       {
         "id": "res-f498a9ea",
@@ -474,7 +474,7 @@
         "status": "Unknown",
         "owner": "identity-caac8562",
         "tags": {},
-        "change": "Collected from Azure Resource Graph"
+        "change": "Azure Resource Graph から収集"
       },
       {
         "id": "res-c96f09ca",
@@ -485,7 +485,7 @@
         "status": "Unknown",
         "owner": "identity-caac8562",
         "tags": {},
-        "change": "Collected from Azure Resource Graph"
+        "change": "Azure Resource Graph から収集"
       },
       {
         "id": "res-85facbe9",
@@ -496,7 +496,7 @@
         "status": "Unknown",
         "owner": "identity-caac8562",
         "tags": {},
-        "change": "Collected from Azure Resource Graph"
+        "change": "Azure Resource Graph から収集"
       },
       {
         "id": "res-b2759462",
@@ -507,7 +507,7 @@
         "status": "Unknown",
         "owner": "identity-caac8562",
         "tags": {},
-        "change": "Collected from Azure Resource Graph"
+        "change": "Azure Resource Graph から収集"
       },
       {
         "id": "res-8cf5fc55",
@@ -518,7 +518,7 @@
         "status": "Unknown",
         "owner": "identity-caac8562",
         "tags": {},
-        "change": "Collected from Azure Resource Graph"
+        "change": "Azure Resource Graph から収集"
       },
       {
         "id": "res-9e6d20a4",
@@ -529,7 +529,7 @@
         "status": "Unknown",
         "owner": "identity-caac8562",
         "tags": {},
-        "change": "Collected from Azure Resource Graph"
+        "change": "Azure Resource Graph から収集"
       },
       {
         "id": "res-f5a7136e",
@@ -540,7 +540,7 @@
         "status": "Unknown",
         "owner": "identity-caac8562",
         "tags": {},
-        "change": "Collected from Azure Resource Graph"
+        "change": "Azure Resource Graph から収集"
       },
       {
         "id": "res-b6ca734d",
@@ -551,7 +551,7 @@
         "status": "Unknown",
         "owner": "identity-caac8562",
         "tags": {},
-        "change": "Collected from Azure Resource Graph"
+        "change": "Azure Resource Graph から収集"
       },
       {
         "id": "res-b8cbab4f",
@@ -562,7 +562,7 @@
         "status": "Unknown",
         "owner": "identity-caac8562",
         "tags": {},
-        "change": "Collected from Azure Resource Graph"
+        "change": "Azure Resource Graph から収集"
       },
       {
         "id": "res-1690c203",
@@ -573,7 +573,7 @@
         "status": "Unknown",
         "owner": "identity-caac8562",
         "tags": {},
-        "change": "Collected from Azure Resource Graph"
+        "change": "Azure Resource Graph から収集"
       },
       {
         "id": "res-e3d2a8d1",
@@ -584,7 +584,7 @@
         "status": "Unknown",
         "owner": "identity-caac8562",
         "tags": {},
-        "change": "Collected from Azure Resource Graph"
+        "change": "Azure Resource Graph から収集"
       },
       {
         "id": "res-9c16f428",
@@ -595,7 +595,7 @@
         "status": "Unknown",
         "owner": "identity-caac8562",
         "tags": {},
-        "change": "Collected from Azure Resource Graph"
+        "change": "Azure Resource Graph から収集"
       },
       {
         "id": "res-6feffa80",
@@ -606,7 +606,7 @@
         "status": "Unknown",
         "owner": "identity-caac8562",
         "tags": {},
-        "change": "Collected from Azure Resource Graph"
+        "change": "Azure Resource Graph から収集"
       },
       {
         "id": "res-5362bd0a",
@@ -617,7 +617,7 @@
         "status": "Unknown",
         "owner": "identity-caac8562",
         "tags": {},
-        "change": "Collected from Azure Resource Graph"
+        "change": "Azure Resource Graph から収集"
       },
       {
         "id": "res-d19be39c",
@@ -628,7 +628,7 @@
         "status": "Unknown",
         "owner": "identity-caac8562",
         "tags": {},
-        "change": "Collected from Azure Resource Graph"
+        "change": "Azure Resource Graph から収集"
       },
       {
         "id": "res-e26c4762",
@@ -639,7 +639,7 @@
         "status": "Unknown",
         "owner": "identity-caac8562",
         "tags": {},
-        "change": "Collected from Azure Resource Graph"
+        "change": "Azure Resource Graph から収集"
       },
       {
         "id": "res-41902ccd",
@@ -650,7 +650,7 @@
         "status": "Unknown",
         "owner": "identity-caac8562",
         "tags": {},
-        "change": "Collected from Azure Resource Graph"
+        "change": "Azure Resource Graph から収集"
       },
       {
         "id": "res-72b9c51f",
@@ -661,7 +661,7 @@
         "status": "Unknown",
         "owner": "identity-caac8562",
         "tags": {},
-        "change": "Collected from Azure Resource Graph"
+        "change": "Azure Resource Graph から収集"
       },
       {
         "id": "res-28f21a15",
@@ -672,7 +672,7 @@
         "status": "Unknown",
         "owner": "identity-caac8562",
         "tags": {},
-        "change": "Collected from Azure Resource Graph"
+        "change": "Azure Resource Graph から収集"
       },
       {
         "id": "res-c318f6ff",
@@ -683,7 +683,7 @@
         "status": "Unknown",
         "owner": "identity-caac8562",
         "tags": {},
-        "change": "Collected from Azure Resource Graph"
+        "change": "Azure Resource Graph から収集"
       },
       {
         "id": "res-672786aa",
@@ -694,7 +694,7 @@
         "status": "Unknown",
         "owner": "identity-caac8562",
         "tags": {},
-        "change": "Collected from Azure Resource Graph"
+        "change": "Azure Resource Graph から収集"
       },
       {
         "id": "res-2bda15ca",
@@ -705,7 +705,7 @@
         "status": "Unknown",
         "owner": "identity-caac8562",
         "tags": {},
-        "change": "Collected from Azure Resource Graph"
+        "change": "Azure Resource Graph から収集"
       },
       {
         "id": "res-af9a0b33",
@@ -716,7 +716,7 @@
         "status": "Unknown",
         "owner": "identity-caac8562",
         "tags": {},
-        "change": "Collected from Azure Resource Graph"
+        "change": "Azure Resource Graph から収集"
       },
       {
         "id": "res-0dec37bf",
@@ -727,7 +727,7 @@
         "status": "Unknown",
         "owner": "identity-caac8562",
         "tags": {},
-        "change": "Collected from Azure Resource Graph"
+        "change": "Azure Resource Graph から収集"
       },
       {
         "id": "res-137af75b",
@@ -738,7 +738,7 @@
         "status": "Unknown",
         "owner": "identity-caac8562",
         "tags": {},
-        "change": "Collected from Azure Resource Graph"
+        "change": "Azure Resource Graph から収集"
       },
       {
         "id": "res-0f970ed7",
@@ -749,7 +749,7 @@
         "status": "Unknown",
         "owner": "identity-caac8562",
         "tags": {},
-        "change": "Collected from Azure Resource Graph"
+        "change": "Azure Resource Graph から収集"
       },
       {
         "id": "res-d1c7f840",
@@ -760,7 +760,7 @@
         "status": "Unknown",
         "owner": "identity-caac8562",
         "tags": {},
-        "change": "Collected from Azure Resource Graph"
+        "change": "Azure Resource Graph から収集"
       },
       {
         "id": "res-1fcaf1f3",
@@ -771,7 +771,7 @@
         "status": "Unknown",
         "owner": "identity-caac8562",
         "tags": {},
-        "change": "Collected from Azure Resource Graph"
+        "change": "Azure Resource Graph から収集"
       },
       {
         "id": "res-e3c0c25f",
@@ -782,7 +782,7 @@
         "status": "Unknown",
         "owner": "identity-caac8562",
         "tags": {},
-        "change": "Collected from Azure Resource Graph"
+        "change": "Azure Resource Graph から収集"
       },
       {
         "id": "res-209c1d37",
@@ -793,7 +793,7 @@
         "status": "Unknown",
         "owner": "identity-caac8562",
         "tags": {},
-        "change": "Collected from Azure Resource Graph"
+        "change": "Azure Resource Graph から収集"
       },
       {
         "id": "res-dc440abe",
@@ -804,7 +804,7 @@
         "status": "Unknown",
         "owner": "identity-caac8562",
         "tags": {},
-        "change": "Collected from Azure Resource Graph"
+        "change": "Azure Resource Graph から収集"
       },
       {
         "id": "res-de42d182",
@@ -815,7 +815,7 @@
         "status": "Unknown",
         "owner": "identity-caac8562",
         "tags": {},
-        "change": "Collected from Azure Resource Graph"
+        "change": "Azure Resource Graph から収集"
       },
       {
         "id": "res-22eb53f3",
@@ -826,7 +826,7 @@
         "status": "Unknown",
         "owner": "identity-caac8562",
         "tags": {},
-        "change": "Collected from Azure Resource Graph"
+        "change": "Azure Resource Graph から収集"
       },
       {
         "id": "res-f0481154",
@@ -837,7 +837,7 @@
         "status": "Unknown",
         "owner": "identity-caac8562",
         "tags": {},
-        "change": "Collected from Azure Resource Graph"
+        "change": "Azure Resource Graph から収集"
       },
       {
         "id": "res-d2ee329d",
@@ -848,7 +848,7 @@
         "status": "Unknown",
         "owner": "identity-caac8562",
         "tags": {},
-        "change": "Collected from Azure Resource Graph"
+        "change": "Azure Resource Graph から収集"
       },
       {
         "id": "res-6bb85822",
@@ -859,7 +859,7 @@
         "status": "Unknown",
         "owner": "identity-caac8562",
         "tags": {},
-        "change": "Collected from Azure Resource Graph"
+        "change": "Azure Resource Graph から収集"
       },
       {
         "id": "res-1630a8ba",
@@ -870,7 +870,7 @@
         "status": "Unknown",
         "owner": "identity-caac8562",
         "tags": {},
-        "change": "Collected from Azure Resource Graph"
+        "change": "Azure Resource Graph から収集"
       }
     ],
     "byType": [
@@ -989,7 +989,7 @@
   "reliability": {
     "availability": "0%",
     "incidents": 0,
-    "meanTimeToRecover": "Unavailable from public snapshot",
+    "meanTimeToRecover": "公開スナップショットでは利用できません",
     "services": []
   },
   "security": {
@@ -1040,7 +1040,7 @@
     },
     "telemetry": {
       "availability": "unavailable",
-      "message": "Flow telemetry was not collected. Network resource existence is not interpreted as connection health.",
+      "message": "フローテレメトリは収集していません。ネットワークリソースの存在は接続の健全性として解釈しません。",
       "healthyConnections": null,
       "degradedConnections": null,
       "blockedFlows": null,
@@ -1051,37 +1051,37 @@
     {
       "id": "insight-a1f3c2e4",
       "severity": "warning",
-      "title": "Period-over-period cost nearly doubled",
-      "observation": "Total spend increased approximately 92.3% compared with the prior comparable period. The snapshot provides no forecast or budget threshold, so the full exposure cannot be bounded.",
-      "impact": "Sustained cost growth at this rate is associated with budget overruns. Human review of spend drivers is warranted before the next billing period closes.",
+      "title": "前期比でコストがほぼ2倍に増加",
+      "observation": "総支出は直前の比較対象期間と比べて約92.3%増加しました。このスナップショットには予測値や予算のしきい値が含まれていないため、影響の全体像を確定することはできません。",
+      "impact": "このペースでのコスト増加が続く場合、予算超過につながる可能性があります。次回の請求期間が終了する前に、支出増加の要因を人が確認することを推奨します。",
       "numericEvidence": [
         {
-          "label": "Cost period-over-period delta (%)",
+          "label": "コストの前期比変化率（%）",
           "value": "92.3",
           "source": "cost.deltaPercent"
         }
       ],
-      "recommendedAction": "Review the Cost Management dashboard for spend breakdown by service. Verify whether recent capacity or tier changes were planned.",
+      "recommendedAction": "コスト管理ダッシュボードでサービス別の支出内訳を確認してください。直近の容量変更やプラン変更が計画されたものかどうかを確認してください。",
       "confidence": 0.85,
-      "period": "Current vs prior comparable period",
+      "period": "今回期間 対 直前の比較対象期間",
       "route": "/cost"
     },
     {
       "id": "insight-4e1b7a3f",
       "severity": "info",
-      "title": "Network telemetry unavailable for all 7 network watchers",
-      "observation": "Seven Network Watcher resources are present across 7 regions, but flow telemetry was not collected. The snapshot notes that network resource existence is not interpreted as connection health.",
-      "impact": "Without flow telemetry, network-level anomalies such as blocked or degraded connections cannot be detected from this snapshot. Coverage gaps may obscure security or connectivity issues.",
+      "title": "7台すべてのNetwork Watcherでネットワークテレメトリが利用不可",
+      "observation": "7つのリージョンに7つのNetwork Watcherリソースが存在していますが、フローテレメトリは収集されていません。このスナップショットでは、ネットワークリソースの存在自体を接続状態の健全性として解釈しないことに注意してください。",
+      "impact": "フローテレメトリがないため、このスナップショットからは接続のブロックや劣化といったネットワークレベルの異常を検知できません。カバレッジの欠落により、セキュリティや接続性の問題が見過ごされる可能性があります。",
       "numericEvidence": [
         {
-          "label": "Network Watcher resources present",
+          "label": "存在するNetwork Watcherリソース数",
           "value": "7",
           "source": "network.inventory.total"
         }
       ],
-      "recommendedAction": "Review Network Watcher flow log configuration and ensure NSG flow logs or traffic analytics are enabled for key subnets. Check the /network route for details.",
+      "recommendedAction": "Network Watcherのフローログ設定を確認し、主要なサブネットでNSGフローログまたはトラフィック分析が有効になっていることを確認してください。詳細は /network ページで確認できます。",
       "confidence": 0.7,
-      "period": "Current snapshot",
+      "period": "現在のスナップショット",
       "route": "/network"
     }
   ]
