@@ -38,6 +38,7 @@ import { useSnapshot } from "./hooks/useSnapshot";
 import {
   availabilityLabel,
   availabilitySeverity,
+  defenderDisplayStatus,
   flowStatusLabel,
   flowStatusSeverity,
   formatActivityDetail,
@@ -224,27 +225,35 @@ function DistributionList({
 function SourceList({ data }: { data: PublicSnapshotV1 }) {
   return (
     <div className="source-list">
-      {data.sources.map((source) => (
-        <article className="source-row" key={source.source}>
-          <span
-            className={`source-icon severity-${availabilitySeverity(source.availability)}`}
-            aria-hidden="true"
-          >
-            {source.availability === "available" ? (
-              <CircleCheck size={17} />
-            ) : (
-              <CircleAlert size={17} />
-            )}
-          </span>
-          <div>
-            <strong>{source.source}</strong>
-            <p>{formatSourceMessage(source)}</p>
-          </div>
-          <StatusBadge severity={availabilitySeverity(source.availability)}>
-            {availabilityLabel(source.availability)}
-          </StatusBadge>
-        </article>
-      ))}
+      {data.sources.map((source) => {
+        const display =
+          source.source === "Defender for Cloud"
+            ? defenderDisplayStatus(source, data.security)
+            : {
+                label: availabilityLabel(source.availability),
+                message: formatSourceMessage(source),
+                severity: availabilitySeverity(source.availability)
+              };
+        return (
+          <article className="source-row" key={source.source}>
+            <span
+              className={`source-icon severity-${display.severity}`}
+              aria-hidden="true"
+            >
+              {display.severity === "healthy" ? (
+                <CircleCheck size={17} />
+              ) : (
+                <CircleAlert size={17} />
+              )}
+            </span>
+            <div>
+              <strong>{source.source}</strong>
+              <p>{display.message}</p>
+            </div>
+            <StatusBadge severity={display.severity}>{display.label}</StatusBadge>
+          </article>
+        );
+      })}
     </div>
   );
 }
@@ -259,6 +268,7 @@ function OverviewPage({ data }: { data: PublicSnapshotV1 }) {
   };
   const health = summarizeResourceHealth(data.inventory.resources);
   const defenderSource = data.sources.find((source) => source.source === "Defender for Cloud");
+  const defenderStatus = defenderDisplayStatus(defenderSource, data.security);
   const defenderRecommendationCount = metricWhenSourceAvailable(
     defenderSource,
     data.security.recommendations.length
@@ -336,12 +346,12 @@ function OverviewPage({ data }: { data: PublicSnapshotV1 }) {
           <small>{formatDateTimeJa(data.generatedAt)}</small>
         </div>
         <div>
-          <span>ソース収集範囲</span>
+          <span>ソース照会状況</span>
           <strong>
-            {availableSources}/{data.sources.length} 収集済み
+            {availableSources}/{data.sources.length} 照会完了
           </strong>
           <small>
-            一部 {partialSources}・利用不可 {unavailableSources}
+            一部完了 {partialSources}・取得不可 {unavailableSources}
           </small>
         </div>
         <div>
@@ -438,9 +448,11 @@ function OverviewPage({ data }: { data: PublicSnapshotV1 }) {
               : `${numberFormatter.format(defenderRecommendationCount)} 件`
           }
           note={
-            defenderRecommendationCount === null && defenderSource
-              ? formatSourceMessage(defenderSource)
-              : "公開済みの集計タイトルのみ"
+            defenderRecommendationCount === null
+              ? defenderStatus.message
+              : defenderRecommendationCount === 0
+                ? "公開可能な結果なし。安全を意味しません"
+                : "公開済みの集計タイトルのみ"
           }
         />
         <MetricCard
@@ -1107,6 +1119,7 @@ function ReliabilityPage({ data }: { data: PublicSnapshotV1 }) {
 
 function SecurityPage({ data }: { data: PublicSnapshotV1 }) {
   const defenderSource = data.sources.find((source) => source.source === "Defender for Cloud");
+  const defenderStatus = defenderDisplayStatus(defenderSource, data.security);
   const secureScore = metricWhenSourceAvailable(defenderSource, data.security.secureScore);
   const activeAlerts = metricWhenSourceAvailable(defenderSource, data.security.activeAlerts);
   const openRecommendations = metricWhenSourceAvailable(
@@ -1117,19 +1130,15 @@ function SecurityPage({ data }: { data: PublicSnapshotV1 }) {
     defenderSource,
     data.security.compliance.length
   );
-  const unavailableNote = defenderSource
-    ? formatSourceMessage(defenderSource)
-    : "Defender for Cloud のソース状態が公開されていません。";
+  const unavailableNote = defenderStatus.message;
 
   return (
     <div className="page-stack">
       {defenderSource && (
         <div className="notice">
           <ShieldCheck size={18} aria-hidden="true" />
-          <span>{formatSourceMessage(defenderSource)}</span>
-          <StatusBadge severity={availabilitySeverity(defenderSource.availability)}>
-            {availabilityLabel(defenderSource.availability)}
-          </StatusBadge>
+          <span>{defenderStatus.message}</span>
+          <StatusBadge severity={defenderStatus.severity}>{defenderStatus.label}</StatusBadge>
         </div>
       )}
       <section className="metric-grid four" aria-label="セキュリティ サマリー">
@@ -1147,17 +1156,35 @@ function SecurityPage({ data }: { data: PublicSnapshotV1 }) {
         <MetricCard
           label="アクティブ アラート"
           value={activeAlerts === null ? "未取得" : `${activeAlerts} 件`}
-          note={activeAlerts === null ? unavailableNote : "集計件数のみ"}
+          note={
+            activeAlerts === null
+              ? unavailableNote
+              : activeAlerts === 0
+                ? "集計件数のみ。0 件は安全を意味しません。"
+                : "集計件数のみ"
+          }
         />
         <MetricCard
           label="未解決の推奨事項"
           value={openRecommendations === null ? "未取得" : `${openRecommendations} 件`}
-          note={openRecommendations === null ? unavailableNote : "資産詳細を除外"}
+          note={
+            openRecommendations === null
+              ? unavailableNote
+              : openRecommendations === 0
+                ? "公開可能な結果なし。安全を意味しません。"
+                : "資産詳細を除外"
+          }
         />
         <MetricCard
           label="コンプライアンス集計"
           value={complianceCount === null ? "未取得" : `${complianceCount} 件`}
-          note={complianceCount === null ? unavailableNote : "収集済みフレームワーク"}
+          note={
+            complianceCount === null
+              ? unavailableNote
+              : complianceCount === 0
+                ? "公開可能な結果なし。問題なしとは推定しません。"
+                : "収集済みフレームワーク"
+          }
         />
       </section>
       <div className="content-grid">
@@ -1185,8 +1212,8 @@ function SecurityPage({ data }: { data: PublicSnapshotV1 }) {
             </div>
           ) : (
             <EmptyState
-              title="公開可能な推奨事項なし"
-              detail="0 件が安全を意味するとは推定しません。現在の公開スナップショットに推奨事項がない状態です。"
+              title="公開可能な結果なし"
+              detail="現在の公開スナップショットに推奨事項はありません。安全を意味するとは推定しません。"
             />
           )}
         </Panel>
@@ -1205,8 +1232,8 @@ function SecurityPage({ data }: { data: PublicSnapshotV1 }) {
             </div>
           ) : (
             <EmptyState
-              title="コンプライアンス集計なし"
-              detail="フレームワーク別スコアは収集されていません。"
+              title="公開可能な結果なし"
+              detail="現在の公開スナップショットにフレームワーク別スコアはありません。問題なしとは推定しません。"
             />
           )}
         </Panel>

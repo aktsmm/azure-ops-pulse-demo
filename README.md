@@ -219,6 +219,8 @@ artifact、log、AI入力に含めません。
 
 - 公開ビューは意図的に情報を削減しており、Azure Portalやprivate observabilityを置き換えません。
 - source availabilityはprovider registration、subscription種別、RBAC、plan、retentionに依存します。
+- 現在のcontractでsignal-level availabilityを表せる範囲は限定的です。sourceの照会状態と
+  nullable fieldの未取得を区別し、`0` や空の公開結果から安全・問題なしとは推定しません。
 - Cost forecast、budget、network flow healthはauthoritative sourceがない限り推定しません。
 - static siteは最後に承認されたsnapshotを表示し、72時間超をUIで期限超過として扱います。
 - AI出力は助言であり、root causeの確定やAzure変更を行いません。

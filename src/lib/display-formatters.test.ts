@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
+  defenderDisplayStatus,
   formatDateTimeJa,
   formatEventTimestamp,
   metricWhenSourceAvailable,
@@ -56,5 +57,55 @@ describe("Japanese display formatters", () => {
         0
       )
     ).toBeNull();
+  });
+
+  it("treats a completed Defender query with a missing Secure Score as partial data", () => {
+    expect(
+      defenderDisplayStatus(
+        { source: "Defender for Cloud", availability: "available", message: "Completed." },
+        { secureScore: null, activeAlerts: 0 }
+      )
+    ).toEqual({
+      label: "一部未取得",
+      message:
+        "Defender for Cloud のAPI照会は完了しました。Secure Scoreは今回のスナップショットでは未取得です。",
+      severity: "warning"
+    });
+  });
+
+  it("treats real Defender zeros as completed query results", () => {
+    expect(
+      defenderDisplayStatus(
+        { source: "Defender for Cloud", availability: "available", message: "Completed." },
+        { secureScore: 0, activeAlerts: 0 }
+      )
+    ).toEqual({
+      label: "照会完了",
+      message: "Defender for Cloud のAPI照会は完了しました。",
+      severity: "healthy"
+    });
+  });
+
+  it("preserves partial and unavailable Defender source semantics", () => {
+    expect(
+      defenderDisplayStatus(
+        { source: "Defender for Cloud", availability: "partial", message: "Partial." },
+        { secureScore: 50, activeAlerts: 0 }
+      )
+    ).toMatchObject({
+      label: "一部未取得",
+      message: "Defender for Cloud のAPI照会は一部のみ完了しました。",
+      severity: "warning"
+    });
+    expect(
+      defenderDisplayStatus(
+        { source: "Defender for Cloud", availability: "unavailable", message: "Unavailable." },
+        { secureScore: 50, activeAlerts: 0 }
+      )
+    ).toMatchObject({
+      label: "取得不可",
+      message: "Defender for Cloud のAPI照会を完了できませんでした。",
+      severity: "info"
+    });
   });
 });

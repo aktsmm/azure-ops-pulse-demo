@@ -32,6 +32,56 @@ export function availabilitySeverity(availability: Availability): Severity {
   return "info";
 }
 
+export interface DefenderDisplayStatus {
+  label: "照会完了" | "一部未取得" | "取得不可";
+  message: string;
+  severity: Severity;
+}
+
+export function defenderDisplayStatus(
+  source: SourceStatus | undefined,
+  signals: { secureScore: number | null; activeAlerts: number | null }
+): DefenderDisplayStatus {
+  if (!source || source.availability === "unavailable") {
+    return {
+      label: "取得不可",
+      message: source
+        ? formatSourceMessage(source)
+        : "Defender for Cloud のソース状態が公開されていません。",
+      severity: "info"
+    };
+  }
+
+  if (source.availability === "partial") {
+    return {
+      label: "一部未取得",
+      message: formatSourceMessage(source),
+      severity: "warning"
+    };
+  }
+
+  const missingSignals = [
+    signals.secureScore === null ? "Secure Score" : null,
+    signals.activeAlerts === null ? "アクティブ アラート" : null
+  ].filter((signal): signal is string => signal !== null);
+
+  if (missingSignals.length) {
+    return {
+      label: "一部未取得",
+      message: `Defender for Cloud のAPI照会は完了しました。${missingSignals.join(
+        "と"
+      )}は今回のスナップショットでは未取得です。`,
+      severity: "warning"
+    };
+  }
+
+  return {
+    label: "照会完了",
+    message: "Defender for Cloud のAPI照会は完了しました。",
+    severity: "healthy"
+  };
+}
+
 export function metricWhenSourceAvailable<T>(
   source: SourceStatus | undefined,
   value: T | null
@@ -216,9 +266,9 @@ export function formatSourceMessage(source: SourceStatus): string {
       unavailable: "Activity Log を収集できませんでした。"
     },
     "Defender for Cloud": {
-      available: "Defender for Cloud の集計シグナルを収集しました。",
-      partial: "Defender for Cloud の一部の集計シグナルを収集しました。",
-      unavailable: "Defender for Cloud データを収集できませんでした。"
+      available: "Defender for Cloud のAPI照会を完了しました。",
+      partial: "Defender for Cloud のAPI照会は一部のみ完了しました。",
+      unavailable: "Defender for Cloud のAPI照会を完了できませんでした。"
     },
     "Network inventory and metrics": {
       available: "ネットワーク インベントリと対応メトリックを収集しました。",
