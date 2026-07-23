@@ -1,7 +1,7 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://aktsmm.github.io/azure-ops-pulse-demo/schemas/public/v1.1/inventory.schema.json",
-  "title": "Azure Ops Pulse sanitized inventory v1.1",
+  "$id": "https://aktsmm.github.io/azure-ops-pulse-demo/schemas/public/v1/inventory.schema.json",
+  "title": "Azure Ops Pulse sanitized inventory v1",
   "type": "object",
   "required": ["total", "resources", "byType", "byRegion"],
   "properties": {
@@ -12,3 +12,4 @@
   },
   "additionalProperties": false
 }
+
