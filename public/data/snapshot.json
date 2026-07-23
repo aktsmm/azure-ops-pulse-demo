@@ -1047,5 +1047,83 @@
       "flows": []
     }
   },
-  "aiInsights": []
+  "aiInsights": [
+    {
+      "id": "insight-a1f3c2e4",
+      "severity": "warning",
+      "title": "Period-over-period cost nearly doubled",
+      "observation": "Total spend increased approximately 92.3% compared with the prior comparable period. The snapshot provides no forecast or budget threshold, so the full exposure cannot be bounded.",
+      "impact": "Sustained cost growth at this rate is associated with budget overruns. Human review of spend drivers is warranted before the next billing period closes.",
+      "numericEvidence": [
+        {
+          "label": "Cost period-over-period delta (%)",
+          "value": "92.3",
+          "source": "cost.deltaPercent"
+        }
+      ],
+      "recommendedAction": "Review the Cost Management dashboard for spend breakdown by service. Verify whether recent capacity or tier changes were planned.",
+      "confidence": 0.85,
+      "period": "Current vs prior comparable period",
+      "route": "/cost"
+    },
+    {
+      "id": "insight-9c2a4d8b",
+      "severity": "info",
+      "title": "All 56 resources report Unknown health status",
+      "observation": "The snapshot shows 56 monitored resources, none of which have a known health status. Resource Health data was collected successfully, but all resources return Unknown rather than Available or Degraded.",
+      "impact": "Unknown status may indicate that Resource Health has not yet received signals for these resource types, or that health probes are not configured. It warrants verification to ensure no degraded resources are silently present.",
+      "numericEvidence": [
+        {
+          "label": "Total monitored resources",
+          "value": "56",
+          "source": "inventory.total"
+        }
+      ],
+      "recommendedAction": "Navigate to /resources and confirm whether Unknown status is expected for these resource types. Enable Resource Health diagnostic settings if not already active.",
+      "confidence": 0.7,
+      "period": "Current snapshot",
+      "route": "/resources"
+    },
+    {
+      "id": "insight-4e1b7a3f",
+      "severity": "info",
+      "title": "Network telemetry unavailable for all 7 network watchers",
+      "observation": "Seven Network Watcher resources are present across 7 regions, but flow telemetry was not collected. The snapshot notes that network resource existence is not interpreted as connection health.",
+      "impact": "Without flow telemetry, network-level anomalies such as blocked or degraded connections cannot be detected from this snapshot. Coverage gaps may obscure security or connectivity issues.",
+      "numericEvidence": [
+        {
+          "label": "Network Watcher resources present",
+          "value": "7",
+          "source": "network.inventory.total"
+        }
+      ],
+      "recommendedAction": "Review Network Watcher flow log configuration and ensure NSG flow logs or traffic analytics are enabled for key subnets. Check the /network route for details.",
+      "confidence": 0.7,
+      "period": "Current snapshot",
+      "route": "/network"
+    },
+    {
+      "id": "insight-b7d5e6f0",
+      "severity": "info",
+      "title": "Secure score and active Defender alerts both read zero",
+      "observation": "The snapshot reports a secure score of 0 and 0 active Defender alerts. A score of zero may indicate that Defender for Cloud assessments have not yet propagated, rather than a fully hardened posture.",
+      "impact": "If the score is genuinely zero due to missing assessments, real security recommendations may be absent from this view. Relying on a zero score as confirmation of good posture warrants caution.",
+      "numericEvidence": [
+        {
+          "label": "Defender secure score",
+          "value": "0",
+          "source": "security.secureScore"
+        },
+        {
+          "label": "Active Defender alerts",
+          "value": "0",
+          "source": "security.activeAlerts"
+        }
+      ],
+      "recommendedAction": "Open the /security route and verify that Defender for Cloud assessments are returning data. Confirm the subscription has the expected Defender plans enabled.",
+      "confidence": 0.65,
+      "period": "Current snapshot",
+      "route": "/security"
+    }
+  ]
 }
