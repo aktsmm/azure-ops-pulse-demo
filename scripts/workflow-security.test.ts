@@ -52,6 +52,14 @@ describe("AI insight publication gate", () => {
     expect(source).toContain("activation-comments: false");
     expect(source).toContain("report-failure-as-issue: false");
     expect(source).toContain("report-incomplete: false");
+    expect(source).toMatch(/permissions:\r?\n\s+contents: read\r?\n\s+copilot-requests: write/);
+    expect(lock).toContain("copilot-requests: write");
+    expect(lock).toContain("COPILOT_GITHUB_TOKEN: ${{ github.token }}");
+    expect(lock).not.toContain("${{ secrets.COPILOT_GITHUB_TOKEN }}");
+    expect(lock).not.toMatch(
+      /^# gh-aw-manifest: .*"secrets":\[[^\]]*"COPILOT_GITHUB_TOKEN"/m
+    );
+    expect(lock).not.toContain("needs.activation.outputs.secret_verification_result");
     expect(lock).not.toContain('"create_issue"');
     expect(lock).not.toContain("created_issue_url");
     expect(lock).not.toContain("created_pr_url");
