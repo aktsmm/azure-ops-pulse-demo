@@ -1,0 +1,140 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://aktsmm.github.io/azure-ops-pulse-demo/schemas/public/v1.2/snapshot.schema.json",
+  "title": "Azure Ops Pulse public snapshot v1.2",
+  "type": "object",
+  "required": [
+    "schemaVersion",
+    "generatedAt",
+    "mode",
+    "freshness",
+    "scope",
+    "sources",
+    "overview",
+    "cost",
+    "inventory",
+    "reliability",
+    "security",
+    "network",
+    "aiInsights"
+  ],
+  "properties": {
+    "schemaVersion": { "const": "1.2.0" },
+    "generatedAt": { "type": "string", "format": "date-time" },
+    "mode": { "enum": ["DEMO", "AZURE"] },
+    "freshness": {
+      "type": "object",
+      "required": ["state", "ageMinutes", "lastSuccessfulCollection", "nextScheduledCollection"],
+      "properties": {
+        "state": { "enum": ["fresh", "stale"] },
+        "ageMinutes": { "type": "number", "minimum": 0 },
+        "lastSuccessfulCollection": { "type": "string", "format": "date-time" },
+        "nextScheduledCollection": { "type": "string", "minLength": 5 }
+      },
+      "additionalProperties": false
+    },
+    "scope": {
+      "type": "object",
+      "required": ["displayName", "subscriptionId", "tenantId"],
+      "properties": {
+        "displayName": { "type": "string", "minLength": 1 },
+        "subscriptionId": { "type": "string", "minLength": 4 },
+        "tenantId": { "type": "string", "minLength": 4 }
+      },
+      "additionalProperties": false
+    },
+    "sources": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["source", "availability", "message"],
+        "properties": {
+          "source": { "type": "string" },
+          "availability": { "enum": ["available", "partial", "unavailable"] },
+          "message": { "type": "string" }
+        },
+        "additionalProperties": false
+      }
+    },
+    "overview": { "$ref": "./overview.schema.json" },
+    "cost": { "$ref": "./cost.schema.json" },
+    "inventory": { "$ref": "./inventory.schema.json" },
+    "reliability": { "$ref": "./health-activity.schema.json" },
+    "security": { "$ref": "./defender.schema.json" },
+    "network": { "$ref": "./network.schema.json" },
+    "aiInsights": { "$ref": "./ai-insights.schema.json" }
+  },
+  "allOf": [
+    {
+      "if": {
+        "not": {
+          "type": "object",
+          "properties": {
+            "sources": {
+              "type": "array",
+              "contains": {
+                "type": "object",
+                "required": ["source", "availability"],
+                "properties": {
+                  "source": { "const": "Resource Health" },
+                  "availability": { "const": "available" }
+                }
+              }
+            }
+          }
+        }
+      },
+      "then": {
+        "type": "object",
+        "properties": {
+          "overview": {
+            "type": "object",
+            "properties": { "postureScore": { "type": "null" } }
+          },
+          "reliability": {
+            "type": "object",
+            "properties": {
+              "incidentAvailability": { "const": "unavailable" },
+              "incidents": { "type": "null" }
+            }
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "not": {
+          "type": "object",
+          "properties": {
+            "sources": {
+              "type": "array",
+              "contains": {
+                "type": "object",
+                "required": ["source", "availability"],
+                "properties": {
+                  "source": { "const": "Defender for Cloud" },
+                  "availability": { "const": "available" }
+                }
+              }
+            }
+          }
+        }
+      },
+      "then": {
+        "type": "object",
+        "properties": {
+          "security": {
+            "type": "object",
+            "properties": {
+              "secureScore": { "type": "null" },
+              "activeAlerts": { "type": "null" },
+              "recommendations": { "type": "array", "maxItems": 0 },
+              "compliance": { "type": "array", "maxItems": 0 }
+            }
+          }
+        }
+      }
+    }
+  ],
+  "additionalProperties": false
+}

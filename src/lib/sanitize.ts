@@ -10,6 +10,7 @@ import type {
 const GUID_PATTERN =
   /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const ALLOWED_TAGS = new Set(["environment", "team", "workload", "criticality"]);
+const DEFENDER_METRIC_LABELS = new Set(["Defender recommendations", "Open alerts"]);
 const ALLOWED_TAG_VALUES = new Set([
   "production",
   "staging",
@@ -176,6 +177,15 @@ function deltaPercent(current: number | null, previous: number | null): number |
 
 export function sanitizeSnapshot(raw: RawSnapshot): PublicSnapshotV1 {
   const resources = raw.resources.map(sanitizeResource);
+  const resourceHealthAvailable =
+    raw.sources.find((source) => source.source === "Resource Health")?.availability === "available";
+  const incidentsAvailable =
+    resourceHealthAvailable &&
+    raw.reliability.incidentAvailability === "available" &&
+    raw.reliability.incidents !== null;
+  const defenderAvailable =
+    raw.sources.find((source) => source.source === "Defender for Cloud")?.availability ===
+    "available";
   if (raw.costCategories.some((item) => !Number.isFinite(item.amountJpy))) {
     throw new Error("Cost categories contain a non-finite amount");
   }
@@ -218,7 +228,7 @@ export function sanitizeSnapshot(raw: RawSnapshot): PublicSnapshotV1 {
   const telemetryAvailable = raw.networkTelemetry.availability !== "unavailable";
 
   return {
-    schemaVersion: "1.1.0",
+    schemaVersion: "1.2.0",
     generatedAt: generatedAt.toISOString(),
     mode: raw.mode,
     freshness: {
@@ -235,8 +245,10 @@ export function sanitizeSnapshot(raw: RawSnapshot): PublicSnapshotV1 {
     },
     sources: raw.sources,
     overview: {
-      metrics: raw.metrics,
-      postureScore: raw.postureScore,
+      metrics: defenderAvailable
+        ? raw.metrics
+        : raw.metrics.filter((metric) => !DEFENDER_METRIC_LABELS.has(metric.label)),
+      postureScore: resourceHealthAvailable ? raw.postureScore : null,
       eventTimeline: raw.events.map((event) => ({
         ...event,
         id: `event-${stableHash(event.id)}`
@@ -285,10 +297,18 @@ export function sanitizeSnapshot(raw: RawSnapshot): PublicSnapshotV1 {
         }, {})
       ).map(([label, count]) => ({ label, count }))
     },
-    reliability: raw.reliability,
+    reliability: {
+      ...raw.reliability,
+      incidentAvailability: incidentsAvailable ? "available" : "unavailable",
+      incidents: incidentsAvailable ? raw.reliability.incidents : null
+    },
     security: {
-      ...raw.security,
-      recommendations: raw.security.recommendations.map(sanitizeRecommendation)
+      secureScore: defenderAvailable ? raw.security.secureScore : null,
+      activeAlerts: defenderAvailable ? raw.security.activeAlerts : null,
+      recommendations: defenderAvailable
+        ? raw.security.recommendations.map(sanitizeRecommendation)
+        : [],
+      compliance: defenderAvailable ? raw.security.compliance : []
     },
     network: {
       inventory: {

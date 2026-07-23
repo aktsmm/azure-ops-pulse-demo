@@ -9,12 +9,17 @@ import type {
   SourceStatus
 } from "../src/data/contracts";
 import { sanitizeSnapshot } from "../src/lib/sanitize";
+import { uncollectedIncidentMetric } from "./reliability-metrics";
 import {
   comparableCostPeriods,
   costCoverageLabel,
   transformComparableCost,
   type CostQueryProperties
 } from "./cost-transform";
+import {
+  normalizeActivityOperationLabel,
+  type AzureActivityEvent
+} from "./activity-normalization";
 import { publicSnapshotSchema } from "./public-schema";
 
 interface GraphResponse<T> {
@@ -98,6 +103,11 @@ function percent(value: unknown, fallback = 0): number {
   return Number.isFinite(number) ? number : fallback;
 }
 
+function optionalNumber(value: unknown): number | null {
+  const number = Number(value);
+  return value !== null && value !== undefined && Number.isFinite(number) ? number : null;
+}
+
 function queryCostPeriod(
   subscriptionId: string,
   start: Date,
@@ -175,7 +185,7 @@ const serviceHealth = optionalSource(
 const activity = optionalSource(
   "Activity Log",
   () =>
-    runAzJson<Array<{ category?: string; level?: string; eventTimestamp?: string }>>([
+    runAzJson<AzureActivityEvent[]>([
       "monitor",
       "activity-log",
       "list",
@@ -220,10 +230,10 @@ const security = optionalSource(
     )[0]?.count_;
     return {
       assessments,
-      subassessmentCount: percent(subassessmentCount),
+      subassessmentCount: optionalNumber(subassessmentCount),
       controls,
-      alertCount: percent(alertCount),
-      regulatoryCount: percent(regulatoryCount)
+      alertCount: optionalNumber(alertCount),
+      regulatoryCount: optionalNumber(regulatoryCount)
     };
   },
   "Defender assessments, subassessment counts, secure score controls, alerts, and compliance aggregates were collected.",
@@ -376,7 +386,7 @@ const recommendations = [...recommendationCounts.values()].slice(0, 12);
 const secureScoreValues = (security.value?.controls ?? [])
   .map((item) => percent(item.percentageScore, Number.NaN))
   .filter(Number.isFinite);
-const secureScore = secureScoreValues.length
+const secureScore: number | null = secureScoreValues.length
   ? Math.max(
       0,
       Math.min(
@@ -386,7 +396,7 @@ const secureScore = secureScoreValues.length
         )
       )
     )
-  : 0;
+  : null;
 
 const unavailableCount = [
   health.status,
@@ -397,7 +407,13 @@ const unavailableCount = [
   networkStatus
 ].filter((item) => item.availability === "unavailable").length;
 const healthyCount = resources.filter((resource) => resource.status === "Healthy").length;
-const healthPercent = Math.round((healthyCount / Math.max(1, resources.length)) * 100);
+const evaluatedResources = resources.filter((resource) => resource.status !== "Unknown");
+const healthCoveragePercent = resources.length
+  ? Math.round((evaluatedResources.length / resources.length) * 100)
+  : 0;
+const healthPercent = evaluatedResources.length
+  ? Math.round((healthyCount / evaluatedResources.length) * 100)
+  : null;
 const insights: AiInsight[] = [];
 
 const raw: RawSnapshot = {
@@ -421,12 +437,12 @@ const raw: RawSnapshot = {
   ],
   metrics: [
     {
-      label: "Resources healthy",
-      value: `${healthPercent}%`,
-      change: `${resources.length} monitored`,
+      label: "Resource Health coverage",
+      value: `${healthCoveragePercent}%`,
+      change: `${evaluatedResources.length} of ${resources.length} evaluated`,
       direction: "flat",
-      severity: healthPercent >= 90 ? "healthy" : "warning",
-      points: [healthPercent, healthPercent]
+      severity: healthCoveragePercent === 100 ? "healthy" : "info",
+      points: [healthCoveragePercent, healthCoveragePercent]
     },
     {
       label: "Cost coverage",
@@ -436,16 +452,20 @@ const raw: RawSnapshot = {
       severity: costStatus.availability === "available" ? "healthy" : "warning",
       points: [1, 1]
     },
-    {
-      label: "Defender recommendations",
-      value: String(recommendations.filter((item) => item.status === "Open").length),
-      change: "Aggregate titles only",
-      direction: "flat",
-      severity: recommendations.some((item) => item.severity === "critical")
-        ? "warning"
-        : "healthy",
-      points: [recommendations.length, recommendations.length]
-    },
+    ...(security.status.availability === "available"
+      ? [
+          {
+            label: "Defender recommendations",
+            value: String(recommendations.filter((item) => item.status === "Open").length),
+            change: "Aggregate titles only",
+            direction: "flat" as const,
+            severity: recommendations.some((item) => item.severity === "critical")
+              ? ("warning" as const)
+              : ("info" as const),
+            points: [recommendations.length, recommendations.length]
+          }
+        ]
+      : []),
     {
       label: "Unavailable sources",
       value: String(unavailableCount),
@@ -455,46 +475,59 @@ const raw: RawSnapshot = {
       points: [unavailableCount, unavailableCount]
     }
   ],
-  postureScore: Math.max(0, Math.min(100, healthPercent - unavailableCount * 3)),
+  postureScore: healthPercent,
   events: [
     {
       id: "collection-complete",
       timestamp: "Current snapshot",
       severity: unavailableCount ? "warning" : "healthy",
-      title: "Azure collection completed",
-      detail: `${resources.length} resources sanitized; ${unavailableCount} optional sources unavailable.`,
+      title: "Azure データ収集が完了",
+      detail: `${resources.length} 件のリソースをサニタイズし、利用不可の任意ソースは ${unavailableCount} 件でした。`,
       route: "/overview"
     },
     ...(activity.value ?? []).slice(0, 4).map((event, eventIndex) => ({
       id: `activity-${eventIndex}`,
       timestamp: event.eventTimestamp ?? "Recent",
       severity: event.level === "Error" ? ("warning" as const) : ("info" as const),
-      title: `${event.category ?? "Azure"} activity observed`,
-      detail: "Actor, resource, and operation details were removed before publication.",
+      title: `${normalizeActivityOperationLabel(event)}を検出`,
+      detail: "公開前に実行者と対象リソースの詳細を削除しています。",
       route: "/overview"
     })),
     ...(serviceHealth.value ?? []).slice(0, 2).map((event, eventIndex) => ({
       id: `service-health-${eventIndex}`,
       timestamp: "Current collection window",
       severity: event.properties?.status === "Active" ? ("warning" as const) : ("info" as const),
-      title: "Service Health event observed",
-      detail: "Service-level status is shown without affected subscription or resource details.",
+      title: "Service Health イベントを検出",
+      detail:
+        "影響を受けたサブスクリプションやリソースの詳細を除き、サービス単位の状態のみを表示します。",
       route: "/reliability"
     }))
   ],
   regionalHealth: Object.entries(
-    resources.reduce<Record<string, { total: number; healthy: number }>>((regions, resource) => {
+    resources.reduce<
+      Record<string, { evaluated: number; healthy: number; degraded: number; unavailable: number }>
+    >((regions, resource) => {
       const region = resource.location ?? "Unknown";
-      regions[region] ??= { total: 0, healthy: 0 };
-      regions[region].total += 1;
+      regions[region] ??= { evaluated: 0, healthy: 0, degraded: 0, unavailable: 0 };
+      if (resource.status === "Unknown") return regions;
+      regions[region].evaluated += 1;
       if (resource.status === "Healthy") regions[region].healthy += 1;
+      if (resource.status === "Degraded") regions[region].degraded += 1;
+      if (resource.status === "Unavailable") regions[region].unavailable += 1;
       return regions;
     }, {})
   )
+    .filter(([, counts]) => counts.evaluated > 0)
     .slice(0, 8)
     .map(([region, counts]) => {
-      const score = Math.round((counts.healthy / Math.max(1, counts.total)) * 100);
-      return { region, score, status: score >= 90 ? ("healthy" as const) : ("warning" as const) };
+      const score = Math.round((counts.healthy / counts.evaluated) * 100);
+      const status =
+        counts.unavailable > 0
+          ? ("critical" as const)
+          : counts.degraded > 0
+            ? ("warning" as const)
+            : ("healthy" as const);
+      return { region, score, status };
     }),
   exactCostJpy: costData.currentTotalJpy,
   exactPreviousCostJpy: costData.previousTotalJpy,
@@ -504,17 +537,23 @@ const raw: RawSnapshot = {
   costCategories: costData.categories,
   resources,
   reliability: {
-    availability: `${healthPercent}%`,
-    incidents: resources.filter((resource) => resource.status === "Unavailable").length,
+    availability:
+      healthPercent === null
+        ? "Unavailable from public snapshot"
+        : `${healthPercent}% of evaluated resources available`,
+    ...uncollectedIncidentMetric(),
     meanTimeToRecover: "Unavailable from public snapshot",
     services: []
   },
   security: {
     secureScore,
-    activeAlerts: security.value?.alertCount ?? 0,
+    activeAlerts: security.value?.alertCount ?? null,
     recommendations,
     compliance:
-      security.value && security.value.regulatoryCount > 0
+      security.value &&
+      security.value.regulatoryCount !== null &&
+      security.value.regulatoryCount > 0 &&
+      secureScore !== null
         ? [{ framework: "Regulatory compliance aggregate", score: secureScore }]
         : []
   },

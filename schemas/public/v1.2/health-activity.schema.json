@@ -1,0 +1,31 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://aktsmm.github.io/azure-ops-pulse-demo/schemas/public/v1.2/health-activity.schema.json",
+  "title": "Azure Ops Pulse health and activity v1.2",
+  "type": "object",
+  "required": [
+    "availability",
+    "incidentAvailability",
+    "incidents",
+    "meanTimeToRecover",
+    "services"
+  ],
+  "properties": {
+    "availability": { "type": "string" },
+    "incidentAvailability": { "enum": ["available", "unavailable"] },
+    "incidents": { "type": ["integer", "null"], "minimum": 0 },
+    "meanTimeToRecover": { "type": "string" },
+    "services": { "type": "array" }
+  },
+  "allOf": [
+    {
+      "if": {
+        "properties": { "incidentAvailability": { "const": "available" } },
+        "required": ["incidentAvailability"]
+      },
+      "then": { "properties": { "incidents": { "type": "integer", "minimum": 0 } } },
+      "else": { "properties": { "incidents": { "type": "null" } } }
+    }
+  ],
+  "additionalProperties": false
+}

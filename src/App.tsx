@@ -1,26 +1,21 @@
-import { useMemo, useState, type ReactNode } from "react";
+import { useEffect, useMemo, useState, type ReactNode } from "react";
 import {
   Activity,
-  Bell,
   Bot,
   Boxes,
   ChevronRight,
   CircleAlert,
   CircleCheck,
-  Clock3,
   Cloud,
   Coins,
   ExternalLink,
   Gauge,
   Menu,
-  Minus,
   Network,
   Search,
   Server,
   ShieldCheck,
   Sparkles,
-  TrendingDown,
-  TrendingUp,
   X
 } from "lucide-react";
 import {
@@ -35,85 +30,73 @@ import type {
   AiInsight,
   PublicSnapshotV1,
   ResourceItem,
-  Severity,
-  TrendMetric
+  Severity
 } from "./data/contracts";
 import { useSnapshot } from "./hooks/useSnapshot";
-import { describeCostDelta } from "./lib/cost-delta";
+import {
+  availabilityLabel,
+  availabilitySeverity,
+  flowStatusLabel,
+  flowStatusSeverity,
+  formatActivityDetail,
+  formatActivityTitle,
+  formatCostDelta,
+  formatDateTimeJa,
+  formatEventTimestamp,
+  formatSnapshotAge,
+  formatSourceMessage,
+  metricWhenSourceAvailable,
+  modeLabel,
+  recommendationStatusLabel,
+  resourceStatusLabel,
+  resourceStatusSeverity,
+  routeLabel,
+  severityLabel,
+  summarizeResourceHealth
+} from "./lib/display-formatters";
 
 const NAV_ITEMS = [
-  { path: "/overview", label: "Overview", icon: Gauge },
-  { path: "/cost", label: "Cost", icon: Coins },
-  { path: "/resources", label: "Resources", icon: Boxes },
-  { path: "/reliability", label: "Reliability", icon: Activity },
-  { path: "/security", label: "Security", icon: ShieldCheck },
-  { path: "/network", label: "Network", icon: Network },
-  { path: "/ai-insights", label: "AI Insights", icon: Sparkles }
+  { path: "/overview", label: "概要", icon: Gauge },
+  { path: "/cost", label: "コスト", icon: Coins },
+  { path: "/resources", label: "リソース", icon: Boxes },
+  { path: "/reliability", label: "信頼性", icon: Activity },
+  { path: "/security", label: "セキュリティ", icon: ShieldCheck },
+  { path: "/network", label: "ネットワーク", icon: Network },
+  { path: "/ai-insights", label: "AI 分析", icon: Sparkles }
 ];
 
 const TITLES: Record<string, { title: string; subtitle: string }> = {
   "/overview": {
-    title: "Operations overview",
-    subtitle: "A unified pulse across cost, reliability, security, and change."
+    title: "運用概要",
+    subtitle: "公開スナップショットで確認できる事実と、未収集の範囲を分けて表示します。"
   },
   "/cost": {
-    title: "Cost intelligence",
-    subtitle: "Approximate public-safe spend signals and directional movement."
+    title: "コスト",
+    subtitle: "丸められた概算額と、比較可能な期間・サービス別の公開値です。"
   },
   "/resources": {
-    title: "Resource inventory",
-    subtitle: "Sanitized estate coverage with ownership and health context."
+    title: "リソース インベントリ",
+    subtitle: "サニタイズ済みの名前、リソース タイプ、リージョン、収集済み状態を確認します。"
   },
   "/reliability": {
-    title: "Reliability",
-    subtitle: "Service objectives, error budgets, and operational health."
+    title: "信頼性",
+    subtitle: "Resource Health の評価範囲を明示し、未評価の状態を異常として扱いません。"
   },
   "/security": {
-    title: "Security posture",
-    subtitle: "Aggregate Defender signals without exposed asset or exploit detail."
+    title: "セキュリティ",
+    subtitle: "Defender for Cloud の集計値のみを表示し、資産や脆弱性の詳細は公開しません。"
   },
   "/network": {
-    title: "Network",
-    subtitle: "Masked flow health, latency, throughput, and policy outcomes."
+    title: "ネットワーク",
+    subtitle: "インベントリとフロー テレメトリを分離し、未収集の接続状態を推定しません。"
   },
   "/ai-insights": {
-    title: "AI insights",
-    subtitle: "Evidence-bound analysis of the sanitized operational snapshot."
+    title: "AI 分析",
+    subtitle: "スキーマと数値根拠を通過した、読み取り専用のサニタイズ済み分析です。"
   }
 };
 
-function severityLabel(severity: Severity): string {
-  if (severity === "critical") return "Critical";
-  if (severity === "warning") return "Warning";
-  if (severity === "healthy") return "Healthy";
-  return "Info";
-}
-
-function Sparkline({ points, severity }: { points: number[]; severity: Severity }) {
-  const width = 112;
-  const height = 40;
-  const max = Math.max(...points);
-  const min = Math.min(...points);
-  const range = Math.max(1, max - min);
-  const path = points
-    .map((point, index) => {
-      const x = (index / Math.max(1, points.length - 1)) * width;
-      const y = height - ((point - min) / range) * (height - 6) - 3;
-      return `${index === 0 ? "M" : "L"} ${x.toFixed(1)} ${y.toFixed(1)}`;
-    })
-    .join(" ");
-
-  return (
-    <svg
-      className={`sparkline severity-${severity}`}
-      viewBox={`0 0 ${width} ${height}`}
-      role="img"
-      aria-label={`Trend with ${points.length} observations`}
-    >
-      <path d={path} fill="none" stroke="var(--cp-accent)" strokeWidth="2.5" />
-    </svg>
-  );
-}
+const numberFormatter = new Intl.NumberFormat("ja-JP");
 
 function StatusBadge({
   severity,
@@ -127,20 +110,25 @@ function StatusBadge({
 
 function Panel({
   title,
+  description,
   action,
   className = "",
   children
 }: {
   title?: string;
+  description?: string;
   action?: ReactNode;
   className?: string;
   children: ReactNode;
 }) {
   return (
     <section className={`panel ${className}`}>
-      {(title || action) && (
+      {(title || description || action) && (
         <header className="panel-header">
-          {title && <h2>{title}</h2>}
+          <div>
+            {title && <h2>{title}</h2>}
+            {description && <p>{description}</p>}
+          </div>
           {action}
         </header>
       )}
@@ -149,48 +137,43 @@ function Panel({
   );
 }
 
-function KpiStrip({ metrics }: { metrics: TrendMetric[] }) {
+function MetricCard({
+  label,
+  value,
+  note,
+  severity = "info"
+}: {
+  label: string;
+  value: string;
+  note: string;
+  severity?: Severity;
+}) {
   return (
-    <div className="kpi-grid">
-      {metrics.map((metric) => (
-        <article className="kpi-card" key={metric.label}>
-          <div>
-            <p className="eyebrow">{metric.label}</p>
-            <strong>{metric.value}</strong>
-            <span className={`metric-change severity-${metric.severity}`}>
-              {metric.direction === "up" ? (
-                <TrendingUp size={14} aria-hidden="true" />
-              ) : metric.direction === "down" ? (
-                <TrendingDown size={14} aria-hidden="true" />
-              ) : (
-                <Activity size={14} aria-hidden="true" />
-              )}
-              {metric.change}
-            </span>
-          </div>
-          <Sparkline points={metric.points} severity={metric.severity} />
-        </article>
-      ))}
-    </div>
+    <article className="metric-card">
+      <p>{label}</p>
+      <strong>{value}</strong>
+      <span className={`metric-note severity-${severity}`}>{note}</span>
+    </article>
   );
 }
 
 function ProgressBar({ value, label }: { value: number; label: string }) {
+  const bounded = Math.min(100, Math.max(0, value));
   return (
     <div className="progress-wrap">
       <div className="progress-label">
         <span>{label}</span>
-        <strong>{value}%</strong>
+        <strong>{numberFormatter.format(value)}%</strong>
       </div>
       <div
         className="progress-track"
         role="progressbar"
         aria-valuemin={0}
         aria-valuemax={100}
-        aria-valuenow={value}
+        aria-valuenow={bounded}
         aria-label={label}
       >
-        <span style={{ width: `${Math.min(100, Math.max(0, value))}%` }} />
+        <span style={{ width: `${bounded}%` }} />
       </div>
     </div>
   );
@@ -199,89 +182,323 @@ function ProgressBar({ value, label }: { value: number; label: string }) {
 function EmptyState({ title, detail }: { title: string; detail: string }) {
   return (
     <div className="state-card">
-      <Search size={28} aria-hidden="true" />
+      <CircleAlert size={26} aria-hidden="true" />
       <strong>{title}</strong>
       <p>{detail}</p>
     </div>
   );
 }
 
+function DistributionList({
+  items,
+  emptyTitle,
+  emptyDetail
+}: {
+  items: Array<{ label: string; count: number }>;
+  emptyTitle: string;
+  emptyDetail: string;
+}) {
+  const max = Math.max(1, ...items.map((item) => item.count));
+  if (!items.length) return <EmptyState title={emptyTitle} detail={emptyDetail} />;
+  return (
+    <div className="distribution-list">
+      {items.map((item) => (
+        <div className="distribution-row" key={item.label}>
+          <div>
+            <strong>{item.label}</strong>
+            <span>{numberFormatter.format(item.count)} 件</span>
+          </div>
+          <div className="bar-track" aria-hidden="true">
+            <span style={{ width: `${Math.max(4, (item.count / max) * 100)}%` }} />
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+function SourceList({ data }: { data: PublicSnapshotV1 }) {
+  return (
+    <div className="source-list">
+      {data.sources.map((source) => (
+        <article className="source-row" key={source.source}>
+          <span
+            className={`source-icon severity-${availabilitySeverity(source.availability)}`}
+            aria-hidden="true"
+          >
+            {source.availability === "available" ? (
+              <CircleCheck size={17} />
+            ) : (
+              <CircleAlert size={17} />
+            )}
+          </span>
+          <div>
+            <strong>{source.source}</strong>
+            <p>{formatSourceMessage(source)}</p>
+          </div>
+          <StatusBadge severity={availabilitySeverity(source.availability)}>
+            {availabilityLabel(source.availability)}
+          </StatusBadge>
+        </article>
+      ))}
+    </div>
+  );
+}
+
 function OverviewPage({ data }: { data: PublicSnapshotV1 }) {
   const navigate = useNavigate();
+  const health = summarizeResourceHealth(data.inventory.resources);
+  const defenderSource = data.sources.find((source) => source.source === "Defender for Cloud");
+  const defenderRecommendationCount = metricWhenSourceAvailable(
+    defenderSource,
+    data.security.recommendations.length
+  );
+  const availableSources = data.sources.filter(
+    (source) => source.availability === "available"
+  ).length;
+  const partialSources = data.sources.filter((source) => source.availability === "partial").length;
+  const unavailableSources = data.sources.filter(
+    (source) => source.availability === "unavailable"
+  ).length;
+  const priorityInsights = data.aiInsights
+    .slice()
+    .sort((a, b) => {
+      const rank: Record<Severity, number> = { critical: 3, warning: 2, info: 1, healthy: 0 };
+      return rank[b.severity] - rank[a.severity];
+    })
+    .slice(0, 3);
+
   return (
     <div className="page-stack">
-      <KpiStrip metrics={data.overview.metrics} />
-      <div className="bento-grid">
+      <section className="status-strip" aria-label="スナップショット状態">
+        <div>
+          <span>公開モード</span>
+          <strong>{modeLabel(data.mode)}</strong>
+          <small>スキーマ {data.schemaVersion}</small>
+        </div>
+        <div>
+          <span>最終更新</span>
+          <strong>{formatSnapshotAge(data.generatedAt)}</strong>
+          <small>{formatDateTimeJa(data.generatedAt)}</small>
+        </div>
+        <div>
+          <span>ソース収集範囲</span>
+          <strong>
+            {availableSources}/{data.sources.length} 収集済み
+          </strong>
+          <small>
+            一部 {partialSources}・利用不可 {unavailableSources}
+          </small>
+        </div>
+        <div>
+          <span>Resource Health 評価範囲</span>
+          <strong>
+            {health.evaluated}/{health.total} 件
+          </strong>
+          <small>未評価 {health.unknown} 件は正常・異常に含めません</small>
+        </div>
+      </section>
+
+      <section className="metric-grid four" aria-label="主要指標">
+        <MetricCard
+          label="公開リソース"
+          value={`${numberFormatter.format(data.inventory.total)} 件`}
+          note="サニタイズ済みインベントリ"
+        />
+        <MetricCard
+          label="現在期間の概算コスト"
+          value={data.cost.current.approximateAmount ?? "利用不可"}
+          note={formatCostDelta(data.cost.deltaPercent)}
+        />
+        <MetricCard
+          label="Defender 推奨事項"
+          value={
+            defenderRecommendationCount === null
+              ? "未取得"
+              : `${numberFormatter.format(defenderRecommendationCount)} 件`
+          }
+          note={
+            defenderRecommendationCount === null && defenderSource
+              ? formatSourceMessage(defenderSource)
+              : "公開済みの集計タイトルのみ"
+          }
+        />
+        <MetricCard
+          label="検証済み AI 分析"
+          value={`${numberFormatter.format(data.aiInsights.length)} 件`}
+          note="数値根拠とソース パスを確認済み"
+        />
+      </section>
+
+      <div className="overview-grid">
         <Panel
-          title="Operational posture"
+          title="優先確認アクション"
+          description="公開済み AI 分析の推奨アクションです。Azure への変更は実行しません。"
+          className="span-7"
           action={
-            <button className="text-button" onClick={() => navigate("/ai-insights")}>
-              View insights <ChevronRight size={15} aria-hidden="true" />
+            <button
+              type="button"
+              className="text-button"
+              onClick={() => navigate("/ai-insights")}
+            >
+              AI 分析を開く <ChevronRight size={15} aria-hidden="true" />
             </button>
           }
-          className="posture-panel"
         >
-          <div className="score-row">
-            <div className="score-block">
-              <span>Composite score</span>
-              <strong>{data.overview.postureScore}</strong>
-              <small>of 100</small>
+          {priorityInsights.length ? (
+            <div className="action-list">
+              {priorityInsights.map((insight) => (
+                <button
+                  type="button"
+                  className="action-row"
+                  key={insight.id}
+                  onClick={() => navigate(insight.route)}
+                  aria-label={`${insight.title}の関連画面を開く`}
+                >
+                  <span className={`priority-line severity-${insight.severity}`} />
+                  <span>
+                    <small>
+                      {routeLabel(insight.route)}・信頼度{" "}
+                      {numberFormatter.format(Math.round(insight.confidence * 100))}%
+                    </small>
+                    <strong>{insight.title}</strong>
+                    <p>{insight.recommendedAction}</p>
+                  </span>
+                  <ChevronRight size={17} aria-hidden="true" />
+                </button>
+              ))}
             </div>
-            <div className="score-detail">
-              <ProgressBar value={data.overview.postureScore} label="Overall posture" />
-              <p>
-                Stable service health with two cost and security signals requiring focused
-                review.
-              </p>
+          ) : (
+            <EmptyState
+              title="公開済みの AI 分析はありません"
+              detail="数値根拠と公開ゲートを通過した分析がないため、アクションを表示していません。"
+            />
+          )}
+        </Panel>
+
+        <Panel
+          title="コスト サマリー"
+          description="正確な請求額ではなく、公開用に丸めた値です。"
+          className="span-5"
+          action={
+            <button type="button" className="text-button" onClick={() => navigate("/cost")}>
+              詳細 <ChevronRight size={15} aria-hidden="true" />
+            </button>
+          }
+        >
+          <dl className="summary-list">
+            <div>
+              <dt>現在期間</dt>
+              <dd>{data.cost.current.approximateAmount ?? "利用不可"}</dd>
             </div>
-          </div>
+            <div>
+              <dt>前期間</dt>
+              <dd>{data.cost.previous.approximateAmount ?? "利用不可"}</dd>
+            </div>
+            <div>
+              <dt>期間差</dt>
+              <dd>{formatCostDelta(data.cost.deltaPercent)}</dd>
+            </div>
+            <div>
+              <dt>予測 / 予算</dt>
+              <dd>
+                {data.cost.forecast.availability === "available" ? "収集済み" : "未収集"} /{" "}
+                {data.cost.budget.availability === "available" ? "収集済み" : "未収集"}
+              </dd>
+            </div>
+          </dl>
         </Panel>
-        <Panel title="Regional health" className="regions-panel">
-          <div className="region-list">
-            {data.overview.regionalHealth.map((region) => (
-              <div className="region-row" key={region.region}>
-                <span className={`health-dot severity-${region.status}`} aria-hidden="true" />
-                <strong>{region.region}</strong>
-                <span>{region.score}%</span>
-                <StatusBadge severity={region.status}>{severityLabel(region.status)}</StatusBadge>
-              </div>
-            ))}
-          </div>
+
+        <Panel
+          title="リソース タイプ分布"
+          description="Azure のリソース タイプ名は原文のまま保持します。"
+          className="span-6"
+        >
+          <DistributionList
+            items={data.inventory.byType.slice(0, 8)}
+            emptyTitle="リソース タイプなし"
+            emptyDetail="このスナップショットに公開可能なリソース タイプはありません。"
+          />
         </Panel>
-        <Panel title="Activity timeline" className="timeline-panel">
-          <div className="timeline">
-            {data.overview.eventTimeline.map((event) => (
-              <button
-                className="timeline-item"
-                key={event.id}
-                onClick={() => navigate(event.route)}
-              >
-                <span className={`timeline-marker severity-${event.severity}`} />
-                <span>
-                  <small>{event.timestamp}</small>
-                  <strong>{event.title}</strong>
-                  <p>{event.detail}</p>
-                </span>
-                <ChevronRight size={16} aria-hidden="true" />
-              </button>
-            ))}
-          </div>
+
+        <Panel
+          title="リージョン分布"
+          description="リージョン名と件数のみを表示し、状態は推定しません。"
+          className="span-6"
+        >
+          <DistributionList
+            items={data.inventory.byRegion.slice(0, 8)}
+            emptyTitle="リージョン情報なし"
+            emptyDetail="このスナップショットに公開可能なリージョン情報はありません。"
+          />
         </Panel>
-        <Panel title="Data source coverage" className="sources-panel">
-          <div className="source-list">
-            {data.sources.map((source) => (
-              <div className="source-row" key={source.source}>
-                {source.availability === "available" ? (
-                  <CircleCheck className="severity-healthy" size={18} aria-hidden="true" />
-                ) : (
-                  <CircleAlert className="severity-warning" size={18} aria-hidden="true" />
-                )}
-                <div>
-                  <strong>{source.source}</strong>
-                  <p>{source.message}</p>
-                </div>
-              </div>
-            ))}
+
+        <Panel
+          title="データ ソース収集状況"
+          description="一部収集や利用不可は、正常・異常の判定ではなくデータ範囲を示します。"
+          className="span-6"
+        >
+          <SourceList data={data} />
+        </Panel>
+
+        <Panel
+          title="最近の収集アクティビティ"
+          description="実行者・対象リソース・識別子は公開前に除外しています。"
+          className="span-6"
+        >
+          {data.overview.eventTimeline.length ? (
+            <div className="timeline">
+              {data.overview.eventTimeline.map((event) => (
+                <button
+                  type="button"
+                  className="timeline-item"
+                  key={event.id}
+                  onClick={() => navigate(event.route)}
+                  aria-label={`${formatActivityTitle(event.title)}の関連画面を開く`}
+                >
+                  <span className={`timeline-marker severity-${event.severity}`} aria-hidden="true" />
+                  <span>
+                    <small>{formatEventTimestamp(event.timestamp)}</small>
+                    <strong>{formatActivityTitle(event.title)}</strong>
+                    <p>{formatActivityDetail(event.detail)}</p>
+                  </span>
+                  <ChevronRight size={16} aria-hidden="true" />
+                </button>
+              ))}
+            </div>
+          ) : (
+            <EmptyState
+              title="公開可能なアクティビティなし"
+              detail="この収集期間に公開可能なイベントはありません。"
+            />
+          )}
+        </Panel>
+
+        <Panel
+          title="AI 分析サマリー"
+          description="観測、影響、数値根拠、推奨アクションを公開スナップショット内で完結させています。"
+          className="span-12"
+        >
+          <div className="ai-summary">
+            <div>
+              <Bot size={24} aria-hidden="true" />
+              <strong>{data.aiInsights.length} 件の検証済み分析</strong>
+              <p>読み取り専用・匿名化済み・自動修復なし</p>
+            </div>
+            <div className="evidence-summary">
+              <span>
+                数値根拠{" "}
+                {data.aiInsights.reduce(
+                  (count, insight) => count + insight.numericEvidence.length,
+                  0
+                )}{" "}
+                件
+              </span>
+              <span>
+                対象領域 {new Set(data.aiInsights.map((insight) => insight.route)).size} 件
+              </span>
+              <span>更新 {formatDateTimeJa(data.generatedAt)}</span>
+            </div>
           </div>
         </Panel>
       </div>
@@ -290,122 +507,119 @@ function OverviewPage({ data }: { data: PublicSnapshotV1 }) {
 }
 
 function CostPage({ data }: { data: PublicSnapshotV1 }) {
-  const delta = data.cost.deltaPercent;
-  const budgetUsed = data.cost.budget.usedPercent;
-  const changeDrivers = data.cost.categories.flatMap((category) =>
-    category.deltaPercent === null ? [] : [{ ...category, deltaPercent: category.deltaPercent }]
+  const categoriesWithDelta = data.cost.categories.filter(
+    (category) => category.deltaPercent !== null
   );
-  const metrics: TrendMetric[] = [
-    {
-      label: "Current period",
-      value: data.cost.current.approximateAmount ?? "Unavailable",
-      change:
-        delta === null ? "Prior period unavailable" : `${delta > 0 ? "+" : ""}${delta}%`,
-      direction: delta === null ? "flat" : delta > 0 ? "up" : delta < 0 ? "down" : "flat",
-      severity:
-        data.cost.current.availability === "unavailable"
-          ? "info"
-          : delta !== null && delta > 5
-            ? "warning"
-            : "healthy",
-      points: data.cost.normalizedTrend
-    },
-    {
-      label: "Forecast",
-      value: data.cost.forecast.approximateAmount ?? "Unavailable",
-      change:
-        data.cost.forecast.availability === "available"
-          ? "Collected month-end estimate"
-          : "Not collected",
-      direction: "flat",
-      severity: "info",
-      points: data.cost.forecast.availability === "available" ? data.cost.normalizedTrend : []
-    },
-    {
-      label: "Budget used",
-      value: budgetUsed === null ? "Unavailable" : `${budgetUsed}%`,
-      change: budgetUsed === null ? "Budget not collected" : "Configured budget utilization",
-      direction: "flat",
-      severity: budgetUsed === null ? "info" : budgetUsed > 85 ? "warning" : "healthy",
-      points: budgetUsed === null ? [] : [budgetUsed, budgetUsed]
-    }
-  ];
+  const canShowTrend = data.mode === "AZURE" && data.cost.normalizedTrend.length > 1;
+
   return (
     <div className="page-stack">
       <div className="notice">
         <Coins size={18} aria-hidden="true" />
-        <span>Amounts are rounded public-safe approximations. Exact Azure cost is never stored.</span>
+        <span>
+          金額は公開用に丸めた概算値です。正確な Azure 請求額、未収集の予測、未収集の予算は推定しません。
+        </span>
       </div>
-      <KpiStrip metrics={metrics} />
-      <div className="bento-grid">
-        <Panel title="Normalized spend trend" className="wide-panel">
-          {data.cost.normalizedTrend.length ? (
-            <div className="chart-shell">
+      <section className="metric-grid four" aria-label="コスト指標">
+        <MetricCard
+          label="現在期間"
+          value={data.cost.current.approximateAmount ?? "利用不可"}
+          note={formatCostDelta(data.cost.deltaPercent)}
+        />
+        <MetricCard
+          label="前期間"
+          value={data.cost.previous.approximateAmount ?? "利用不可"}
+          note="比較可能な前期間の概算値"
+        />
+        <MetricCard
+          label="予測"
+          value={data.cost.forecast.approximateAmount ?? "未収集"}
+          note="権威ある予測値のみ表示"
+        />
+        <MetricCard
+          label="予算使用率"
+          value={
+            data.cost.budget.usedPercent === null ? "未収集" : `${data.cost.budget.usedPercent}%`
+          }
+          note="設定済み予算を収集できた場合のみ表示"
+        />
+      </section>
+      <div className="content-grid">
+        <Panel
+          title="サービス別コスト構成"
+          description="サービス名と構成比は公開スナップショット値です。"
+          className="span-7"
+        >
+          {data.cost.categories.length ? (
+            <div className="cost-category-list">
+              {data.cost.categories.map((category) => (
+                <article className="cost-category-row" key={category.name}>
+                  <div>
+                    <strong>{category.name}</strong>
+                    <span>{category.approximateAmount}</span>
+                  </div>
+                  <div className="bar-track" aria-hidden="true">
+                    <span style={{ width: `${Math.max(2, category.sharePercent)}%` }} />
+                  </div>
+                  <strong>{category.sharePercent}%</strong>
+                </article>
+              ))}
+            </div>
+          ) : (
+            <EmptyState
+              title="サービス別コストなし"
+              detail="公開可能なサービス別コストが収集されていません。"
+            />
+          )}
+        </Panel>
+        <Panel
+          title="前期間からの変化"
+          description="比較可能なサービスのみを表示します。値の良否は推定しません。"
+          className="span-5"
+        >
+          {categoriesWithDelta.length ? (
+            <div className="delta-list">
+              {categoriesWithDelta
+                .slice()
+                .sort(
+                  (a, b) =>
+                    Math.abs(b.deltaPercent ?? 0) - Math.abs(a.deltaPercent ?? 0)
+                )
+                .map((category) => (
+                  <div className="delta-row" key={category.name}>
+                    <span>{category.name}</span>
+                    <strong>
+                      {(category.deltaPercent ?? 0) > 0 ? "+" : ""}
+                      {category.deltaPercent}%
+                    </strong>
+                  </div>
+                ))}
+            </div>
+          ) : (
+            <EmptyState
+              title="比較データなし"
+              detail="比較可能な前期間がないため、サービス別の変化は表示していません。"
+            />
+          )}
+        </Panel>
+        <Panel
+          title="正規化済み支出系列"
+          description="Azure 収集で公開された実測系列がある場合のみ表示します。"
+          className="span-12"
+        >
+          {canShowTrend ? (
+            <div className="chart-shell" aria-label="正規化済み支出系列">
               {data.cost.normalizedTrend.map((value, index) => (
                 <div className="chart-column" key={`${value}-${index}`}>
-                  <span style={{ height: `${value}%` }} />
-                  <small>W{index + 1}</small>
+                  <span style={{ height: `${Math.min(100, Math.max(0, value))}%` }} />
+                  <small>{index + 1}</small>
                 </div>
               ))}
             </div>
           ) : (
             <EmptyState
-              title="Trend unavailable"
-              detail="The collector does not publish a synthetic time series for Azure cost."
-            />
-          )}
-        </Panel>
-        <Panel title="Service mix">
-          <div className="ranked-list">
-            {data.cost.categories.map((category) => (
-              <div className="ranked-row" key={category.name}>
-                <div>
-                  <strong>{category.name}</strong>
-                  <small>{category.approximateAmount}</small>
-                </div>
-                <div className="bar-track">
-                  <span style={{ width: `${category.sharePercent}%` }} />
-                </div>
-                <span>{category.sharePercent}%</span>
-              </div>
-            ))}
-          </div>
-        </Panel>
-        <Panel title="Change drivers">
-          {changeDrivers.length ? (
-            <div className="driver-list">
-              {changeDrivers
-                .slice()
-                .sort((a, b) => Math.abs(b.deltaPercent) - Math.abs(a.deltaPercent))
-                .map((category) => {
-                  const movement = describeCostDelta(category.deltaPercent);
-                  return (
-                    <div className="driver-row" key={category.name}>
-                      <span className="icon-tile">
-                        {movement.direction === "up" ? (
-                          <TrendingUp size={18} aria-hidden="true" />
-                        ) : movement.direction === "down" ? (
-                          <TrendingDown size={18} aria-hidden="true" />
-                        ) : (
-                          <Minus size={18} aria-hidden="true" />
-                        )}
-                      </span>
-                      <div>
-                        <strong>{category.name}</strong>
-                        <p>{movement.label} versus prior period</p>
-                      </div>
-                      <StatusBadge severity={category.deltaPercent > 8 ? "warning" : "healthy"}>
-                        {category.deltaPercent > 0 ? "+" : ""}
-                        {category.deltaPercent}%
-                      </StatusBadge>
-                    </div>
-                  );
-                })}
-            </div>
-          ) : (
-            <EmptyState
-              title="Change drivers unavailable"
-              detail="A comparable prior period is required before service deltas can be published."
+              title="実測の時系列は未収集"
+              detail="単一期間の合計から時系列や予測を合成していません。"
             />
           )}
         </Panel>
@@ -421,6 +635,15 @@ function ResourceDrawer({
   resource: ResourceItem | null;
   onClose: () => void;
 }) {
+  useEffect(() => {
+    if (!resource) return;
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") onClose();
+    };
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [onClose, resource]);
+
   if (!resource) return null;
   return (
     <div className="drawer-layer" role="presentation" onMouseDown={onClose}>
@@ -433,58 +656,61 @@ function ResourceDrawer({
       >
         <header>
           <div>
-            <p className="eyebrow">Sanitized resource detail</p>
+            <p className="eyebrow">サニタイズ済みリソース詳細</p>
             <h2 id="resource-drawer-title">{resource.name}</h2>
           </div>
-          <button className="icon-button" onClick={onClose} aria-label="Close detail drawer">
-            <X size={20} />
+          <button
+            type="button"
+            className="icon-button"
+            onClick={onClose}
+            aria-label="リソース詳細を閉じる"
+          >
+            <X size={20} aria-hidden="true" />
           </button>
         </header>
         <div className="drawer-status">
-          <StatusBadge
-            severity={
-              resource.status === "Healthy"
-                ? "healthy"
-                : resource.status === "Degraded"
-                  ? "warning"
-                  : "critical"
-            }
-          >
-            {resource.status}
+          <StatusBadge severity={resourceStatusSeverity(resource.status)}>
+            {resourceStatusLabel(resource.status)}
           </StatusBadge>
           <span>{resource.type}</span>
         </div>
         <dl className="detail-list">
           <div>
-            <dt>Resource group</dt>
+            <dt>リソース グループ</dt>
             <dd>{resource.resourceGroup}</dd>
           </div>
           <div>
-            <dt>Region</dt>
+            <dt>リージョン</dt>
             <dd>{resource.region}</dd>
           </div>
           <div>
-            <dt>Owner</dt>
+            <dt>所有者エイリアス</dt>
             <dd>{resource.owner}</dd>
           </div>
           <div>
-            <dt>Recent change</dt>
+            <dt>収集済み変更情報</dt>
             <dd>{resource.change}</dd>
           </div>
         </dl>
-        <div>
-          <h3>Allowed tags</h3>
-          <div className="tag-list">
-            {Object.entries(resource.tags).map(([key, value]) => (
-              <span className="tag" key={key}>
-                {key}: {value}
-              </span>
-            ))}
-          </div>
-        </div>
+        <section>
+          <h3>公開可能なタグ</h3>
+          {Object.keys(resource.tags).length ? (
+            <div className="tag-list">
+              {Object.entries(resource.tags).map(([key, value]) => (
+                <span className="tag" key={key}>
+                  {key}: {value}
+                </span>
+              ))}
+            </div>
+          ) : (
+            <p className="muted">許可リストを通過したタグはありません。</p>
+          )}
+        </section>
         <div className="drawer-callout">
           <ShieldCheck size={20} aria-hidden="true" />
-          <p>Names, ownership, identifiers, and tags have passed the public sanitization boundary.</p>
+          <p>
+            名前、所有者、識別子、タグは公開サニタイズ境界を通過した値です。元の値は表示しません。
+          </p>
         </div>
       </aside>
     </div>
@@ -493,68 +719,81 @@ function ResourceDrawer({
 
 function ResourcesPage({ data }: { data: PublicSnapshotV1 }) {
   const [query, setQuery] = useState("");
-  const [status, setStatus] = useState("All");
+  const [status, setStatus] = useState<"all" | ResourceItem["status"]>("all");
   const [selected, setSelected] = useState<ResourceItem | null>(null);
   const filtered = useMemo(
     () =>
       data.inventory.resources.filter(
         (resource) =>
-          (status === "All" || resource.status === status) &&
-          `${resource.name} ${resource.type} ${resource.region}`
-            .toLowerCase()
-            .includes(query.toLowerCase())
+          (status === "all" || resource.status === status) &&
+          `${resource.name} ${resource.type} ${resource.region} ${resource.resourceGroup}`
+            .toLocaleLowerCase("ja-JP")
+            .includes(query.toLocaleLowerCase("ja-JP"))
       ),
     [data.inventory.resources, query, status]
   );
 
   return (
     <div className="page-stack">
-      <div className="inventory-strip">
-        <div>
-          <span>Total resources</span>
-          <strong>{data.inventory.total}</strong>
-        </div>
-        {data.inventory.byType.slice(0, 4).map((item) => (
-          <div key={item.label}>
-            <span>{item.label}</span>
-            <strong>{item.count}</strong>
-          </div>
+      <section className="metric-grid four" aria-label="インベントリ サマリー">
+        <MetricCard
+          label="合計"
+          value={`${data.inventory.total} 件`}
+          note="公開スナップショット内"
+        />
+        {data.inventory.byType.slice(0, 3).map((item) => (
+          <MetricCard
+            key={item.label}
+            label={item.label}
+            value={`${item.count} 件`}
+            note="リソース タイプ"
+          />
         ))}
-      </div>
-      <Panel>
+      </section>
+      <Panel
+        title="リソース一覧"
+        description="フィルターは表示中のサニタイズ済みデータだけに適用されます。"
+      >
         <div className="table-toolbar">
           <label className="search-control">
             <Search size={17} aria-hidden="true" />
-            <span className="sr-only">Search resources</span>
+            <span className="sr-only">リソースを検索</span>
             <input
               value={query}
               onChange={(event) => setQuery(event.target.value)}
-              placeholder="Search resource, type, or region"
+              placeholder="名前、タイプ、リージョンで検索"
             />
           </label>
           <label className="select-label">
-            <span>Status</span>
-            <select value={status} onChange={(event) => setStatus(event.target.value)}>
-              <option>All</option>
-              <option>Healthy</option>
-              <option>Degraded</option>
-              <option>Unavailable</option>
-              <option>Unknown</option>
+            <span>Resource Health 状態</span>
+            <select
+              value={status}
+              onChange={(event) =>
+                setStatus(event.target.value as "all" | ResourceItem["status"])
+              }
+            >
+              <option value="all">すべて</option>
+              <option value="Healthy">正常</option>
+              <option value="Degraded">低下</option>
+              <option value="Unavailable">利用不可</option>
+              <option value="Unknown">未評価</option>
             </select>
           </label>
-          <span className="result-count">{filtered.length} results</span>
+          <span className="result-count" aria-live="polite">
+            {filtered.length} 件
+          </span>
         </div>
         {filtered.length ? (
           <div className="table-scroll">
             <table>
               <thead>
                 <tr>
-                  <th>Name</th>
-                  <th>Type</th>
-                  <th>Region</th>
-                  <th>Health</th>
-                  <th>Owner</th>
-                  <th aria-label="Open detail" />
+                  <th>名前</th>
+                  <th>タイプ</th>
+                  <th>リージョン</th>
+                  <th>Resource Health</th>
+                  <th>所有者</th>
+                  <th aria-label="詳細を開く" />
                 </tr>
               </thead>
               <tbody>
@@ -562,9 +801,10 @@ function ResourcesPage({ data }: { data: PublicSnapshotV1 }) {
                   <tr key={resource.id}>
                     <td>
                       <button
+                        type="button"
                         className="resource-link"
                         onClick={() => setSelected(resource)}
-                        aria-label={`Open details for ${resource.name}`}
+                        aria-label={`${resource.name}の詳細を開く`}
                       >
                         <strong>{resource.name}</strong>
                         <small>{resource.resourceGroup}</small>
@@ -573,16 +813,8 @@ function ResourcesPage({ data }: { data: PublicSnapshotV1 }) {
                     <td>{resource.type}</td>
                     <td>{resource.region}</td>
                     <td>
-                      <StatusBadge
-                        severity={
-                          resource.status === "Healthy"
-                            ? "healthy"
-                            : resource.status === "Degraded"
-                              ? "warning"
-                              : "critical"
-                        }
-                      >
-                        {resource.status}
+                      <StatusBadge severity={resourceStatusSeverity(resource.status)}>
+                        {resourceStatusLabel(resource.status)}
                       </StatusBadge>
                     </td>
                     <td>{resource.owner}</td>
@@ -596,8 +828,8 @@ function ResourcesPage({ data }: { data: PublicSnapshotV1 }) {
           </div>
         ) : (
           <EmptyState
-            title="No matching resources"
-            detail="Adjust the search text or health filter to expand the result set."
+            title="条件に一致するリソースはありません"
+            detail="検索文字列または Resource Health 状態フィルターを変更してください。"
           />
         )}
       </Panel>
@@ -607,148 +839,267 @@ function ResourcesPage({ data }: { data: PublicSnapshotV1 }) {
 }
 
 function ReliabilityPage({ data }: { data: PublicSnapshotV1 }) {
-  const metrics: TrendMetric[] = [
-    {
-      label: "Availability",
-      value: data.reliability.availability,
-      change: "Rolling 30 days",
-      direction: "flat",
-      severity: "healthy",
-      points: [99.8, 99.9, 99.8, 99.95, 99.9, 99.92, 99.97, 99.94]
-    },
-    {
-      label: "Active incidents",
-      value: String(data.reliability.incidents),
-      change: "1 requires attention",
-      direction: "down",
-      severity: data.reliability.incidents > 1 ? "warning" : "healthy",
-      points: [4, 3, 3, 2, 4, 2, 2, 1]
-    },
-    {
-      label: "Mean time to recover",
-      value: data.reliability.meanTimeToRecover,
-      change: "Down 18%",
-      direction: "down",
-      severity: "healthy",
-      points: [64, 58, 61, 55, 49, 46, 42, 38]
-    }
-  ];
+  const health = summarizeResourceHealth(data.inventory.resources);
+  const resourceHealthSource = data.sources.find((source) => source.source === "Resource Health");
+  const serviceHealthSource = data.sources.find((source) => source.source === "Service Health");
+  const observedIncidents = metricWhenSourceAvailable(
+    resourceHealthSource,
+    data.reliability.incidentAvailability === "available" ? data.reliability.incidents : null
+  );
+  const reliabilitySources = [resourceHealthSource, serviceHealthSource].filter(
+    (source): source is NonNullable<typeof source> => source !== undefined
+  );
+
   return (
     <div className="page-stack">
-      <KpiStrip metrics={metrics} />
-      <Panel title="Service objectives">
-        <div className="service-grid">
-          {data.reliability.services.map((service) => (
-            <article className="service-card" key={service.name}>
-              <div className="service-heading">
+      <div className="notice">
+        <Activity size={18} aria-hidden="true" />
+        <span>
+          「未評価」は正常率の分母や障害件数には含めず、収集できた状態だけを表示します。
+        </span>
+      </div>
+      <section className="metric-grid four" aria-label="Resource Health サマリー">
+        <MetricCard
+          label="評価済み"
+          value={`${health.evaluated}/${health.total} 件`}
+          note={`評価範囲 ${health.coveragePercent}%`}
+        />
+        <MetricCard
+          label="正常"
+          value={`${health.healthy} 件`}
+          note="Resource Health 状態が「正常」の収集値"
+          severity={health.healthy > 0 ? "healthy" : "info"}
+        />
+        <MetricCard
+          label="観測中の障害"
+          value={observedIncidents === null ? "未取得" : `${observedIncidents} 件`}
+          note={
+            observedIncidents === null
+              ? resourceHealthSource?.availability === "available"
+                ? "障害件数を取得する観測ソースは未実装です"
+                : resourceHealthSource
+                  ? formatSourceMessage(resourceHealthSource)
+                  : "Resource Health のソース状態がありません"
+              : `低下 ${health.degraded} 件・利用不可 ${health.unavailable} 件`
+          }
+          severity={observedIncidents ? "warning" : "info"}
+        />
+        <MetricCard
+          label="未評価"
+          value={`${health.unknown} 件`}
+          note="正常・異常を推定しません"
+        />
+      </section>
+      <div className="content-grid">
+        <Panel
+          title="収集ソース"
+          description="可用性はデータ取得範囲を表し、サービス状態の判定ではありません。"
+          className="span-5"
+        >
+          <div className="source-list">
+            {reliabilitySources.map((source) => (
+              <article className="source-row" key={source.source}>
+                <span className="source-icon" aria-hidden="true">
+                  <Server size={17} />
+                </span>
                 <div>
-                  <span className="service-icon">
-                    <Server size={18} aria-hidden="true" />
-                  </span>
-                  <strong>{service.name}</strong>
+                  <strong>{source.source}</strong>
+                  <p>{formatSourceMessage(source)}</p>
                 </div>
-                <StatusBadge severity={service.status}>{severityLabel(service.status)}</StatusBadge>
-              </div>
-              <dl className="mini-stats">
-                <div>
-                  <dt>Objective</dt>
-                  <dd>{service.objective}</dd>
-                </div>
-                <div>
-                  <dt>Actual</dt>
-                  <dd>{service.actual}</dd>
-                </div>
-                <div>
-                  <dt>Incidents</dt>
-                  <dd>{service.incidents}</dd>
-                </div>
-              </dl>
-              <ProgressBar
-                value={service.budgetRemainingPercent}
-                label="Error budget remaining"
-              />
-            </article>
-          ))}
-        </div>
-      </Panel>
-      <Panel title="Incident watch">
-        <div className="incident-callout">
-          <span className="icon-tile severity-warning">
-            <CircleAlert size={20} aria-hidden="true" />
-          </span>
-          <div>
-            <strong>Intermittent latency in a masked application tier</strong>
-            <p>
-              P95 response time exceeded the service target in 3 of 12 normalized intervals.
-            </p>
+                <StatusBadge severity={availabilitySeverity(source.availability)}>
+                  {availabilityLabel(source.availability)}
+                </StatusBadge>
+              </article>
+            ))}
           </div>
-          <StatusBadge severity="warning">Investigating</StatusBadge>
-        </div>
-      </Panel>
+        </Panel>
+        <Panel
+          title="リージョン別の評価済み状態"
+          description="未評価だけのリージョンは表示しません。"
+          className="span-7"
+        >
+          {data.overview.regionalHealth.length ? (
+            <div className="region-list">
+              {data.overview.regionalHealth.map((region) => (
+                <div className="region-row" key={region.region}>
+                  <span className={`health-dot severity-${region.status}`} aria-hidden="true" />
+                  <strong>{region.region}</strong>
+                  <span>正常 {region.score}%</span>
+                  <StatusBadge severity={region.status}>{severityLabel(region.status)}</StatusBadge>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <EmptyState
+              title="リージョン別状態は未評価"
+              detail="Resource Health が未評価のため、0% や警告として表示していません。"
+            />
+          )}
+        </Panel>
+        <Panel
+          title="公開済みサービス目標"
+          description="スナップショットに明示された目標・実績・エラー バジェットのみを表示します。"
+          className="span-12"
+        >
+          {data.reliability.services.length ? (
+            <div className="service-grid">
+              {data.reliability.services.map((service) => (
+                <article className="service-card" key={service.name}>
+                  <div className="service-heading">
+                    <div>
+                      <span className="service-icon">
+                        <Server size={18} aria-hidden="true" />
+                      </span>
+                      <strong>{service.name}</strong>
+                    </div>
+                    <StatusBadge severity={service.status}>
+                      {severityLabel(service.status)}
+                    </StatusBadge>
+                  </div>
+                  <dl className="mini-stats">
+                    <div>
+                      <dt>目標</dt>
+                      <dd>{service.objective}</dd>
+                    </div>
+                    <div>
+                      <dt>実績</dt>
+                      <dd>{service.actual}</dd>
+                    </div>
+                  </dl>
+                  <ProgressBar
+                    value={service.budgetRemainingPercent}
+                    label="エラー バジェット残量"
+                  />
+                </article>
+              ))}
+            </div>
+          ) : (
+            <EmptyState
+              title="サービス目標は未収集"
+              detail="公開スナップショットにサービス目標や実績がないため、可用性や復旧時間を合成していません。"
+            />
+          )}
+        </Panel>
+      </div>
     </div>
   );
 }
 
 function SecurityPage({ data }: { data: PublicSnapshotV1 }) {
-  const metrics: TrendMetric[] = [
-    {
-      label: "Secure score",
-      value: `${data.security.secureScore}%`,
-      change: "+2.4 pts",
-      direction: "up",
-      severity: "healthy",
-      points: [68, 69, 70, 69, 72, 74, 75, 77]
-    },
-    {
-      label: "Active alerts",
-      value: String(data.security.activeAlerts),
-      change: "Aggregate only",
-      direction: "down",
-      severity: data.security.activeAlerts > 3 ? "warning" : "healthy",
-      points: [8, 7, 7, 5, 6, 4, 3, 2]
-    },
-    {
-      label: "Open recommendations",
-      value: String(data.security.recommendations.filter((item) => item.status !== "Resolved").length),
-      change: "Across protected estate",
-      direction: "flat",
-      severity: "info",
-      points: [7, 7, 6, 6, 5, 5, 4, 4]
-    }
-  ];
+  const defenderSource = data.sources.find((source) => source.source === "Defender for Cloud");
+  const secureScore = metricWhenSourceAvailable(defenderSource, data.security.secureScore);
+  const activeAlerts = metricWhenSourceAvailable(defenderSource, data.security.activeAlerts);
+  const openRecommendations = metricWhenSourceAvailable(
+    defenderSource,
+    data.security.recommendations.filter((item) => item.status !== "Resolved").length
+  );
+  const complianceCount = metricWhenSourceAvailable(
+    defenderSource,
+    data.security.compliance.length
+  );
+  const unavailableNote = defenderSource
+    ? formatSourceMessage(defenderSource)
+    : "Defender for Cloud のソース状態が公開されていません。";
+
   return (
     <div className="page-stack">
-      <KpiStrip metrics={metrics} />
-      <div className="bento-grid">
-        <Panel title="Defender recommendations" className="wide-panel">
-          <div className="recommendation-list">
-            {data.security.recommendations.map((item) => (
-              <div className="recommendation-row" key={item.title}>
-                <span className={`priority-line severity-${item.severity}`} />
-                <div>
-                  <strong>{item.title}</strong>
-                  <p>{item.affectedCount} affected resources · aggregate view</p>
-                </div>
-                <StatusBadge severity={item.severity}>{item.status}</StatusBadge>
-              </div>
-            ))}
-          </div>
+      {defenderSource && (
+        <div className="notice">
+          <ShieldCheck size={18} aria-hidden="true" />
+          <span>{formatSourceMessage(defenderSource)}</span>
+          <StatusBadge severity={availabilitySeverity(defenderSource.availability)}>
+            {availabilityLabel(defenderSource.availability)}
+          </StatusBadge>
+        </div>
+      )}
+      <section className="metric-grid four" aria-label="セキュリティ サマリー">
+        <MetricCard
+          label="Secure score"
+          value={secureScore === null ? "未取得" : `${secureScore}%`}
+          note={
+            secureScore === null
+              ? defenderSource?.availability === "available"
+                ? "現在のスナップショットに Secure score はありません。"
+                : unavailableNote
+              : "公開スナップショット値・傾向は未収集"
+          }
+        />
+        <MetricCard
+          label="アクティブ アラート"
+          value={activeAlerts === null ? "未取得" : `${activeAlerts} 件`}
+          note={activeAlerts === null ? unavailableNote : "集計件数のみ"}
+        />
+        <MetricCard
+          label="未解決の推奨事項"
+          value={openRecommendations === null ? "未取得" : `${openRecommendations} 件`}
+          note={openRecommendations === null ? unavailableNote : "資産詳細を除外"}
+        />
+        <MetricCard
+          label="コンプライアンス集計"
+          value={complianceCount === null ? "未取得" : `${complianceCount} 件`}
+          note={complianceCount === null ? unavailableNote : "収集済みフレームワーク"}
+        />
+      </section>
+      <div className="content-grid">
+        <Panel
+          title="Defender for Cloud 推奨事項"
+          description="タイトル、重要度、影響件数、対応状態だけを公開します。"
+          className="span-8"
+        >
+          {defenderSource?.availability !== "available" ? (
+            <EmptyState title="Defender データは未取得" detail={unavailableNote} />
+          ) : data.security.recommendations.length ? (
+            <div className="recommendation-list">
+              {data.security.recommendations.map((item) => (
+                <article className="recommendation-row" key={item.title}>
+                  <span className={`priority-line severity-${item.severity}`} aria-hidden="true" />
+                  <div>
+                    <strong>{item.title}</strong>
+                    <p>影響を受けるリソース {item.affectedCount} 件・集計表示</p>
+                  </div>
+                  <StatusBadge severity={item.severity}>
+                    {recommendationStatusLabel(item.status)}
+                  </StatusBadge>
+                </article>
+              ))}
+            </div>
+          ) : (
+            <EmptyState
+              title="公開可能な推奨事項なし"
+              detail="0 件が安全を意味するとは推定しません。現在の公開スナップショットに推奨事項がない状態です。"
+            />
+          )}
         </Panel>
-        <Panel title="Compliance posture">
-          <div className="compliance-list">
-            {data.security.compliance.map((item) => (
-              <ProgressBar key={item.framework} value={item.score} label={item.framework} />
-            ))}
-          </div>
+        <Panel
+          title="コンプライアンス集計"
+          description="収集されたスコアのみを表示します。"
+          className="span-4"
+        >
+          {defenderSource?.availability !== "available" ? (
+            <EmptyState title="コンプライアンス集計は未取得" detail={unavailableNote} />
+          ) : data.security.compliance.length ? (
+            <div className="compliance-list">
+              {data.security.compliance.map((item) => (
+                <ProgressBar key={item.framework} value={item.score} label={item.framework} />
+              ))}
+            </div>
+          ) : (
+            <EmptyState
+              title="コンプライアンス集計なし"
+              detail="フレームワーク別スコアは収集されていません。"
+            />
+          )}
         </Panel>
-        <Panel title="Public detail policy">
-          <div className="privacy-card">
+        <Panel title="公開データ ポリシー" className="span-12">
+          <div className="privacy-card horizontal">
             <ShieldCheck size={28} aria-hidden="true" />
-            <strong>Aggregate by design</strong>
-            <p>
-              Recommendation titles and counts are shown. Asset names, vulnerability detail,
-              exploits, and identities are removed before publication.
-            </p>
+            <div>
+              <strong>集計を前提に公開</strong>
+              <p>
+                資産名、脆弱性詳細、悪用情報、ID は公開しません。Secure score
+                はソースが収集済みで値が存在する場合だけ表示し、実測 0 と未取得を区別します。
+              </p>
+            </div>
           </div>
         </Panel>
       </div>
@@ -757,124 +1108,126 @@ function SecurityPage({ data }: { data: PublicSnapshotV1 }) {
 }
 
 function NetworkPage({ data }: { data: PublicSnapshotV1 }) {
-  const [filter, setFilter] = useState("All");
+  const [filter, setFilter] = useState<"all" | "Allowed" | "Degraded" | "Blocked">("all");
   const telemetry = data.network.telemetry;
-  const rows = telemetry.flows.filter((flow) => filter === "All" || flow.status === filter);
+  const rows = telemetry.flows.filter((flow) => filter === "all" || flow.status === filter);
+  const telemetryMessage =
+    telemetry.availability === "unavailable"
+      ? "フロー テレメトリは未収集です。ネットワーク リソースの存在から接続状態を推定しません。"
+      : telemetry.availability === "partial"
+        ? "フロー テレメトリは一部のみ収集されています。表示値の範囲外は評価しません。"
+        : "収集済みフロー テレメトリの集計値です。";
+
   return (
     <div className="page-stack">
-      <div className="inventory-strip">
-        <div>
-          <span>Network resources</span>
-          <strong>{data.network.inventory.total}</strong>
-        </div>
-        <div>
-          <span>Resource types</span>
-          <strong>{data.network.inventory.byType.length}</strong>
-        </div>
-        <div>
-          <span>Regions</span>
-          <strong>{data.network.inventory.byRegion.length}</strong>
-        </div>
-        <div>
-          <span>Endpoint policy</span>
-          <strong>Masked</strong>
-        </div>
-      </div>
-      <div className="bento-grid">
-        <Panel title="Network inventory">
-          {data.network.inventory.byType.length ? (
-            <div className="ranked-list">
-              {data.network.inventory.byType.map((item) => (
-                <div className="ranked-row" key={item.label}>
-                  <strong>{item.label}</strong>
-                  <span>{item.count}</span>
-                </div>
+      <section className="metric-grid four" aria-label="ネットワーク サマリー">
+        <MetricCard
+          label="ネットワーク リソース"
+          value={`${data.network.inventory.total} 件`}
+          note="インベントリのみ"
+        />
+        <MetricCard
+          label="リソース タイプ"
+          value={`${data.network.inventory.byType.length} 件`}
+          note="Azure タイプ名を保持"
+        />
+        <MetricCard
+          label="リージョン"
+          value={`${data.network.inventory.byRegion.length} 件`}
+          note="インベントリ分布"
+        />
+        <MetricCard
+          label="フロー テレメトリ"
+          value={availabilityLabel(telemetry.availability)}
+          note="インベントリとは別の収集状態"
+          severity={availabilitySeverity(telemetry.availability)}
+        />
+      </section>
+      <div className="content-grid">
+        <Panel title="ネットワーク リソース タイプ" className="span-6">
+          <DistributionList
+            items={data.network.inventory.byType}
+            emptyTitle="ネットワーク インベントリなし"
+            emptyDetail="対応するネットワーク リソースは収集されていません。"
+          />
+        </Panel>
+        <Panel title="ネットワーク リージョン" className="span-6">
+          <DistributionList
+            items={data.network.inventory.byRegion}
+            emptyTitle="リージョン情報なし"
+            emptyDetail="ネットワーク リソースのリージョン情報は収集されていません。"
+          />
+        </Panel>
+        <Panel
+          title="フロー テレメトリ"
+          description={telemetryMessage}
+          className="span-12"
+          action={
+            <label className="select-label compact">
+              <span>状態フィルター</span>
+              <select
+                value={filter}
+                onChange={(event) =>
+                  setFilter(
+                    event.target.value as "all" | "Allowed" | "Degraded" | "Blocked"
+                  )
+                }
+              >
+                <option value="all">すべて</option>
+                <option value="Allowed">許可</option>
+                <option value="Degraded">低下</option>
+                <option value="Blocked">ブロック</option>
+              </select>
+            </label>
+          }
+        >
+          {telemetry.availability === "unavailable" ? (
+            <EmptyState
+              title="フロー テレメトリは利用不可"
+              detail="正常接続、低下接続、ブロック フローは 0 件ではなく未収集です。"
+            />
+          ) : rows.length ? (
+            <div className="flow-list">
+              {rows.map((flow) => (
+                <article className="flow-row" key={flow.id}>
+                  <span className="flow-icon">
+                    <Network size={18} aria-hidden="true" />
+                  </span>
+                  <div className="flow-endpoint">
+                    <small>送信元</small>
+                    <strong>{flow.source}</strong>
+                  </div>
+                  <ChevronRight size={18} aria-hidden="true" />
+                  <div className="flow-endpoint">
+                    <small>送信先</small>
+                    <strong>{flow.destination}</strong>
+                  </div>
+                  <div className="flow-stat">
+                    <small>プロトコル</small>
+                    <strong>{flow.protocol}</strong>
+                  </div>
+                  <div className="flow-stat">
+                    <small>遅延</small>
+                    <strong>{flow.latency}</strong>
+                  </div>
+                  <div className="flow-stat">
+                    <small>スループット</small>
+                    <strong>{flow.throughput}</strong>
+                  </div>
+                  <StatusBadge severity={flowStatusSeverity(flow.status)}>
+                    {flowStatusLabel(flow.status)}
+                  </StatusBadge>
+                </article>
               ))}
             </div>
           ) : (
             <EmptyState
-              title="No network inventory"
-              detail="No supported network resources were returned in this snapshot."
+              title="この状態のフローはありません"
+              detail="別の状態フィルターを選択してください。"
             />
           )}
         </Panel>
-        <Panel title="Flow telemetry status">
-          <div className="privacy-card">
-            <Network size={28} aria-hidden="true" />
-            <strong>
-              {telemetry.availability === "unavailable"
-                ? "Unavailable"
-                : `${telemetry.healthyConnections ?? 0} healthy connections`}
-            </strong>
-            <p>{telemetry.message}</p>
-          </div>
-        </Panel>
       </div>
-      <Panel
-        title="Observed flow telemetry"
-        action={
-          <label className="select-label compact">
-            <span className="sr-only">Flow status</span>
-            <select value={filter} onChange={(event) => setFilter(event.target.value)}>
-              <option>All</option>
-              <option>Allowed</option>
-              <option>Degraded</option>
-              <option>Blocked</option>
-            </select>
-          </label>
-        }
-      >
-        {telemetry.availability === "unavailable" ? (
-          <EmptyState
-            title="Flow telemetry unavailable"
-            detail="Network resources were inventoried, but resource existence is never treated as connection health."
-          />
-        ) : rows.length ? (
-          <div className="flow-list">
-            {rows.map((flow) => (
-              <article className="flow-row" key={flow.id}>
-                <span className="flow-icon">
-                  <Network size={18} aria-hidden="true" />
-                </span>
-                <div className="flow-endpoint">
-                  <small>Source</small>
-                  <strong>{flow.source}</strong>
-                </div>
-                <ChevronRight size={18} aria-hidden="true" />
-                <div className="flow-endpoint">
-                  <small>Destination</small>
-                  <strong>{flow.destination}</strong>
-                </div>
-                <div className="flow-stat">
-                  <small>Protocol</small>
-                  <strong>{flow.protocol}</strong>
-                </div>
-                <div className="flow-stat">
-                  <small>Latency</small>
-                  <strong>{flow.latency}</strong>
-                </div>
-                <div className="flow-stat">
-                  <small>Throughput</small>
-                  <strong>{flow.throughput}</strong>
-                </div>
-                <StatusBadge
-                  severity={
-                    flow.status === "Allowed"
-                      ? "healthy"
-                      : flow.status === "Degraded"
-                        ? "warning"
-                        : "critical"
-                  }
-                >
-                  {flow.status}
-                </StatusBadge>
-              </article>
-            ))}
-          </div>
-        ) : (
-          <EmptyState title="No flows in this state" detail="Choose another flow status filter." />
-        )}
-      </Panel>
     </div>
   );
 }
@@ -884,29 +1237,53 @@ function InsightCard({ insight }: { insight: AiInsight }) {
   return (
     <article className="insight-card">
       <header>
-        <StatusBadge severity={insight.severity}>{severityLabel(insight.severity)}</StatusBadge>
-        <span className="confidence">{Math.round(insight.confidence * 100)}% confidence</span>
-      </header>
-      <h2>{insight.title}</h2>
-      <p>{insight.observation}</p>
-      <div className="insight-impact">
-        <strong>Potential impact</strong>
-        <p>{insight.impact}</p>
-      </div>
-      <div className="evidence-list">
-        {insight.numericEvidence.map((evidence) => (
-          <span key={`${evidence.source}-${evidence.value}`}>
-            {evidence.label} {evidence.value}
+        <div className="badge-row">
+          <StatusBadge severity={insight.severity}>{severityLabel(insight.severity)}</StatusBadge>
+          <span className="verified-badge">
+            <CircleCheck size={13} aria-hidden="true" />
+            根拠検証済み
           </span>
-        ))}
+        </div>
+        <span className="confidence">
+          信頼度 {numberFormatter.format(Math.round(insight.confidence * 100))}%
+        </span>
+      </header>
+      <div className="insight-context">
+        <span>領域: {routeLabel(insight.route)}</span>
+        <span>期間: {insight.period}</span>
       </div>
+      <h2>{insight.title}</h2>
+      <section>
+        <h3>観測</h3>
+        <p>{insight.observation}</p>
+      </section>
+      <section className="insight-impact">
+        <h3>想定される影響</h3>
+        <p>{insight.impact}</p>
+      </section>
+      <section>
+        <h3>数値根拠</h3>
+        <div className="evidence-table">
+          {insight.numericEvidence.map((evidence) => (
+            <div key={`${evidence.source}-${evidence.value}`}>
+              <span>{evidence.label}</span>
+              <strong>{evidence.value}</strong>
+              <code>{evidence.source}</code>
+            </div>
+          ))}
+        </div>
+      </section>
       <footer>
         <div>
-          <small>Recommended action</small>
+          <small>推奨アクション</small>
           <strong>{insight.recommendedAction}</strong>
         </div>
-        <button className="secondary-button" onClick={() => navigate(insight.route)}>
-          Open context <ExternalLink size={15} aria-hidden="true" />
+        <button
+          type="button"
+          className="secondary-button"
+          onClick={() => navigate(insight.route)}
+        >
+          {routeLabel(insight.route)}を開く <ChevronRight size={15} aria-hidden="true" />
         </button>
       </footer>
     </article>
@@ -914,6 +1291,12 @@ function InsightCard({ insight }: { insight: AiInsight }) {
 }
 
 function AiInsightsPage({ data }: { data: PublicSnapshotV1 }) {
+  const warnings = data.aiInsights.filter(
+    (insight) => insight.severity === "critical" || insight.severity === "warning"
+  ).length;
+  const domains = new Set(data.aiInsights.map((insight) => routeLabel(insight.route)));
+  const periods = [...new Set(data.aiInsights.map((insight) => insight.period))];
+
   return (
     <div className="page-stack">
       <div className="ai-banner">
@@ -921,14 +1304,74 @@ function AiInsightsPage({ data }: { data: PublicSnapshotV1 }) {
           <Bot size={22} aria-hidden="true" />
         </span>
         <div>
-          <strong>Evidence-bound, read-only analysis</strong>
+          <strong>検証済み・読み取り専用の分析</strong>
           <p>
-            Insights use sanitized structured data only. Recommendations never perform Azure
-            remediation.
+            サニタイズ済みの構造化データだけを使用し、Azure の変更や修復は実行しません。
           </p>
         </div>
-        <span>Period: {data.aiInsights[0]?.period ?? "No period"}</span>
+        <StatusBadge severity={warnings ? "warning" : "info"}>
+          要確認 {warnings} 件
+        </StatusBadge>
       </div>
+
+      <section className="metric-grid four" aria-label="AI 分析サマリー">
+        <MetricCard
+          label="検証済み"
+          value={`${data.aiInsights.length} 件`}
+          note="スキーマ・数値根拠・プライバシー ゲート"
+          severity="healthy"
+        />
+        <MetricCard
+          label="要確認"
+          value={`${warnings} 件`}
+          note="重大または要確認の分析"
+          severity={warnings ? "warning" : "info"}
+        />
+        <MetricCard
+          label="対象領域"
+          value={`${domains.size} 件`}
+          note={[...domains].join("、") || "対象なし"}
+        />
+        <MetricCard
+          label="更新"
+          value={formatSnapshotAge(data.generatedAt)}
+          note={formatDateTimeJa(data.generatedAt)}
+        />
+      </section>
+
+      <Panel
+        title="分析期間"
+        description="各分析に記録された期間ラベルです。期間外の傾向は推定しません。"
+      >
+        <div className="chip-list">
+          {periods.length ? periods.map((period) => <span key={period}>{period}</span>) : <span>なし</span>}
+        </div>
+      </Panel>
+
+      <Panel
+        title="優先アクション"
+        description="推奨は人による確認を前提とし、自動実行されません。"
+      >
+        {data.aiInsights.length ? (
+          <div className="priority-action-grid">
+            {data.aiInsights.map((insight) => (
+              <article key={insight.id}>
+                <StatusBadge severity={insight.severity}>
+                  {severityLabel(insight.severity)}
+                </StatusBadge>
+                <strong>{insight.title}</strong>
+                <p>{insight.recommendedAction}</p>
+              </article>
+            ))}
+          </div>
+        ) : (
+          <EmptyState
+            title="検証済みアクションなし"
+            detail="公開ゲートを通過した分析がないため、推奨アクションを表示していません。"
+          />
+        )}
+      </Panel>
+
       {data.aiInsights.length ? (
         <div className="insight-grid">
           {data.aiInsights.map((insight) => (
@@ -937,20 +1380,40 @@ function AiInsightsPage({ data }: { data: PublicSnapshotV1 }) {
         </div>
       ) : (
         <EmptyState
-          title="No validated insights"
-          detail="The last analysis did not produce evidence that passed the publication gate."
+          title="検証済み AI 分析なし"
+          detail="直近の分析では、公開ゲートを通過する数値根拠がありませんでした。"
         />
       )}
+
+      <Panel title="分析の境界">
+        <div className="boundary-grid">
+          <article>
+            <ShieldCheck size={22} aria-hidden="true" />
+            <strong>匿名化済み</strong>
+            <p>識別子、所有者、エンドポイント、正確なコストは公開前にマスクまたは丸めています。</p>
+          </article>
+          <article>
+            <CircleCheck size={22} aria-hidden="true" />
+            <strong>スキーマと根拠を検証</strong>
+            <p>各数値は表示されたソース パスのスカラー値と一致する必要があります。</p>
+          </article>
+          <article>
+            <Bot size={22} aria-hidden="true" />
+            <strong>読み取り専用</strong>
+            <p>AI は公開 JSON のみを読み、Azure、シークレット、ログ、外部サービスへ接続しません。</p>
+          </article>
+        </div>
+      </Panel>
     </div>
   );
 }
 
 function LoadingState() {
   return (
-    <div className="loading-grid" aria-label="Loading operational snapshot">
-      {[1, 2, 3, 4, 5, 6].map((item) => (
-        <div className="skeleton" key={item} />
-      ))}
+    <div className="loading-state" role="status" aria-live="polite">
+      <Cloud size={28} aria-hidden="true" />
+      <strong>公開スナップショットを読み込んでいます</strong>
+      <span>サニタイズ済みデータを準備中です。</span>
     </div>
   );
 }
@@ -959,9 +1422,9 @@ function ErrorState({ error }: { error: string }) {
   return (
     <div className="error-state" role="alert">
       <CircleAlert size={32} aria-hidden="true" />
-      <h2>Operational snapshot unavailable</h2>
+      <h2>公開スナップショットを読み込めません</h2>
       <p>{error}</p>
-      <small>Production collection failures never replace the last-known-good snapshot.</small>
+      <small>収集失敗時は、最後に検証済みのスナップショットを置き換えません。</small>
     </div>
   );
 }
@@ -974,7 +1437,7 @@ function AppShell({ data }: { data: PublicSnapshotV1 }) {
     0,
     Math.round((Date.now() - new Date(data.generatedAt).getTime()) / 60_000)
   );
-  const fresh = ageMinutes <= 4_320;
+  const fresh = data.freshness.state === "fresh" && ageMinutes <= 4_320;
 
   return (
     <div className="app-shell">
@@ -985,14 +1448,19 @@ function AppShell({ data }: { data: PublicSnapshotV1 }) {
           </span>
           <span>
             <strong>Azure Ops Pulse</strong>
-            <small>Public operations demo</small>
+            <small>公開運用ダッシュボード</small>
           </span>
-          <button className="mobile-close" onClick={() => setMenuOpen(false)} aria-label="Close menu">
-            <X size={20} />
+          <button
+            type="button"
+            className="mobile-close"
+            onClick={() => setMenuOpen(false)}
+            aria-label="メニューを閉じる"
+          >
+            <X size={20} aria-hidden="true" />
           </button>
         </div>
-        <nav aria-label="Primary navigation">
-          <span className="nav-section">Workspace</span>
+        <nav aria-label="メイン ナビゲーション">
+          <span className="nav-section">ワークスペース</span>
           {NAV_ITEMS.map((item) => {
             const Icon = item.icon;
             return (
@@ -1009,56 +1477,66 @@ function AppShell({ data }: { data: PublicSnapshotV1 }) {
           })}
         </nav>
         <div className="sidebar-footer">
-          <div className="demo-badge">DEMO</div>
-          <p>Synthetic data by default. No Azure connection required.</p>
-          <a href="https://github.com/aktsmm/azure-ops-pulse-demo">
-            View repository <ExternalLink size={13} aria-hidden="true" />
+          <div className="demo-badge">{modeLabel(data.mode)}</div>
+          <p>
+            {data.mode === "DEMO"
+              ? "合成データをサニタイズして表示しています。"
+              : "Azure の読み取り専用収集結果をサニタイズして表示しています。"}
+          </p>
+          <a
+            href="https://github.com/aktsmm/azure-ops-pulse-demo"
+            target="_blank"
+            rel="noreferrer"
+          >
+            リポジトリを開く <ExternalLink size={13} aria-hidden="true" />
           </a>
         </div>
       </aside>
-      {menuOpen && <button className="nav-scrim" onClick={() => setMenuOpen(false)} aria-label="Close navigation" />}
+      {menuOpen && (
+        <button
+          type="button"
+          className="nav-scrim"
+          onClick={() => setMenuOpen(false)}
+          aria-label="ナビゲーションを閉じる"
+        />
+      )}
       <div className="main-column">
         <header className="topbar">
-          <button className="menu-button" onClick={() => setMenuOpen(true)} aria-label="Open navigation">
-            <Menu size={20} />
+          <button
+            type="button"
+            className="menu-button"
+            onClick={() => setMenuOpen(true)}
+            aria-label="ナビゲーションを開く"
+          >
+            <Menu size={20} aria-hidden="true" />
           </button>
           <label className="scope-control">
-            <span>Scope</span>
-            <select aria-label="Subscription scope" defaultValue="current">
+            <span>スコープ</span>
+            <select aria-label="サブスクリプション スコープ" defaultValue="current">
               <option value="current">{data.scope.displayName}</option>
             </select>
           </label>
-          <label className="scope-control time-control">
-            <Clock3 size={16} aria-hidden="true" />
-            <select aria-label="Time range" defaultValue="30d">
-              <option value="24h">Last 24 hours</option>
-              <option value="7d">Last 7 days</option>
-              <option value="30d">Last 30 days</option>
-              <option value="90d">Last 90 days</option>
-            </select>
-          </label>
           <div className="topbar-spacer" />
-          <div className="freshness">
-            <span className={`health-dot severity-${fresh ? "healthy" : "warning"}`} />
+          <div className="freshness" aria-label={`データ鮮度: ${fresh ? "最新" : "期限超過"}`}>
+            <span
+              className={`health-dot severity-${fresh ? "healthy" : "warning"}`}
+              aria-hidden="true"
+            />
             <span>
-              <strong>{fresh ? "Fresh" : "Stale"}</strong>
-              <small>{new Date(data.generatedAt).toLocaleString()}</small>
+              <strong>{fresh ? "最新" : "期限超過"}</strong>
+              <small>{formatSnapshotAge(data.generatedAt)}</small>
             </span>
           </div>
-          <button className="icon-button" aria-label="Notifications">
-            <Bell size={19} />
-            <span className="notification-dot" />
-          </button>
         </header>
         <main>
           <div className="page-heading">
             <div>
-              <p className="breadcrumb">Operations / {page.title}</p>
+              <p className="breadcrumb">運用 / {page.title}</p>
               <h1>{page.title}</h1>
               <p>{page.subtitle}</p>
             </div>
             <div className="mode-chip">
-              <span>{data.mode}</span>
+              <span>{modeLabel(data.mode)}</span>
               <small>schema {data.schemaVersion}</small>
             </div>
           </div>

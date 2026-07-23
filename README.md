@@ -11,9 +11,9 @@ snapshot through GitHub Actions OIDC.
 
 ## Dashboard
 
-- Seven responsive pages: Overview, Cost, Resources, Reliability, Security, Network, and AI
-  Insights
-- Dense navigation, scope/time controls, KPI sparklines, bento panels, event timeline, filters,
+- Seven Japanese-localized responsive pages: Overview, Cost, Resources, Reliability, Security,
+  Network, and AI Insights
+- Dense navigation, evidence-grounded KPI and coverage panels, event timeline, functional filters,
   accessible tables, contextual detail drawer, and explicit loading/empty/error states
 - Warm off-white / charcoal Clawpilot theme with a deep rose accent and `scoutTheme` query support
 - Hash routing and a Vite base of `/azure-ops-pulse-demo/` for reliable GitHub Pages navigation
@@ -71,8 +71,18 @@ syntactically valid IPv4 ranges, including RFC1918 and loopback addresses, are r
 
 ## Public data contract and privacy boundary
 
-Versioned JSON Schemas are under [`schemas/public/v1`](schemas/public/v1), with matching TypeScript
-contracts in [`src/data/contracts.ts`](src/data/contracts.ts).
+The legacy `schemaVersion: 1.1.0` public contract remains unchanged at
+[`schemas/public/v1`](schemas/public/v1) to preserve its published paths. The current
+`schemaVersion: 1.2.0` contract is authoritative at
+[`schemas/public/v1.2`](schemas/public/v1.2). The current snapshot and `npm run validate:data`
+use v1.2, with matching runtime validation in
+[`scripts/public-schema.ts`](scripts/public-schema.ts) and TypeScript contracts in
+[`src/data/contracts.ts`](src/data/contracts.ts), so nullable availability fields cannot drift.
+In v1.2, `overview.postureScore`, `reliability.incidents`, `security.secureScore`, and
+`security.activeAlerts` are nullable. `null` means uncollected or unevaluated; an available,
+evidence-backed measurement of zero remains numeric `0`. `reliability.incidentAvailability`
+qualifies the incident metric separately from general Resource Health availability; the Azure
+collector publishes it as `unavailable` until a real incident-count source is implemented.
 
 | Data | Public representation |
 | --- | --- |
@@ -149,7 +159,8 @@ The agent:
 - must use existing numeric evidence and bounded language;
 - cannot call Azure or perform remediation;
 - may change only the `aiInsights` field in the one allowlisted file;
-- is followed by deterministic schema, exact numeric evidence, baseline-diff, and privacy checks;
+- is followed by deterministic JSON Schema, runtime schema, Japanese prose, exact numeric evidence,
+  baseline-diff, and privacy checks;
 - has every public safe output disabled; and
 - can only hand off the already-sanitized snapshot through a one-day run artifact.
 

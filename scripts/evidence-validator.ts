@@ -22,11 +22,43 @@ function numericTokens(value: unknown): string[] {
   });
 }
 
+function requireAvailableEvidenceSource(snapshot: unknown, sourcePath: string): void {
+  if (snapshot === null || typeof snapshot !== "object") return;
+  const sources = (snapshot as { sources?: unknown }).sources;
+  if (!Array.isArray(sources)) return;
+
+  const requiredSource = sourcePath.startsWith("security.")
+    ? "Defender for Cloud"
+    : sourcePath === "overview.postureScore" || sourcePath === "reliability.incidents"
+      ? "Resource Health"
+      : null;
+  if (!requiredSource) return;
+
+  const status = sources.find(
+    (source): source is { source: string; availability: string } =>
+      source !== null &&
+      typeof source === "object" &&
+      (source as { source?: unknown }).source === requiredSource &&
+      typeof (source as { availability?: unknown }).availability === "string"
+  );
+  if (status?.availability !== "available") {
+    throw new Error(`Evidence source ${requiredSource} is not available for ${sourcePath}`);
+  }
+  if (
+    sourcePath === "reliability.incidents" &&
+    (snapshot as { reliability?: { incidentAvailability?: unknown } }).reliability
+      ?.incidentAvailability !== "available"
+  ) {
+    throw new Error(`Incident observations are not available for ${sourcePath}`);
+  }
+}
+
 export function validateEvidenceItem(
   snapshot: unknown,
   insightTitle: string,
   evidence: AiInsight["numericEvidence"][number]
 ): void {
+  requireAvailableEvidenceSource(snapshot, evidence.source);
   const sourceValue = valueAtPath(snapshot, evidence.source);
   if (sourceValue === undefined || (typeof sourceValue !== "string" && typeof sourceValue !== "number")) {
     throw new Error(`Insight "${insightTitle}" cites an invalid scalar source: ${evidence.source}`);

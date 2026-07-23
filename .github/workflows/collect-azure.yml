@@ -42,7 +42,7 @@ jobs:
           AZURE_SUBSCRIPTION_ID: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
           OUTPUT_PATH: .candidate/snapshot.json
         run: npm run collect:azure
-      - name: Validate candidate schema, evidence, and privacy
+      - name: Validate candidate JSON Schema, runtime schema, evidence, and privacy
         run: |
           npx tsx scripts/validate-public-data.ts .candidate/snapshot.json
           npx tsx scripts/privacy-scan.ts .candidate

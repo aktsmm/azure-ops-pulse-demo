@@ -48,4 +48,95 @@ describe("AI numeric evidence validation", () => {
       )
     ).not.toThrow();
   });
+
+  it("rejects a default zero from an unavailable source", () => {
+    expect(() =>
+      validateEvidenceItem(
+        {
+          sources: [
+            {
+              source: "Defender for Cloud",
+              availability: "unavailable",
+              message: "Unavailable."
+            }
+          ],
+          security: { secureScore: 0 }
+        },
+        "Unavailable Defender evidence",
+        { label: "Secure score", value: "0%", source: "security.secureScore" }
+      )
+    ).toThrow(/Defender for Cloud is not available/);
+  });
+
+  it("rejects null posture as numeric evidence", () => {
+    expect(() =>
+      validateEvidenceItem(
+        {
+          sources: [
+            { source: "Resource Health", availability: "available", message: "Collected." }
+          ],
+          overview: { postureScore: null }
+        },
+        "Unknown health evidence",
+        { label: "Health", value: "0%", source: "overview.postureScore" }
+      )
+    ).toThrow(/invalid scalar source/);
+  });
+
+  it("rejects a default incident zero when Resource Health is unavailable", () => {
+    expect(() =>
+      validateEvidenceItem(
+        {
+          sources: [
+            {
+              source: "Resource Health",
+              availability: "unavailable",
+              message: "Unavailable."
+            }
+          ],
+          reliability: { incidentAvailability: "available", incidents: 0 }
+        },
+        "Unavailable incident evidence",
+        { label: "障害件数", value: "0", source: "reliability.incidents" }
+      )
+    ).toThrow(/Resource Health is not available/);
+  });
+
+  it("rejects incident evidence when no incident count source was collected", () => {
+    expect(() =>
+      validateEvidenceItem(
+        {
+          sources: [
+            {
+              source: "Resource Health",
+              availability: "available",
+              message: "Collected."
+            }
+          ],
+          reliability: { incidentAvailability: "unavailable", incidents: 0 }
+        },
+        "Uncollected incident evidence",
+        { label: "障害件数", value: "0", source: "reliability.incidents" }
+      )
+    ).toThrow(/Incident observations are not available/);
+  });
+
+  it("rejects null incident evidence even when Resource Health is available", () => {
+    expect(() =>
+      validateEvidenceItem(
+        {
+          sources: [
+            {
+              source: "Resource Health",
+              availability: "available",
+              message: "Collected."
+            }
+          ],
+          reliability: { incidentAvailability: "available", incidents: null }
+        },
+        "Null incident evidence",
+        { label: "障害件数", value: "0", source: "reliability.incidents" }
+      )
+    ).toThrow(/invalid scalar source/);
+  });
 });

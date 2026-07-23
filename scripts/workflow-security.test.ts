@@ -31,10 +31,28 @@ function getUploadBlocks(workflow: string): string[] {
 }
 
 describe("AI insight publication gate", () => {
+  it("scans the Azure collection candidate before promotion and PR creation", () => {
+    const workflow = readFileSync(".github/workflows/collect-azure.yml", "utf8");
+    const collection = workflow.indexOf("Collect directly into a sanitized candidate");
+    const validation = workflow.indexOf(
+      "Validate candidate JSON Schema, runtime schema, evidence, and privacy"
+    );
+    const privacyScan = workflow.indexOf("privacy-scan.ts .candidate");
+    const promotion = workflow.indexOf("Promote candidate in the ephemeral checkout");
+    const pullRequest = workflow.indexOf("Open review-gated snapshot pull request");
+
+    expect(collection).toBeGreaterThan(-1);
+    expect(validation).toBeGreaterThan(collection);
+    expect(privacyScan).toBeGreaterThan(validation);
+    expect(promotion).toBeGreaterThan(privacyScan);
+    expect(pullRequest).toBeGreaterThan(promotion);
+  });
+
   it("pins the compiler and compiles no public agent mutation", () => {
     const source = readFileSync(".github/workflows/ai-insights.md", "utf8");
     const lock = readFileSync(".github/workflows/ai-insights.lock.yml", "utf8");
     const actionsLock = readFileSync(".github/aw/actions-lock.json", "utf8");
+    const deterministicValidation = readFileSync("scripts/validate-public-data.ts", "utf8");
 
     for (const output of [
       "create-issue",
@@ -76,6 +94,10 @@ describe("AI insight publication gate", () => {
     expect(lock).toContain('GH_AW_SAFE_OUTPUTS_STAGED: "true"');
     expect(lock).toContain('GH_AW_SAFE_OUTPUTS_HANDLER_CONFIG: "{\\"upload_artifact\\"');
     expect(source).toContain("Analyze only `public/data/snapshot.json`");
+    expect(source).toContain(
+      "Validate generated insight JSON Schema, runtime schema, Japanese prose, evidence, and privacy"
+    );
+    expect(deterministicValidation).toContain("validateJapaneseInsights(parsed.aiInsights)");
     expect(source).toContain("Do not inspect Azure, workflow secrets,");
     expect(source).toContain("logs, artifacts, commit history, or external services");
     expect(hardenAgentWorkflowLock(lock)).toBe(lock);
@@ -124,7 +146,9 @@ describe("AI insight publication gate", () => {
 
   it("publishes only successful default-branch artifacts after deterministic validation", () => {
     const workflow = readFileSync(".github/workflows/publish-ai-insights.yml", "utf8");
-    const validation = workflow.indexOf("Repeat schema, evidence, baseline, and privacy gates");
+    const validation = workflow.indexOf(
+      "Repeat JSON Schema, runtime schema, Japanese, evidence, baseline, and privacy gates"
+    );
     const trustedUpload = workflow.indexOf("Upload trusted candidate");
     const publication = workflow.indexOf("Open human-review draft pull request");
 

@@ -104,7 +104,7 @@ export interface AiInsight {
 }
 
 export interface PublicSnapshotV1 {
-  schemaVersion: "1.1.0";
+  schemaVersion: "1.2.0";
   generatedAt: string;
   mode: "DEMO" | "AZURE";
   freshness: {
@@ -121,7 +121,7 @@ export interface PublicSnapshotV1 {
   sources: SourceStatus[];
   overview: {
     metrics: TrendMetric[];
-    postureScore: number;
+    postureScore: number | null;
     eventTimeline: ActivityEvent[];
     regionalHealth: Array<{ region: string; score: number; status: Severity }>;
   };
@@ -142,13 +142,14 @@ export interface PublicSnapshotV1 {
   };
   reliability: {
     availability: string;
-    incidents: number;
+    incidentAvailability: "available" | "unavailable";
+    incidents: number | null;
     meanTimeToRecover: string;
     services: ReliabilityService[];
   };
   security: {
-    secureScore: number;
-    activeAlerts: number;
+    secureScore: number | null;
+    activeAlerts: number | null;
     recommendations: SecurityRecommendation[];
     compliance: Array<{ framework: string; score: number }>;
   };
@@ -190,7 +191,7 @@ export interface RawSnapshot {
   tenantId: string;
   sources: SourceStatus[];
   metrics: TrendMetric[];
-  postureScore: number;
+  postureScore: number | null;
   events: ActivityEvent[];
   regionalHealth: Array<{ region: string; score: number; status: Severity }>;
   exactCostJpy: number | null;

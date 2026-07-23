@@ -150,4 +150,130 @@ describe("public sanitization boundary", () => {
     ]);
     expect(() => publicSnapshotSchema.parse(snapshot)).not.toThrow();
   });
+
+  it("keeps an unevaluated health posture null instead of publishing zero", () => {
+    const raw = createDemoRawSnapshot();
+    raw.postureScore = null;
+
+    const snapshot = sanitizeSnapshot(raw);
+
+    expect(snapshot.overview.postureScore).toBeNull();
+    expect(() => publicSnapshotSchema.parse(snapshot)).not.toThrow();
+  });
+
+  it.each(["partial", "unavailable"] as const)(
+    "removes Defender aggregates when the source is %s",
+    (availability) => {
+      const raw = createDemoRawSnapshot();
+      const defender = raw.sources.find((source) => source.source === "Defender for Cloud")!;
+      defender.availability = availability;
+      raw.security.secureScore = 0;
+      raw.security.activeAlerts = 0;
+
+      const snapshot = sanitizeSnapshot(raw);
+
+      expect(snapshot.security).toEqual({
+        secureScore: null,
+        activeAlerts: null,
+        recommendations: [],
+        compliance: []
+      });
+      expect(() => publicSnapshotSchema.parse(snapshot)).not.toThrow();
+    }
+  );
+
+  it("preserves actual Defender zero values when the source is available", () => {
+    const raw = createDemoRawSnapshot();
+    raw.security.secureScore = 0;
+    raw.security.activeAlerts = 0;
+
+    const snapshot = sanitizeSnapshot(raw);
+
+    expect(snapshot.security.secureScore).toBe(0);
+    expect(snapshot.security.activeAlerts).toBe(0);
+    expect(() => publicSnapshotSchema.parse(snapshot)).not.toThrow();
+  });
+
+  it("rejects stale Defender aggregates and overview metrics when the source is unavailable", () => {
+    const raw = createDemoRawSnapshot();
+    const defender = raw.sources.find((source) => source.source === "Defender for Cloud")!;
+    defender.availability = "unavailable";
+    const snapshot = sanitizeSnapshot(raw);
+
+    snapshot.security.secureScore = 0;
+    snapshot.overview.metrics.push({
+      label: "Defender recommendations",
+      value: "0",
+      change: "Stale default",
+      direction: "flat",
+      severity: "info",
+      points: [0, 0]
+    });
+
+    expect(() => publicSnapshotSchema.parse(snapshot)).toThrow(
+      /Unavailable or partial Defender data/
+    );
+  });
+
+  it("rejects a numeric posture when Resource Health is unavailable", () => {
+    const raw = createDemoRawSnapshot();
+    const resourceHealth = raw.sources.find((source) => source.source === "Resource Health")!;
+    resourceHealth.availability = "unavailable";
+    const snapshot = sanitizeSnapshot(raw);
+    snapshot.overview.postureScore = 0;
+
+    expect(() => publicSnapshotSchema.parse(snapshot)).toThrow(
+      /Resource Health posture must be null/
+    );
+  });
+
+  it("removes a default incident zero when Resource Health is unavailable", () => {
+    const raw = createDemoRawSnapshot();
+    const resourceHealth = raw.sources.find((source) => source.source === "Resource Health")!;
+    resourceHealth.availability = "unavailable";
+    raw.reliability.incidentAvailability = "available";
+    raw.reliability.incidents = 0;
+
+    const snapshot = sanitizeSnapshot(raw);
+
+    expect(snapshot.reliability.incidents).toBeNull();
+    expect(() => publicSnapshotSchema.parse(snapshot)).not.toThrow();
+  });
+
+  it("preserves an actually collected zero incidents when the metric is available", () => {
+    const raw = createDemoRawSnapshot();
+    raw.reliability.incidentAvailability = "available";
+    raw.reliability.incidents = 0;
+
+    const snapshot = sanitizeSnapshot(raw);
+
+    expect(snapshot.reliability.incidents).toBe(0);
+    expect(snapshot.reliability.incidentAvailability).toBe("available");
+    expect(() => publicSnapshotSchema.parse(snapshot)).not.toThrow();
+  });
+
+  it("keeps incidents null when Resource Health has no evaluated observations", () => {
+    const raw = createDemoRawSnapshot();
+    raw.reliability.incidentAvailability = "unavailable";
+    raw.reliability.incidents = null;
+
+    const snapshot = sanitizeSnapshot(raw);
+
+    expect(snapshot.reliability.incidents).toBeNull();
+    expect(snapshot.reliability.incidentAvailability).toBe("unavailable");
+    expect(() => publicSnapshotSchema.parse(snapshot)).not.toThrow();
+  });
+
+  it("does not infer incidents from available Resource Health without a count source", () => {
+    const raw = createDemoRawSnapshot();
+    raw.reliability.incidentAvailability = "unavailable";
+    raw.reliability.incidents = 0;
+
+    const snapshot = sanitizeSnapshot(raw);
+
+    expect(snapshot.reliability).toMatchObject({
+      incidentAvailability: "unavailable",
+      incidents: null
+    });
+  });
 });
