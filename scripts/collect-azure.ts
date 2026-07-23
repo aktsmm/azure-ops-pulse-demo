@@ -140,8 +140,8 @@ const rawResources = graphQuery<{
   name: string;
   resourceGroup: string;
   type: string;
-  location?: string;
-  tags?: Record<string, string>;
+  location?: string | null;
+  tags?: Record<string, unknown> | null;
 }>(
   subscriptionId,
   "Resources | project id, name, resourceGroup, type, location, tags | order by type asc"
@@ -248,7 +248,12 @@ const previousCost = optionalSource(
 const network = optionalSource(
   "Network inventory and metrics",
   () => {
-    const inventory = graphQuery<{ id: string; name: string; type: string; location?: string }>(
+    const inventory = graphQuery<{
+      id: string;
+      name: string;
+      type: string;
+      location?: string | null;
+    }>(
       subscriptionId,
       "Resources | where type startswith 'microsoft.network/' | project id, name, type, location"
     );
@@ -304,7 +309,12 @@ const resources: RawResource[] = rawResources.map((resource) => ({
     if (state === "unavailable") return "Unavailable";
     return "Unknown";
   })(),
-  owner: resource.tags?.owner ?? resource.tags?.team ?? "unassigned",
+  owner:
+    typeof resource.tags?.owner === "string"
+      ? resource.tags.owner
+      : typeof resource.tags?.team === "string"
+        ? resource.tags.team
+        : "unassigned",
   change: "Collected from Azure Resource Graph"
 }));
 

@@ -87,10 +87,18 @@ export function maskIdentity(value: string): string {
   return `identity-${stableHash(value)}`;
 }
 
-export function sanitizeTags(tags: Record<string, string> = {}): Record<string, string> {
+export function sanitizeTags(tags: unknown): Record<string, string> {
+  if (tags === null || typeof tags !== "object" || Array.isArray(tags)) return {};
+
+  const prototype = Object.getPrototypeOf(tags);
+  if (prototype !== Object.prototype && prototype !== null) return {};
+
   return Object.fromEntries(
     Object.entries(tags)
-      .filter(([key]) => ALLOWED_TAGS.has(key.toLowerCase()))
+      .filter(
+        (entry): entry is [string, string] =>
+          ALLOWED_TAGS.has(entry[0].toLowerCase()) && typeof entry[1] === "string"
+      )
       .map(([key, value]) => [
         key.toLowerCase(),
         ALLOWED_TAG_VALUES.has(value.toLowerCase())

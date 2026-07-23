@@ -44,6 +44,36 @@ describe("public sanitization boundary", () => {
     ).toEqual({ environment: "production", team: expect.stringMatching(/^value-/) });
   });
 
+  it.each([
+    ["null", null],
+    ["undefined", undefined]
+  ])("treats %s Azure resource tags as an empty object", (_label, tags) => {
+    const raw = createDemoRawSnapshot();
+    raw.resources[0]!.tags = tags;
+
+    const snapshot = sanitizeSnapshot(raw);
+
+    expect(snapshot.inventory.resources[0]!.tags).toEqual({});
+    expect(() => publicSnapshotSchema.parse(snapshot)).not.toThrow();
+  });
+
+  it("rejects non-record tag input and non-string tag values", () => {
+    expect(sanitizeTags("environment=production")).toEqual({});
+    expect(sanitizeTags(["production"])).toEqual({});
+    expect(sanitizeTags({ environment: null, team: { name: "platform" } })).toEqual({});
+  });
+
+  it("normalizes adjacent null Azure locations without failing collection", () => {
+    const raw = createDemoRawSnapshot();
+    raw.resources[0]!.location = null;
+    raw.networkInventory[0]!.location = null;
+
+    const snapshot = sanitizeSnapshot(raw);
+
+    expect(snapshot.inventory.resources[0]!.region).toBe("Unknown");
+    expect(snapshot.network.inventory.byRegion).toContainEqual({ label: "Unknown", count: 1 });
+  });
+
   it("publishes rounded approximate JPY only", () => {
     expect(formatApproximateJpy(12_345)).toBe("約¥1.2万");
     expect(formatApproximateJpy(4_321_000)).toBe("約¥432.1万");
