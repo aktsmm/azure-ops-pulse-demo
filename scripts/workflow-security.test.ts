@@ -133,6 +133,8 @@ describe("AI insight publication gate", () => {
     expect(source).toContain(
       "Validate generated insight JSON Schema, runtime schema, Japanese prose, evidence, and privacy"
     );
+    expect(source).toContain("normalize-ai-insight-labels.ts");
+    expect(source).toContain("never copy an English-only metric label or source path");
     expect(deterministicValidation).toContain("validateJapaneseInsights(parsed.aiInsights)");
     expect(source).toContain("Do not inspect Azure, workflow secrets,");
     expect(source).toContain("logs, artifacts, commit history, or external services");

@@ -23,9 +23,13 @@ steps:
     run: npm ci --ignore-scripts
 
 post-steps:
+  - name: Normalize evidence labels for Japanese display
+    id: normalize_labels
+    if: success()
+    run: npx tsx scripts/normalize-ai-insight-labels.ts public/data/snapshot.json
   - name: Validate generated insight JSON Schema, runtime schema, Japanese prose, evidence, and privacy
     id: validate_candidate
-    if: success()
+    if: success() && steps.normalize_labels.outcome == 'success'
     run: npm run validate:insights && npm run scan:privacy -- public
   - name: Verify bounded candidate handoff
     id: bound_candidate
@@ -85,6 +89,9 @@ Write every human-facing prose field in natural Japanese: `title`, `observation`
 `numericEvidence[].label`, `recommendedAction`, and `period`. Keep Azure product names, resource
 types, regions, sanitized values, numeric values, and source paths unchanged. Do not emit complete
 English sentences except where an official product or technical term has no useful Japanese form.
+For `numericEvidence[].label`, never copy an English-only metric label or source path. Use a Japanese
+descriptor such as `対象リソース数`; product names and acronyms may appear only within an otherwise
+Japanese label. If a Japanese label cannot be written, omit that evidence or insight.
 
 Each insight must contain:
 
