@@ -1,11 +1,11 @@
 {
   "schemaVersion": "1.2.0",
-  "generatedAt": "2026-07-23T05:27:06.878Z",
+  "generatedAt": "2026-08-03T01:38:41.345Z",
   "mode": "AZURE",
   "freshness": {
     "state": "fresh",
     "ageMinutes": 0,
-    "lastSuccessfulCollection": "2026-07-23T05:27:06.878Z",
+    "lastSuccessfulCollection": "2026-08-03T01:38:41.345Z",
     "nextScheduledCollection": "Tuesday / Friday 06:00 JST"
   },
   "scope": {
@@ -21,8 +21,8 @@
     },
     {
       "source": "Cost Management",
-      "availability": "available",
-      "message": "Current and prior comparable rounded JPY periods were collected."
+      "availability": "partial",
+      "message": "Current rounded JPY cost was collected; the prior comparable period is unavailable."
     },
     {
       "source": "Resource Health",
@@ -55,7 +55,7 @@
       {
         "label": "Resource Health coverage",
         "value": "0%",
-        "change": "0 of 56 evaluated",
+        "change": "0 of 62 evaluated",
         "direction": "flat",
         "severity": "info",
         "points": [
@@ -65,10 +65,10 @@
       },
       {
         "label": "Cost coverage",
-        "value": "Available",
+        "value": "Partial",
         "change": "Rounded public view",
         "direction": "flat",
-        "severity": "info",
+        "severity": "warning",
         "points": [
           1,
           1
@@ -104,38 +104,38 @@
         "timestamp": "Current snapshot",
         "severity": "healthy",
         "title": "Azure データ収集が完了",
-        "detail": "56 件のリソースをサニタイズし、利用不可の任意ソースは 0 件でした。",
+        "detail": "62 件のリソースをサニタイズし、利用不可の任意ソースは 0 件でした。",
         "route": "/overview"
       },
       {
         "id": "event-cd198459",
-        "timestamp": "2026-07-23T05:07:21.3424768Z",
+        "timestamp": "2026-07-29T19:32:51.3596106Z",
         "severity": "info",
-        "title": "Azure 操作を検出",
+        "title": "管理操作を検出",
         "detail": "公開前に実行者と対象リソースの詳細を削除しています。",
         "route": "/overview"
       },
       {
         "id": "event-cc1982c6",
-        "timestamp": "2026-07-23T05:07:19.7174697Z",
+        "timestamp": "2026-07-29T19:32:50.9689832Z",
         "severity": "info",
-        "title": "Azure 操作を検出",
+        "title": "管理操作を検出",
         "detail": "公開前に実行者と対象リソースの詳細を削除しています。",
         "route": "/overview"
       },
       {
         "id": "event-cb198133",
-        "timestamp": "2026-07-23T05:07:11.682943Z",
+        "timestamp": "2026-07-29T19:31:37.4893617Z",
         "severity": "info",
-        "title": "Azure 操作を検出",
+        "title": "管理操作を検出",
         "detail": "公開前に実行者と対象リソースの詳細を削除しています。",
         "route": "/overview"
       },
       {
         "id": "event-ca197fa0",
-        "timestamp": "2026-07-23T05:07:08.6828606Z",
+        "timestamp": "2026-07-29T19:31:37.239409Z",
         "severity": "info",
-        "title": "Azure 操作を検出",
+        "title": "管理操作を検出",
         "detail": "公開前に実行者と対象リソースの詳細を削除しています。",
         "route": "/overview"
       }
@@ -145,13 +145,13 @@
   "cost": {
     "current": {
       "availability": "available",
-      "approximateAmount": "約¥2.2万"
+      "approximateAmount": "約¥2.0万"
     },
     "previous": {
-      "availability": "available",
-      "approximateAmount": "約¥1.1万"
+      "availability": "unavailable",
+      "approximateAmount": null
     },
-    "deltaPercent": 92.3,
+    "deltaPercent": null,
     "forecast": {
       "availability": "unavailable",
       "approximateAmount": null
@@ -165,55 +165,55 @@
       {
         "name": "Azure Cognitive Search",
         "approximateAmount": "約¥1.4万",
-        "sharePercent": 64.2,
-        "deltaPercent": 114.9
+        "sharePercent": 68.2,
+        "deltaPercent": null
       },
       {
         "name": "Foundry Tools",
-        "approximateAmount": "約¥6千",
-        "sharePercent": 29.3,
-        "deltaPercent": 155.2
+        "approximateAmount": "約¥5千",
+        "sharePercent": 24.9,
+        "deltaPercent": null
       },
       {
         "name": "Container Registry",
         "approximateAmount": "約¥1千未満",
-        "sharePercent": 3.7,
-        "deltaPercent": 133
+        "sharePercent": 3.6,
+        "deltaPercent": null
       },
       {
         "name": "Logic Apps",
         "approximateAmount": "約¥1千未満",
-        "sharePercent": 2,
-        "deltaPercent": -5.1
+        "sharePercent": 2.1,
+        "deltaPercent": null
       },
       {
         "name": "Log Analytics",
         "approximateAmount": "約¥1千未満",
-        "sharePercent": 0.5,
-        "deltaPercent": 9693.3
-      },
-      {
-        "name": "Foundry Models",
-        "approximateAmount": "約¥1千未満",
-        "sharePercent": 0.2,
-        "deltaPercent": -70.3
+        "sharePercent": 1.2,
+        "deltaPercent": null
       },
       {
         "name": "Azure Cosmos DB",
         "approximateAmount": "約¥1千未満",
+        "sharePercent": 0.1,
+        "deltaPercent": null
+      },
+      {
+        "name": "Foundry Models",
+        "approximateAmount": "約¥1千未満",
         "sharePercent": 0,
-        "deltaPercent": 15061.6
+        "deltaPercent": null
       },
       {
         "name": "Storage",
         "approximateAmount": "約¥1千未満",
         "sharePercent": 0,
-        "deltaPercent": -99.6
+        "deltaPercent": null
       }
     ]
   },
   "inventory": {
-    "total": 56,
+    "total": 62,
     "resources": [
       {
         "id": "res-ba938391",
@@ -238,6 +238,17 @@
         "change": "Collected from Azure Resource Graph"
       },
       {
+        "id": "res-2637eb84",
+        "name": "ca…or-3ea0c4c3",
+        "resourceGroup": "rg-q…line-8c2924db",
+        "type": "microsoft.app/containerapps",
+        "region": "japaneast",
+        "status": "Unknown",
+        "owner": "identity-caac8562",
+        "tags": {},
+        "change": "Collected from Azure Resource Graph"
+      },
+      {
         "id": "res-e52ced7c",
         "name": "job-…sync-c4355b20",
         "resourceGroup": "rg-hoj…aneast-d9a6959d",
@@ -252,6 +263,17 @@
         "id": "res-fcf8d05e",
         "name": "ca…in-881de1ed",
         "resourceGroup": "rg-hoj…aneast-d9a6959d",
+        "type": "microsoft.app/managedenvironments",
+        "region": "japaneast",
+        "status": "Unknown",
+        "owner": "identity-caac8562",
+        "tags": {},
+        "change": "Collected from Azure Resource Graph"
+      },
+      {
+        "id": "res-2bbd2d3d",
+        "name": "cae…dor-18ef8b6c",
+        "resourceGroup": "rg-q…line-8c2924db",
         "type": "microsoft.app/managedenvironments",
         "region": "japaneast",
         "status": "Unknown",
@@ -601,6 +623,17 @@
         "change": "Collected from Azure Resource Graph"
       },
       {
+        "id": "res-03a2d108",
+        "name": "id-q…ploy-90d71484",
+        "resourceGroup": "rg-qu…strap-1a5d33ae",
+        "type": "microsoft.managedidentity/userassignedidentities",
+        "region": "japaneast",
+        "status": "Unknown",
+        "owner": "identity-caac8562",
+        "tags": {},
+        "change": "Collected from Azure Resource Graph"
+      },
+      {
         "id": "res-41902ccd",
         "name": "Netwo…astus-a04aec79",
         "resourceGroup": "netw…errg-adc33e8d",
@@ -722,6 +755,17 @@
         "change": "Collected from Azure Resource Graph"
       },
       {
+        "id": "res-5670c3b7",
+        "name": "log…dor-a5d5c4eb",
+        "resourceGroup": "rg-q…line-8c2924db",
+        "type": "microsoft.operationalinsights/workspaces",
+        "region": "japaneast",
+        "status": "Unknown",
+        "owner": "identity-caac8562",
+        "tags": {},
+        "change": "Collected from Azure Resource Graph"
+      },
+      {
         "id": "res-1fcaf1f3",
         "name": "SecurityCenterFree(…b0-b3ce9596d40a-EA)-1c2ec251",
         "resourceGroup": "defau…up-ea-69f0d835",
@@ -788,6 +832,17 @@
         "change": "Collected from Azure Resource Graph"
       },
       {
+        "id": "res-49f01cec",
+        "name": "stqu…7027-1787366d",
+        "resourceGroup": "rg-q…line-8c2924db",
+        "type": "microsoft.storage/storageaccounts",
+        "region": "japaneast",
+        "status": "Unknown",
+        "owner": "identity-caac8562",
+        "tags": {},
+        "change": "Collected from Azure Resource Graph"
+      },
+      {
         "id": "res-f0481154",
         "name": "di…ip-67009abe",
         "resourceGroup": "rg-5806f191",
@@ -830,6 +885,17 @@
         "owner": "identity-caac8562",
         "tags": {},
         "change": "Collected from Azure Resource Graph"
+      },
+      {
+        "id": "res-cc375eb3",
+        "name": "swa…dor-155e7fa6",
+        "resourceGroup": "rg-q…line-8c2924db",
+        "type": "microsoft.web/staticsites",
+        "region": "eastasia",
+        "status": "Unknown",
+        "owner": "identity-caac8562",
+        "tags": {},
+        "change": "Collected from Azure Resource Graph"
       }
     ],
     "byType": [
@@ -839,7 +905,7 @@
       },
       {
         "label": "microsoft.app/containerapps",
-        "count": 1
+        "count": 2
       },
       {
         "label": "microsoft.app/jobs",
@@ -847,7 +913,7 @@
       },
       {
         "label": "microsoft.app/managedenvironments",
-        "count": 1
+        "count": 2
       },
       {
         "label": "microsoft.cognitiveservices/accounts",
@@ -875,7 +941,7 @@
       },
       {
         "label": "microsoft.managedidentity/userassignedidentities",
-        "count": 1
+        "count": 2
       },
       {
         "label": "microsoft.network/networkwatchers",
@@ -883,7 +949,7 @@
       },
       {
         "label": "microsoft.operationalinsights/workspaces",
-        "count": 4
+        "count": 5
       },
       {
         "label": "microsoft.operationsmanagement/solutions",
@@ -895,7 +961,7 @@
       },
       {
         "label": "microsoft.storage/storageaccounts",
-        "count": 2
+        "count": 3
       },
       {
         "label": "microsoft.web/connections",
@@ -903,7 +969,7 @@
       },
       {
         "label": "microsoft.web/staticsites",
-        "count": 1
+        "count": 2
       }
     ],
     "byRegion": [
@@ -913,7 +979,7 @@
       },
       {
         "label": "japaneast",
-        "count": 35
+        "count": 40
       },
       {
         "label": "southeastasia",
@@ -921,7 +987,7 @@
       },
       {
         "label": "eastasia",
-        "count": 10
+        "count": 11
       },
       {
         "label": "eastus",
@@ -1007,42 +1073,5 @@
       "flows": []
     }
   },
-  "aiInsights": [
-    {
-      "id": "insight-a1f3c2e4",
-      "severity": "warning",
-      "title": "比較可能な前期間からコストが約 92.3% 増加",
-      "observation": "現在期間の合計支出は、比較可能な前期間から約 92.3% 増加しました。予測値と予算しきい値はスナップショットに含まれないため、影響範囲の上限は判断できません。",
-      "impact": "この増加が継続した場合、予算への影響が大きくなる可能性があります。次の請求期間が終了する前に、支出要因を人が確認する必要があります。",
-      "numericEvidence": [
-        {
-          "label": "期間コストの前期間比 (%)",
-          "value": "92.3",
-          "source": "cost.deltaPercent"
-        }
-      ],
-      "recommendedAction": "Cost Management ダッシュボードでサービス別の支出内訳を確認し、最近の容量または価格レベルの変更が計画されたものかを確認してください。",
-      "confidence": 0.85,
-      "period": "現在期間と比較可能な前期間",
-      "route": "/cost"
-    },
-    {
-      "id": "insight-4e1b7a3f",
-      "severity": "info",
-      "title": "7 件の Network Watcher でフロー テレメトリが未収集",
-      "observation": "7 リージョンに 7 件の Network Watcher リソースがありますが、フロー テレメトリは収集されていません。ネットワーク リソースの存在は接続状態として解釈しないことがスナップショットに明記されています。",
-      "impact": "フロー テレメトリがないため、このスナップショットだけではブロックまたは低下した接続などのネットワーク異常を検出できません。収集範囲外のセキュリティや接続状況は判断できません。",
-      "numericEvidence": [
-        {
-          "label": "Network Watcher リソース数",
-          "value": "7",
-          "source": "network.inventory.total"
-        }
-      ],
-      "recommendedAction": "Network Watcher のフロー ログ設定を確認し、主要サブネットで NSG フロー ログまたは Traffic Analytics の収集設定を確認してください。詳細はネットワーク画面で確認できます。",
-      "confidence": 0.7,
-      "period": "現在のスナップショット",
-      "route": "/network"
-    }
-  ]
+  "aiInsights": []
 }
