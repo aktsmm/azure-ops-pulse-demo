@@ -27,13 +27,13 @@ GitHub Pages へ公開**する一連の流れを示す公開デモです。
 | Azure 収集 | GitHub Actions | 火・金 06:00（JST）と手動実行 | OIDC、読み取り専用 RBAC |
 | 匿名化 | 決定論的 TypeScript | 収集プロセス内で公開表現へ変換 | 生の応答は保存・artifact化しない |
 | Validation | 決定論的 TypeScript | JSON Schema、runtime schema、evidence、privacy を検証 | 失敗時は候補を公開領域へ昇格しない |
-| snapshot PR | GitHub Actions | 検証済み差分がある場合だけ作成 | **人間が内容を確認して merge** |
-| AI 分析 | GitHub Agentic Workflow | snapshot PR の merge 後に最新 `main` で起動 | 入力は `public/data/snapshot.json` だけ |
-| AI draft PR | trusted publisher | AI候補を再検証し、差分があれば draft PR を作成 | **人間が根拠と差分を確認して merge** |
-| Pages deploy | GitHub Actions | `main` 更新後に build・検証・deploy | GitHub Pages environment |
+| snapshot 公開 | GitHub Actions | 検証済み差分だけを `main` へ直接commitし、AI分析とPagesを明示的に起動 | Schema、evidence、privacy の全ゲート成功 |
+| AI 分析 | GitHub Agentic Workflow | 新しいsnapshotの公開後、最新 `main` で起動 | 入力は `public/data/snapshot.json` だけ |
+| AI 分析公開 | trusted publisher | AI候補を再検証し、差分があれば `main` へ直接commit | Schema、Japanese、evidence、baseline、privacy の全ゲート成功 |
+| Pages deploy | GitHub Actions | 検証済みの各公開commit後に build・検証・deploy | GitHub Pages environment |
 
-**完全無人公開ではありません。** 収集、匿名化、検証、AI分析、PR作成、merge後の
-Pages 配信は自動ですが、snapshot PR と AI draft PR の merge 判断は人が行います。
+**公開更新は完全自動です。** ただし、収集・匿名化・決定論的検証・AI候補の再検証の
+いずれかが失敗した場合は `main` を更新せず、最後に検証済みの公開snapshotを維持します。
 
 ## イベント駆動の更新シーケンス
 
@@ -41,8 +41,6 @@ Pages 配信は自動ですが、snapshot PR と AI draft PR の merge 判断は
 sequenceDiagram
   participant Azure as Azure read APIs
   participant Collect as [決定論的] Collect Actions
-  participant Human as [人間承認] Reviewer
-  participant Dispatch as [決定論的] Dispatcher
   participant Agent as [AI reasoning] Agentic Workflow
   participant Publish as [決定論的] Trusted publisher
   participant Pages as [決定論的] GitHub Pages
@@ -51,39 +49,36 @@ sequenceDiagram
   Collect->>Azure: OIDC + read-only RBAC
   Azure-->>Collect: 運用シグナル
   Collect->>Collect: 匿名化 + Schema + Evidence + Privacy
-  Collect-->>Human: snapshot PR
-  Human->>Human: 内容確認・merge判断
-  Human-->>Dispatch: snapshot PR merged into main
-  Dispatch->>Agent: workflow_dispatch on latest main
+  Collect->>Collect: 検証済みsnapshotをmainへ直接commit
+  Collect->>Agent: workflow_dispatch on latest main
+  Collect->>Pages: workflow_dispatch
   Agent->>Agent: 公開JSONだけを根拠付き分析
   Agent-->>Publish: bounded candidate artifact
   Publish->>Publish: fresh checkoutで全ゲート再実行
-  Publish-->>Human: AI draft PR
-  Human->>Human: 根拠確認・merge判断
-  Human-->>Pages: main updated
+  Publish->>Publish: 検証済みAI分析をmainへ直接commit
+  Publish->>Pages: workflow_dispatch
   Pages->>Pages: quality gates + build + privacy scan
   Pages-->>Pages: 公開サイト更新
 ```
 
-従来の 06:45 JST 独立 schedule はありません。snapshot が45分以内に merge されなくても、
-古いデータを分析しないように、[`dispatch-ai-insights.yml`](.github/workflows/dispatch-ai-insights.yml)
-が snapshot PR の `closed` イベントを検査します。`merged=true`、base=`main`、同一repository、
-head=`automation/azure-snapshot-*`、既知titleのすべてが一致した場合だけ、固定名の
-`ai-insights.lock.yml` を `workflow_dispatch` します。通常PR、未merge PR、fork PR、
-AI PR では起動しないためループしません。
+従来の 06:45 JST 独立 schedule はありません。収集runがすべての決定論的ゲートを通過して
+検証済みsnapshotを`main`へ直接commitした場合だけ、固定名の`ai-insights.lock.yml`と
+`pages.yml`を`workflow_dispatch`します。AI候補も再検証を通過した場合だけ`main`へ直接
+commitし、Pagesを明示的に再配信します。
 
 GitHub 公式仕様では、`GITHUB_TOKEN` が発生させる多くのイベントは再帰実行を抑止しますが、
 `workflow_dispatch` と `repository_dispatch` は例外として実行されます。このデモは
-dispatcher だけに `actions: write` を付与し、Agentic Workflow の権限は広げません。
+collectionとtrusted publisherだけに`actions: write`を付与して、Token起点の公開commit後も
+AI分析とPages配信を明示的に実行します。Agentic Workflowの権限は読み取りと候補artifactの
+アップロードに限定します。
 
 ## GitHub Actions workflow の役割
 
 | Workflow | 役割 | 主な権限 |
 | --- | --- | --- |
-| [`collect-azure.yml`](.github/workflows/collect-azure.yml) | OIDC収集、匿名化候補の検証、snapshot PR作成 | `id-token: write`、`contents/pull-requests: write` |
-| [`dispatch-ai-insights.yml`](.github/workflows/dispatch-ai-insights.yml) | 承認merge済み snapshot PR だけを判定してAIをdispatch | `actions: write`、`contents/pull-requests: read` |
+| [`collect-azure.yml`](.github/workflows/collect-azure.yml) | OIDC収集、匿名化候補の検証、snapshotの直接公開、AI/Pagesのdispatch | `id-token: write`、`contents: write`、`actions: write` |
 | [`ai-insights.md`](.github/workflows/ai-insights.md) / `.lock.yml` | 公開JSONだけを読む根拠付き分析 | `contents: read`、`copilot-requests: write` |
-| [`publish-ai-insights.yml`](.github/workflows/publish-ai-insights.yml) | fresh checkoutで候補を再検証しAI draft PR作成 | validateはread-only、publish jobだけwrite |
+| [`publish-ai-insights.yml`](.github/workflows/publish-ai-insights.yml) | fresh checkoutで候補を再検証しAI分析を直接公開、Pagesをdispatch | validateはread-only、publish jobだけ`contents: write`、`actions: write` |
 | [`ci.yml`](.github/workflows/ci.yml) | lint、typecheck、tests、schema、build、privacy | `contents: read` |
 | [`pages.yml`](.github/workflows/pages.yml) | 検証済みproduction buildをPagesへdeploy | `pages/id-token: write` |
 
@@ -220,23 +215,23 @@ artifact、log、AI入力に含めません。
 - 公開ビューは意図的に情報を削減しており、Azure Portalやprivate observabilityを置き換えません。
 - source availabilityはprovider registration、subscription種別、RBAC、plan、retentionに依存します。
 - Cost forecast、budget、network flow healthはauthoritative sourceがない限り推定しません。
-- static siteは最後に承認されたsnapshotを表示し、72時間超をUIで期限超過として扱います。
+- static siteは最後に検証済みのsnapshotを表示し、72時間超をUIで期限超過として扱います。
 - AI出力は助言であり、root causeの確定やAzure変更を行いません。
 
 ## FAQ / トラブルシュート
 
 ### 収集に失敗したら公開データは消えますか
 
-消えません。候補の生成・検証に失敗したrunはPRを作らず、最後に承認済みのsnapshotを維持します。
+消えません。候補の生成・検証に失敗したrunは`main`を更新せず、最後に検証済みのsnapshotを維持します。
 
-### snapshotをmergeしてもAIが起動しません
+### snapshotが公開されてもAIが起動しません
 
-PRのbase、head prefix、repository、title、merged状態を確認してください。dispatcherは意図的に
-通常PRとfork PRを拒否します。Actions設定でworkflow実行と`actions: write`が許可されているかも確認します。
+`collect-azure.yml`の「Dispatch AI analysis and Pages deployment」stepを確認してください。
+Actions設定でworkflow実行と`actions: write`が許可されているかも確認します。
 
-### AIは自動でmergeしますか
+### AI分析も自動で公開されますか
 
-しません。trusted publisherはdraft PRまで作成し、mergeは人間が行います。
+はい。trusted publisherは、候補artifactをfresh checkoutで再検証した後だけ`main`へ直接commitします。
 
 ### Pagesが更新されません
 
