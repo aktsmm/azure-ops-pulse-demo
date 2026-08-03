@@ -1073,5 +1073,93 @@
       "flows": []
     }
   },
-  "aiInsights": []
+  "aiInsights": [
+    {
+      "id": "insight-a1b2c3d4",
+      "severity": "warning",
+      "title": "Azure Cognitive Search へのコスト集中",
+      "observation": "現在の課金期間において、Azure Cognitive Search が総コストの約 68.2% を占めており、単一サービスへの高い依存が見られます。Foundry Tools が約 24.9% で続き、この 2 サービスで全体の約 93% に達しています。",
+      "impact": "コストの大部分が 1 サービスに集中しているため、当該サービスのスケール変更や価格改定が全体予算に直接影響する可能性があります。比較対象期間のデータが取得できないため、傾向の評価は現時点では困難です。",
+      "numericEvidence": [
+        {
+          "label": "Azure Cognitive Search のコスト比率（%）",
+          "value": "68.2",
+          "source": "cost.categories.0.sharePercent"
+        },
+        {
+          "label": "Foundry Tools のコスト比率（%）",
+          "value": "24.9",
+          "source": "cost.categories.1.sharePercent"
+        }
+      ],
+      "recommendedAction": "Azure Cognitive Search の SKU・レプリカ数・パーティション数を見直し、コスト最適化の余地がないか担当者によるレビューを推奨します。詳細はコスト画面を参照してください。",
+      "confidence": 0.82,
+      "period": "現在の課金スナップショット（比較期間データなし）",
+      "route": "/cost"
+    },
+    {
+      "id": "insight-e5f6a7b8",
+      "severity": "info",
+      "title": "Logic Apps ワークフローがリソース全体の約 35% を占有",
+      "observation": "インベントリ 62 件のうち 22 件が Logic Apps ワークフロー（microsoft.logic/workflows）であり、単一リソース種別としては最多です。これらは japaneast および eastasia の複数リソースグループに分散して配置されています。",
+      "impact": "ワークフロー数が多い場合、実行コスト・接続管理・メンテナンス負荷が増大する可能性があります。未使用または重複するワークフローが含まれている可能性も否定できません。",
+      "numericEvidence": [
+        {
+          "label": "Logic Apps ワークフロー数",
+          "value": "22",
+          "source": "inventory.byType.9.count"
+        },
+        {
+          "label": "総リソース数",
+          "value": "62",
+          "source": "inventory.total"
+        }
+      ],
+      "recommendedAction": "Logic Apps ワークフローの稼働状況・実行頻度を担当者が定期的に確認し、不要なワークフローの整理を検討することを推奨します。詳細はリソース画面を参照してください。",
+      "confidence": 0.75,
+      "period": "現在のスナップショット（2026-08-03T01:38:41.345Z）",
+      "route": "/resources"
+    },
+    {
+      "id": "insight-c9d0e1f2",
+      "severity": "info",
+      "title": "ネットワークフロー テレメトリが未収集",
+      "observation": "7 台の Network Watcher がサブスクリプション内の複数リージョンに存在しますが、フロー テレメトリは収集されておらず、接続状態やトラフィックパターンを現在のスナップショットから評価することはできません。",
+      "impact": "フロー ログが取得されていない状態では、異常なトラフィックや不正アクセスの兆候をダッシュボードで把握することが困難です。ネットワーク可視性に関してレビューが必要な可能性があります。",
+      "numericEvidence": [
+        {
+          "label": "Network Watcher 対象リソース数",
+          "value": "7",
+          "source": "network.inventory.total"
+        }
+      ],
+      "recommendedAction": "Network Watcher のフロー ログ設定を担当者が確認し、必要に応じて NSG フロー ログまたは VNet フロー ログの有効化を検討することを推奨します。詳細はネットワーク画面を参照してください。",
+      "confidence": 0.70,
+      "period": "現在のスナップショット（2026-08-03T01:38:41.345Z）",
+      "route": "/network"
+    },
+    {
+      "id": "insight-3a4b5c6d",
+      "severity": "info",
+      "title": "リソースの大半が japaneast に集中",
+      "observation": "62 件のリソースのうち 40 件（約 65%）が japaneast に、11 件（約 18%）が eastasia に配置されており、リソースの分布が特定リージョンに偏っています。",
+      "impact": "特定リージョンへの高い依存は、そのリージョンで障害が発生した際のサービス影響範囲が広くなる可能性があります。冗長構成や DR 方針の確認が推奨されます。",
+      "numericEvidence": [
+        {
+          "label": "japaneast のリソース数",
+          "value": "40",
+          "source": "inventory.byRegion.1.count"
+        },
+        {
+          "label": "eastasia のリソース数",
+          "value": "11",
+          "source": "inventory.byRegion.3.count"
+        }
+      ],
+      "recommendedAction": "重要なワークロードについてリージョン冗長・フェールオーバー構成の有無を担当者がレビューすることを推奨します。詳細はリソース画面を参照してください。",
+      "confidence": 0.72,
+      "period": "現在のスナップショット（2026-08-03T01:38:41.345Z）",
+      "route": "/resources"
+    }
+  ]
 }
