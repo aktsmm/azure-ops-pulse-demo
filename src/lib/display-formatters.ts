@@ -116,16 +116,14 @@ export function formatSnapshotAge(generatedAt: string, now = Date.now()): string
   return `${numberFormatter.format(Math.floor(hours / 24))} 日前`;
 }
 
+/**
+ * Event timestamps used to pass through an exact-match table that turned collector strings such as
+ * "Current snapshot" into Japanese. That made the screen read Japanese while the published file
+ * stayed English, so the language audit saw nothing wrong — the same failure this repository removed
+ * from the activity titles. The collector now emits Japanese labels, and an unparseable value is
+ * shown verbatim so a regression is visible instead of being translated away.
+ */
 export function formatEventTimestamp(value: string): string {
-  const normalized = value.trim().toLowerCase();
-  if (normalized === "current snapshot") return "現在のスナップショット";
-  if (normalized === "current collection window") return "現在の収集期間";
-  if (normalized === "recent") return "最近";
-  if (normalized === "yesterday") return "昨日";
-  const minutes = normalized.match(/^(\d+)\s+min(?:ute)?s?\s+ago$/);
-  if (minutes) return `${minutes[1]} 分前`;
-  const hours = normalized.match(/^(\d+)\s+h(?:ou)?r?s?\s+ago$/);
-  if (hours) return `${hours[1]} 時間前`;
   return formatDateTimeJa(value);
 }
 
@@ -180,44 +178,18 @@ export function summarizeResourceHealth(resources: ResourceItem[]) {
   return summary;
 }
 
+/**
+ * The collector always writes Japanese activity copy (`normalizeActivityOperationLabel` falls back
+ * to a Japanese label rather than passing an Azure operation name through), and the DEMO fixture now
+ * does too. An earlier English lookup table translated activity titles and details for display, and
+ * that shim is exactly why the DEMO fixture could publish English event copy unnoticed: readers saw
+ * Japanese while the snapshot said otherwise, so the published-language audit had nothing to find.
+ * The only transform left guards against an Azure payload whose operation name serialized as an
+ * object, which would otherwise render as `[object Object]`.
+ */
 export function formatActivityTitle(title: string): string {
   if (title.includes("[object Object]")) return "Azure 操作を検出";
-  const exact: Record<string, string> = {
-    "Azure collection completed": "Azure データ収集が完了",
-    "Service Health event observed": "Service Health イベントを検出",
-    "Compute cost variance detected": "Compute コストの変動を検出",
-    "Security recommendation resolved": "セキュリティ推奨事項が解決",
-    "Application latency threshold crossed": "アプリケーション遅延がしきい値を超過",
-    "Inventory change observed": "インベントリ変更を検出"
-  };
-  if (exact[title]) return exact[title];
-  const activity = title.match(/^(.+)\s+activity observed$/i);
-  if (activity?.[1]) return `${activity[1]} のアクティビティを検出`;
   return title;
-}
-
-export function formatActivityDetail(detail: string): string {
-  const collection = detail.match(
-    /^(\d+) resources sanitized; (\d+) optional sources unavailable\.$/
-  );
-  if (collection) {
-    return `${collection[1]} 件のリソースをサニタイズし、利用不可の任意ソースは ${collection[2]} 件でした。`;
-  }
-  const exact: Record<string, string> = {
-    "Actor, resource, and operation details were removed before publication.":
-      "公開前に実行者とリソースの詳細を削除しています。",
-    "Service-level status is shown without affected subscription or resource details.":
-      "影響を受けたサブスクリプションやリソースの詳細を除き、サービス単位の状態のみを表示します。",
-    "Normalized spend moved 11.4% above its trailing baseline.":
-      "正規化済み支出が直近の基準値を 11.4% 上回りました。",
-    "Aggregate affected-resource count decreased from 5 to 2.":
-      "影響を受けたリソースの集計件数が 5 件から 2 件に減少しました。",
-    "P95 exceeded the service target in 3 of 12 intervals.":
-      "12 区間中 3 区間で P95 がサービス目標を超えました。",
-    "Two sanitized resources were added to the monitored estate.":
-      "サニタイズ済みリソース 2 件が監視対象に追加されました。"
-  };
-  return exact[detail] ?? detail;
 }
 
 /**
@@ -230,6 +202,25 @@ export function formatSourceName(source: string): string {
     "Cost Management prior period": "Cost Management（前期間）"
   };
   return names[source] ?? source;
+}
+
+/**
+ * `classifyEndpoint` in `src/lib/sanitize.ts` replaces every flow hostname with one of a closed set
+ * of labels, so the destination the snapshot carries is an identifier rather than collector prose.
+ * Mapping it here is the same treatment `formatSourceName` gives the source keys: the stored value
+ * stays the sanitizer's, and the page reads Japanese. An unmapped value is returned unchanged so
+ * the rendered-language audit reports it instead of the page inventing a translation.
+ */
+export function formatEndpointLabel(destination: string): string {
+  const names: Record<string, string> = {
+    "Azure Storage endpoint": "Azure Storage のエンドポイント",
+    "Azure Front Door endpoint": "Azure Front Door のエンドポイント",
+    "Azure SQL endpoint": "Azure SQL のエンドポイント",
+    "Microsoft service endpoint": "Microsoft サービスのエンドポイント",
+    "External service endpoint": "外部サービスのエンドポイント",
+    "Unclassified service endpoint": "分類できないエンドポイント"
+  };
+  return names[destination] ?? destination;
 }
 
 export function formatSourceMessage(source: SourceStatus): string {
@@ -284,52 +275,4 @@ export function formatSourceMessage(source: SourceStatus): string {
         ? "このソースは一部の公開可能なデータのみ収集できました。"
         : "このソースのデータは利用できません。")
   );
-}
-
-/**
- * `overview.metrics` is the machine-readable evidence surface that published AI insights cite, so
- * its labels stay in English inside the snapshot. The dashboard is Japanese, so it is translated
- * for display only; unknown labels fall through unchanged instead of being hidden.
- */
-export function formatTrendMetricLabel(label: string): string {
-  const labels: Record<string, string> = {
-    "Resource Health coverage": "Resource Health の評価範囲",
-    "Cost coverage": "コストの収集範囲",
-    "Defender recommendations": "Defender の未対応推奨事項",
-    "Unavailable sources": "利用不可のソース",
-    "Resources healthy": "正常なリソース",
-    "Cost movement": "コストの変動",
-    "Open alerts": "未解決アラート",
-    Availability: "可用性"
-  };
-  return labels[label] ?? label;
-}
-
-export function formatTrendMetricValue(value: string): string {
-  const values: Record<string, string> = {
-    Available: "収集済み",
-    Partial: "一部収集",
-    Unavailable: "利用不可"
-  };
-  return values[value] ?? value;
-}
-
-export function formatTrendMetricChange(change: string): string {
-  const evaluated = change.match(
-    /^(\d+) of (\d+) supported resources evaluated \((\d+) out of scope\)$/
-  );
-  if (evaluated) {
-    return `対応 ${evaluated[2]} 件中 ${evaluated[1]} 件を評価済み（対象外 ${evaluated[3]} 件）`;
-  }
-  const changes: Record<string, string> = {
-    "Rounded public view": "公開用に丸めた値",
-    "Aggregate titles only": "集計タイトルのみ",
-    "Explicitly surfaced": "未収集を明示",
-    "vs prior period": "前期間との比較"
-  };
-  const resolved = change.match(/^(\d+) resolved$/);
-  if (resolved) return `解決済み ${resolved[1]} 件`;
-  const points = change.match(/^([+-][\d.]+) pts$/);
-  if (points) return `${points[1]} pt`;
-  return changes[change] ?? change;
 }

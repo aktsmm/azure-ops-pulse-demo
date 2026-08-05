@@ -15,7 +15,14 @@ export function useSnapshot(): SnapshotState {
 
   useEffect(() => {
     const controller = new AbortController();
-    fetch(`${import.meta.env.BASE_URL}data/snapshot.json`, { signal: controller.signal })
+    // The bundle is content-hashed but `data/snapshot.json` keeps one URL, so a returning visitor can
+    // pair a new bundle with a cached older snapshot. The dashboard renders what the file says
+    // rather than translating it, so a stale file shows stale copy; revalidating on load keeps a
+    // deployment from being read through yesterday's data.
+    fetch(`${import.meta.env.BASE_URL}data/snapshot.json`, {
+      signal: controller.signal,
+      cache: "no-cache"
+    })
       .then((response) => {
         if (!response.ok) {
           throw new Error(`公開スナップショットの取得に失敗しました (${response.status})`);

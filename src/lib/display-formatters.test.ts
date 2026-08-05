@@ -1,17 +1,35 @@
 import { describe, expect, it } from "vitest";
 import {
+  formatActivityTitle,
   formatDateTimeJa,
+  formatEndpointLabel,
   formatEventTimestamp,
   formatSourceMessage,
   formatSourceName,
-  formatTrendMetricChange,
-  formatTrendMetricLabel,
-  formatTrendMetricValue,
   metricWhenSourcePublished,
   resourceStatusLabel,
   resourceStatusSeverity,
   summarizeResourceHealth
 } from "./display-formatters";
+import { classifyEndpoint } from "./sanitize";
+
+describe("activity title rendering", () => {
+  it("passes the collected Japanese title through untouched", () => {
+    expect(formatActivityTitle("管理操作を検出")).toBe("管理操作を検出");
+  });
+
+  /**
+   * The formatter must not translate: a lookup table that turned English titles into Japanese is
+   * what let the DEMO fixture publish English event copy while the page looked correct.
+   */
+  it("does not translate an English title into Japanese", () => {
+    expect(formatActivityTitle("Inventory change observed")).toBe("Inventory change observed");
+  });
+
+  it("replaces a serialized object with a readable label", () => {
+    expect(formatActivityTitle("[object Object]を検出")).toBe("Azure 操作を検出");
+  });
+});
 
 describe("Japanese display formatters", () => {
   it("keeps Unknown informational instead of treating it as unhealthy", () => {
@@ -46,9 +64,13 @@ describe("Japanese display formatters", () => {
     expect(resourceStatusSeverity("NotApplicable")).toBe("info");
   });
 
-  it("formats snapshot timestamps in ja-JP and handles collection labels", () => {
+  it("formats snapshot timestamps in ja-JP and shows an unparseable label verbatim", () => {
     expect(formatDateTimeJa("2026-07-23T05:27:06.878Z")).toContain("2026");
-    expect(formatEventTimestamp("Current snapshot")).toBe("現在のスナップショット");
+    expect(formatEventTimestamp("2026-07-23T05:27:06.878Z")).toContain("2026");
+    // No exact-match table: a collector label reaches the page as stored, so the language audit
+    // judges the same text the reader sees instead of a translation layered over English data.
+    expect(formatEventTimestamp("現在のスナップショット")).toBe("現在のスナップショット");
+    expect(formatEventTimestamp("Current snapshot")).toBe("Current snapshot");
   });
 
   it("shows source metrics whenever the source published data, preserving a real zero", () => {
@@ -83,6 +105,25 @@ describe("source presentation", () => {
     expect(formatSourceName("Resource Health")).toBe("Resource Health");
   });
 
+  it("translates every endpoint label the sanitizer is able to produce", () => {
+    // Derive the closed set from `classifyEndpoint` itself rather than restating it here, so a new
+    // branch in the sanitizer fails this test instead of quietly reaching the page in English.
+    const literals = [...classifyEndpoint.toString().matchAll(/return\s+"([^"]+)"/g)].map(
+      (match) => match[1] as string
+    );
+    expect(literals.length).toBeGreaterThanOrEqual(6);
+
+    for (const label of literals) {
+      const rendered = formatEndpointLabel(label);
+      expect(rendered, `${label} is rendered unchanged`).not.toBe(label);
+      expect(rendered, `${label} is rendered without Latin prose`).toMatch(/[ぁ-んァ-ヶ一-龯]/u);
+    }
+  });
+
+  it("passes an unknown destination through so the audit can report it", () => {
+    expect(formatEndpointLabel("Some future endpoint")).toBe("Some future endpoint");
+  });
+
   it("never claims flow telemetry is missing from a partial network collection", () => {
     const message = formatSourceMessage({
       source: "Network inventory and metrics",
@@ -92,40 +133,5 @@ describe("source presentation", () => {
 
     expect(message).not.toContain("フロー テレメトリは未収集");
     expect(message).toContain("インベントリは収集済み");
-  });
-});
-
-describe("trend metric translation", () => {  it("translates the published metric labels used by overview.metrics", () => {
-    expect(formatTrendMetricLabel("Resource Health coverage")).toBe("Resource Health の評価範囲");
-    expect(formatTrendMetricLabel("Unavailable sources")).toBe("利用不可のソース");
-  });
-
-  it("passes unknown labels and values through instead of hiding them", () => {
-    expect(formatTrendMetricLabel("Brand new metric")).toBe("Brand new metric");
-    expect(formatTrendMetricValue("42%")).toBe("42%");
-    expect(formatTrendMetricChange("Something new")).toBe("Something new");
-  });
-
-  it("translates the coverage change sentence without changing the numbers", () => {
-    expect(
-      formatTrendMetricChange("0 of 14 supported resources evaluated (48 out of scope)")
-    ).toBe("対応 14 件中 0 件を評価済み（対象外 48 件）");
-    expect(
-      formatTrendMetricChange("9 of 14 supported resources evaluated (48 out of scope)")
-    ).toBe("対応 14 件中 9 件を評価済み（対象外 48 件）");
-  });
-
-  it("translates availability words used as metric values", () => {
-    expect(formatTrendMetricValue("Available")).toBe("収集済み");
-    expect(formatTrendMetricValue("Partial")).toBe("一部収集");
-    expect(formatTrendMetricValue("Unavailable")).toBe("利用不可");
-  });
-
-  it("translates the DEMO fixture labels and change sentences", () => {
-    expect(formatTrendMetricLabel("Resources healthy")).toBe("正常なリソース");
-    expect(formatTrendMetricChange("vs prior period")).toBe("前期間との比較");
-    expect(formatTrendMetricChange("3 resolved")).toBe("解決済み 3 件");
-    expect(formatTrendMetricChange("+1.8 pts")).toBe("+1.8 pt");
-    expect(formatTrendMetricChange("-0.03 pts")).toBe("-0.03 pt");
   });
 });

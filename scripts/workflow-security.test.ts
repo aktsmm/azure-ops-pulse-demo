@@ -1,5 +1,9 @@
-import { readFileSync } from "node:fs";
+import { execFileSync } from "node:child_process";
+import { mkdtempSync, readFileSync, writeFileSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
 import { describe, expect, it } from "vitest";
+import { buildDemoSnapshot } from "./build-demo-snapshot";
 import {
   GH_AW_SETUP_SHA,
   GH_AW_VERSION,
@@ -30,6 +34,16 @@ function getUploadBlocks(workflow: string): string[] {
   return blocks;
 }
 
+/** The lines under a top-level workflow key, up to the next unindented key. */
+function getTopLevelBlock(workflow: string, key: string): string {
+  const lines = workflow.replace(/\r\n/g, "\n").split("\n");
+  const start = lines.findIndex((line) => line.startsWith(key));
+  if (start === -1) return "";
+  let end = start + 1;
+  while (end < lines.length && !/^[A-Za-z]/u.test(lines[end] ?? "")) end += 1;
+  return lines.slice(start, end).join("\n");
+}
+
 function getStepContaining(workflow: string, needle: string): string {
   const lines = workflow.replace(/\r\n/g, "\n").split("\n");
   const index = lines.findIndex((line) => line.includes(needle));
@@ -45,6 +59,36 @@ function getStepContaining(workflow: string, needle: string): string {
   ) {
     end += 1;
   }
+  return lines.slice(start, end).join("\n");
+}
+
+/** Returns the shell lines a `run:` block executes, so assertions cannot be satisfied by `echo`. */
+function getRunCommands(step: string): string[] {
+  const lines = step.replace(/\r\n/gu, "\n").split("\n");
+  const index = lines.findIndex((line) => /^\s+run:/u.test(line));
+  if (index === -1) return [];
+
+  const inline = lines[index]?.match(/^\s+run:\s*(?!\||>)(\S.*)$/u);
+  if (inline?.[1]) return [inline[1].trim()];
+
+  const indent = (lines[index] ?? "").search(/\S/u);
+  const body: string[] = [];
+  for (const line of lines.slice(index + 1)) {
+    if (line.trim() === "") continue;
+    if (line.search(/\S/u) <= indent) break;
+    body.push(line.trim());
+  }
+  return body;
+}
+
+/** Returns a job block so job-level escapes are visible to the step's own guard. */
+function getJob(workflow: string, name: string): string {
+  const lines = workflow.replace(/\r\n/gu, "\n").split("\n");
+  const start = lines.findIndex((line) => line === `  ${name}:`);
+  if (start === -1) return "";
+
+  let end = start + 1;
+  while (end < lines.length && !JOB_HEADER.test(lines[end] ?? "")) end += 1;
   return lines.slice(start, end).join("\n");
 }
 
@@ -399,5 +443,92 @@ describe("AI insight publication gate", () => {
     expect(validation).toBeGreaterThan(-1);
     expect(trustedUpload).toBeGreaterThan(validation);
     expect(publication).toBeGreaterThan(trustedUpload);
+  });
+});
+
+describe("DEMO snapshot validation gate", () => {
+  const ci = readFileSync(".github/workflows/ci.yml", "utf8");
+  const step = getStepContaining(ci, "name: Generate and validate the DEMO snapshot");
+  const commands = getRunCommands(step);
+  const GENERATE = 'OUTPUT_PATH="$RUNNER_TEMP/demo-snapshot.json" npm run generate:demo';
+  const VALIDATE = 'npx tsx scripts/validate-public-data.ts "$RUNNER_TEMP/demo-snapshot.json"';
+
+  it("runs the generator and the validator as the step's only commands", () => {
+    // `toContain` on the whole step also passes for `echo "npm run generate:demo"`, so the
+    // assertions are made against the command lines the shell would execute. Requiring the exact
+    // list — not just that both lines appear — is what stops the pair from being wrapped in
+    // `if false; then ... fi`, which keeps them present while they never run.
+    expect(commands).toEqual([GENERATE, VALIDATE]);
+  });
+
+  it("writes the DEMO artifact outside the published data file", () => {
+    // The generator's default destination is already outside `public/`, and this keeps the CI run
+    // from depending on that: an explicit temp path means a regression in the default cannot make
+    // the pipeline overwrite published data.
+    expect(step).not.toMatch(/public\/data\/snapshot\.json/u);
+    expect(commands.some((line) => line.includes("$RUNNER_TEMP/demo-snapshot.json"))).toBe(true);
+  });
+
+  it("cannot be switched off without deleting it", () => {
+    // A condition or a swallowed exit code leaves the step listed in the workflow while it stops
+    // failing the run, which is the shape a guard rots into.
+    expect(step).not.toMatch(/^\s+if:/mu);
+    expect(step).not.toContain("continue-on-error");
+    for (const command of commands) {
+      expect(command).not.toMatch(/\|\||;\s*(?:true|:)\s*$|set \+e/u);
+    }
+  });
+
+  it("cannot be skipped by narrowing what CI triggers on", () => {
+    // A path filter switches the guard off from outside the step, and takes this test with it: a
+    // `paths-ignore` naming the DEMO fixture stops the whole workflow on exactly the commits the
+    // gate exists to inspect, while every assertion above still reads as satisfied.
+    const triggers = getTopLevelBlock(ci, "on:");
+    expect(triggers).not.toMatch(/^\s+paths(?:-ignore)?:/mu);
+    expect(triggers).toMatch(/^\s+pull_request:/mu);
+  });
+
+  it("keeps the commands on their own lines under a shell that stops at the first failure", () => {
+    // A folded scalar (`run: >`) joins the lines into one command, so the generator's exit code
+    // stops being the step's exit code. An explicit `shell:` at either level replaces the default
+    // `bash -e`, which is what makes the first command's failure end the step.
+    expect(step).toMatch(/^\s+run: \|\s*$/mu);
+    expect(step).not.toMatch(/^\s+shell:/mu);
+    expect(getJob(ci, "quality")).not.toMatch(/^\s{4,6}shell:/mu);
+    expect(ci).not.toMatch(/^\s*defaults:/mu);
+  });
+
+  it("keeps the job that hosts it failing on error", () => {
+    const job = getJob(ci, "quality");
+
+    expect(job).toContain("name: Generate and validate the DEMO snapshot");
+    expect(job).not.toMatch(/^\s{4}continue-on-error:/mu);
+    expect(job).not.toMatch(/^\s{4}if:/mu);
+  });
+
+  // Spawning the real validator costs a TypeScript startup, which exceeds the default per-test
+  // budget when the whole suite competes for the machine.
+  it("keeps the rendered-language check inside deterministic validation", { timeout: 60_000 }, () => {
+    const snapshot = buildDemoSnapshot("2026-08-05T13:00:00.000Z");
+    const [first, ...rest] = snapshot.inventory.resources;
+    if (!first) throw new Error("demo fixture must publish at least one resource");
+    const leaking = {
+      ...snapshot,
+      inventory: {
+        ...snapshot.inventory,
+        resources: [{ ...first, change: "Collected from Azure Resource Graph" }, ...rest]
+      }
+    };
+    const file = join(mkdtempSync(join(tmpdir(), "ops-pulse-lang-")), "snapshot.json");
+    writeFileSync(file, JSON.stringify(leaking), "utf8");
+
+    // Asserting that the script merely mentions the audit would pass on a commented-out call, so
+    // this runs the script the publishing workflow runs and requires it to reject the snapshot.
+    expect(() =>
+      execFileSync("npx", ["tsx", "scripts/validate-public-data.ts", file], {
+        stdio: "pipe",
+        shell: process.platform === "win32"
+      })
+    ).toThrow();
   });
 });

@@ -5,6 +5,8 @@ import { isDeepStrictEqual } from "node:util";
 import { validateNumericEvidence } from "./evidence-validator";
 import { validatePublicJsonSchema } from "./json-schema-validator";
 import { validateJapaneseInsights } from "./japanese-insights-validator";
+import { validateUiLanguage } from "./ui-language-audit";
+import { isPreLocalisationSnapshot } from "./published-language-exemption";
 import { publicSnapshotSchema } from "./public-schema";
 
 const file = resolve(process.argv[2] ?? "public/data/snapshot.json");
@@ -18,6 +20,20 @@ const parsed = publicSnapshotSchema.parse(candidate);
 
 validateNumericEvidence(parsed);
 validateJapaneseInsights(parsed.aiInsights);
+
+// The one artifact published before the collector was localised is excused from the audit, and says
+// so out loud rather than passing quietly. See `published-language-exemption.ts` for why it expires
+// by itself. The excuse covers only the fields the pin froze: `aiInsights` is deliberately outside
+// the hash, so it stays audited and a newly published English insight still fails here.
+const grandfathered = isPreLocalisationSnapshot(candidate);
+if (grandfathered) {
+  console.warn(
+    `Auditing only aiInsights for the snapshot published before the collector emitted Japanese. The next collection replaces it and the audit applies in full again: ${file}`
+  );
+  validateUiLanguage(parsed, { auditOnly: /^aiInsights\b/u });
+} else {
+  validateUiLanguage(parsed);
+}
 
 if (insightsOnly) {
   const repositoryPath = relative(process.cwd(), file).replaceAll("\\", "/");
@@ -44,5 +60,5 @@ if (insightsOnly) {
 }
 
 console.log(
-  `Validated ${insightsOnly ? "AI insights" : "public snapshot"} JSON Schema, runtime schema, Japanese prose, and numeric evidence: ${file}`
+  `Validated ${insightsOnly ? "AI insights" : "public snapshot"} JSON Schema, runtime schema, Japanese prose, ${grandfathered ? "numeric evidence, and UI language across aiInsights only" : "rendered UI language, and numeric evidence"}: ${file}`
 );

@@ -44,17 +44,14 @@ import {
   availabilitySeverity,
   flowStatusLabel,
   flowStatusSeverity,
-  formatActivityDetail,
   formatActivityTitle,
   formatCostDelta,
   formatDateTimeJa,
+  formatEndpointLabel,
   formatEventTimestamp,
   formatSnapshotAge,
   formatSourceMessage,
   formatSourceName,
-  formatTrendMetricChange,
-  formatTrendMetricLabel,
-  formatTrendMetricValue,
   metricWhenSourcePublished,
   modeLabel,
   publishedCostDeltaPercent,
@@ -610,10 +607,10 @@ function OverviewPage({ data }: { data: PublicSnapshotV1 }) {
           <div className="published-metric-list">
             {data.overview.metrics.map((metric) => (
               <article key={metric.label}>
-                <p>{formatTrendMetricLabel(metric.label)}</p>
-                <strong>{formatTrendMetricValue(metric.value)}</strong>
+                <p>{metric.label}</p>
+                <strong>{metric.value}</strong>
                 <span className={`metric-note severity-${metric.severity}`}>
-                  {formatTrendMetricChange(metric.change)}
+                  {metric.change}
                 </span>
               </article>
             ))}
@@ -756,7 +753,7 @@ function OverviewPage({ data }: { data: PublicSnapshotV1 }) {
                   <span>
                     <small>{formatEventTimestamp(event.timestamp)}</small>
                     <strong>{formatActivityTitle(event.title)}</strong>
-                    <p>{formatActivityDetail(event.detail)}</p>
+                    <p>{event.detail}</p>
                   </span>
                   <ChevronRight size={16} aria-hidden="true" />
                 </button>
@@ -1477,7 +1474,7 @@ function ReliabilityPage({ data }: { data: PublicSnapshotV1 }) {
                   <span>
                     <small>{formatEventTimestamp(event.timestamp)}</small>
                     <strong>{formatActivityTitle(event.title)}</strong>
-                    <p>{formatActivityDetail(event.detail)}</p>
+                    <p>{event.detail}</p>
                   </span>
                 </div>
               ))}
@@ -1663,7 +1660,7 @@ function SecurityPage({ data }: { data: PublicSnapshotV1 }) {
                   <span>
                     <small>{formatEventTimestamp(event.timestamp)}</small>
                     <strong>{formatActivityTitle(event.title)}</strong>
-                    <p>{formatActivityDetail(event.detail)}</p>
+                    <p>{event.detail}</p>
                   </span>
                 </div>
               ))}
@@ -1951,7 +1948,7 @@ function NetworkPage({ data }: { data: PublicSnapshotV1 }) {
                     <ChevronRight size={18} aria-hidden="true" />
                     <div className="flow-endpoint">
                       <small>送信先</small>
-                      <strong>{flow.destination}</strong>
+                      <strong>{formatEndpointLabel(flow.destination)}</strong>
                     </div>
                     <div className="flow-stat">
                       <small>プロトコル</small>

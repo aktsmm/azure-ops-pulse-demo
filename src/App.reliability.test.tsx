@@ -118,18 +118,38 @@ describe("Reliability page", () => {
 });
 
 describe("Overview page", () => {
-  it("publishes the collected trend metrics in Japanese instead of dropping them", async () => {
-    renderAt("/overview", publishedSnapshot);
-    const coverage = publishedSnapshot.reliability.coverage;
+  /**
+   * The overview used to translate the collected metrics through an exact-match table and drop
+   * anything the table did not name, so a metric the collector added went missing with nothing to
+   * say so. The page now prints what the snapshot holds. The fixture supplies its own labels rather
+   * than reading the published ones: a published label is rewritten by every collection, and a test
+   * that pins one fails on success rather than on a defect.
+   */
+  it("publishes the collected trend metrics verbatim instead of dropping them", async () => {
+    const base = reliabilityFixture({ supported: 14, evaluated: 10, notApplicable: 48 });
+    const snapshot: PublicSnapshotV1 = {
+      ...base,
+      overview: {
+        ...base.overview,
+        metrics: [
+          {
+            label: "収集した独自の指標",
+            value: "42%",
+            change: "前回の収集から +4 pt",
+            direction: "up",
+            severity: "healthy",
+            points: [1, 2, 3]
+          }
+        ]
+      }
+    };
+
+    renderAt("/overview", snapshot);
 
     expect(await screen.findByText("公開指標")).toBeInTheDocument();
-    expect(screen.getByText("Resource Health の評価範囲")).toBeInTheDocument();
-    expect(
-      screen.getByText(
-        `対応 ${coverage.supportedResources} 件中 ${coverage.evaluatedResources} 件を評価済み（対象外 ${coverage.notApplicableResources} 件）`
-      )
-    ).toBeInTheDocument();
-    expect(screen.getByText("利用不可のソース")).toBeInTheDocument();
+    expect(screen.getByText("収集した独自の指標")).toBeInTheDocument();
+    expect(screen.getByText("42%")).toBeInTheDocument();
+    expect(screen.getByText("前回の収集から +4 pt")).toBeInTheDocument();
   });
 });
 
