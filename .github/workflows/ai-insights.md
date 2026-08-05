@@ -15,24 +15,37 @@ max-ai-credits: 1000
 
 tools:
   bash:
-    - "npx tsx scripts/check-insights.ts"
+    # Read-only commands, and deliberately no command that checks the analysis output. Granting a
+    # checking command let the agent choose when to run it, and the order is not the agent's to
+    # choose: the derived fields are filled in first, so checking first fails on a field the
+    # analysis was told not to write. The checks now run in a post-step the agent cannot reach.
+    # This block cannot be dropped entirely - without it the compiled workflow falls back to
+    # `--allow-all-tools`.
+    - "cat"
+    - "date"
+    - "echo"
+    - "grep"
+    - "head"
+    - "ls"
+    - "printf"
+    - "pwd"
+    - "sort"
+    - "tail"
+    - "uniq"
+    - "wc"
 
 steps:
   - name: Install deterministic validation dependencies
     run: npm ci --ignore-scripts
 
 post-steps:
-  - name: Normalize the deterministic insight fields, period and evidence labels
-    id: normalize_labels
+  - name: Normalize the derived insight fields, then validate schema, prose, evidence and privacy
+    id: check_candidate
     if: success()
-    run: npm run normalize:insights
-  - name: Validate generated insight JSON Schema, runtime schema, Japanese prose, evidence, and privacy
-    id: validate_candidate
-    if: success() && steps.normalize_labels.outcome == 'success'
-    run: npm run validate:insights && npm run scan:privacy -- public
+    run: npm run check:insights
   - name: Verify bounded candidate handoff
     id: bound_candidate
-    if: success() && steps.validate_candidate.outcome == 'success'
+    if: success() && steps.check_candidate.outcome == 'success'
     run: |
       candidate_path="public/data/snapshot.json"
       candidate_count="$(find public/data -maxdepth 1 -type f -name 'snapshot.json' -printf '1\n' | wc -l)"
@@ -46,7 +59,7 @@ post-steps:
         exit 1
       fi
   - name: Upload validated insight candidate
-    if: success() && steps.validate_candidate.outcome == 'success' && steps.bound_candidate.outcome == 'success'
+    if: success() && steps.check_candidate.outcome == 'success' && steps.bound_candidate.outcome == 'success'
     uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
     with:
       name: validated-ai-insights
@@ -123,13 +136,12 @@ overwrites it either way and a later gate rejects any candidate whose `period` d
 6. Do not add exact JPY amounts. Use only existing approximate labels and percentages.
 7. Do not alter identifiers, resource rows, source status, freshness, or any field outside
    `aiInsights`.
-8. Check your work with `npx tsx scripts/check-insights.ts`. It is the only command you can run and
-   it takes no arguments: it normalizes the fields this pipeline derives rather than writes, then
-   validates schema, prose, evidence and privacy. Validation is not separately available, because
-   validating before normalizing would fail on a field you are not responsible for. The
-   normalization is deterministic and idempotent and the same steps run again after you finish, so
-   running it changes nothing you are responsible for.
-9. If validation fails or the evidence is insufficient, leave the existing insights unchanged.
+8. You cannot run commands. After you finish, a deterministic step fills in the fields this pipeline
+   derives rather than writes, then checks schema, Japanese prose, evidence, and privacy. Nothing is
+   published unless that step passes, and if it fails the run fails visibly.
+9. Publish only what the snapshot supports. If the evidence for an insight is insufficient, leave
+   that insight out; if no insight is supportable, write an empty array. Do not pad the array to
+   reach a count.
 10. Do not request or emit a safe output. gh-aw requires a non-builtin safe output to avoid
    auto-injecting `create_issue`, so the only configured capability is a staged, non-publishing
    artifact restricted to the already-sanitized snapshot path. It is not the

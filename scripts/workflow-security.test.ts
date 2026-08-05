@@ -351,9 +351,9 @@ describe("AI insight publication gate", () => {
     expect(lock).toContain('GH_AW_SAFE_OUTPUTS_HANDLER_CONFIG: "{\\"upload_artifact\\"');
     expect(source).toContain("Analyze only `public/data/snapshot.json`");
     expect(source).toContain(
-      "Validate generated insight JSON Schema, runtime schema, Japanese prose, evidence, and privacy"
+      "Normalize the derived insight fields, then validate schema, prose, evidence and privacy"
     );
-    expect(source).toContain("npm run normalize:insights");
+    expect(source).toContain("npm run check:insights");
     expect(source).toContain("never copy an English-only metric label or source path");
     expect(deterministicValidation).toContain("validateJapaneseInsights(parsed.aiInsights)");
     expect(source).toContain("Do not inspect Azure, workflow secrets,");
@@ -375,17 +375,22 @@ describe("AI insight publication gate", () => {
     expect(normalize).toContain("scripts/normalize-ai-insight-period.ts public/data/snapshot.json");
     expect(normalize).toContain("scripts/normalize-ai-insight-labels.ts public/data/snapshot.json");
 
-    // The agent's one command normalizes before it validates. Granting the two separately would let
-    // it validate first, fail on a field it was told not to write, and then honour the guardrail
-    // that says to leave insights unchanged on a failed validation - publishing nothing while the
-    // run stays green, which is the silent no-op this repository refuses to ship. The granted
-    // command takes no arguments, because a shell allowlist matches a prefix and `npm run` keeps
-    // reading flags after it: `npm run <script> --prefix <elsewhere> --if-present` exits 0 having
-    // checked nothing.
+    // The analysis agent is given no commands at all. Granting it the normalization and the
+    // validation let it validate first, fail on a field it was told not to write, and then honour a
+    // guardrail that said to leave the insights alone - a green run that published nothing. Granting
+    // one combined command did not fix it either: a shell allowlist matches a command prefix, so
+    // `<granted command> || <validator>` still reaches the validator directly. The order is only
+    // guaranteed where the agent cannot reach it, in the deterministic step that runs afterwards.
     expect(packageJson.scripts["check:insights"]).toBe("tsx scripts/check-insights.ts");
-    const allowlist = /bash:(?:\r?\n\s+- .*)+/.exec(source)?.[0] ?? "";
-    expect(allowlist).toContain('- "npx tsx scripts/check-insights.ts"');
-    expect(allowlist).not.toContain("npm run");
+    const allowlist = /bash:(?:\r?\n\s+(?:- .*|#.*))+/.exec(source)?.[0] ?? "";
+    expect(allowlist).not.toContain("npm");
+    expect(allowlist).not.toContain("npx");
+    expect(lock).not.toContain("--allow-tool '\\''shell(npm");
+    expect(lock).not.toContain("--allow-tool '\\''shell(npx");
+    // Dropping the block instead of emptying it compiles to `--allow-all-tools`, which is the
+    // opposite of the intent.
+    expect(lock).not.toContain("--allow-all-tools");
+
     const check = readFileSync("scripts/check-insights.ts", "utf8");
     expect(check).toContain("scripts/normalize-ai-insight-period.ts");
     expect(check).toContain("scripts/normalize-ai-insight-labels.ts");
@@ -395,16 +400,17 @@ describe("AI insight publication gate", () => {
       check.indexOf("scripts/normalize-ai-insight-period.ts")
     );
 
-    // A post-step runs the normalization again on the trusted side, and validation only afterwards.
-    const normalization = source.indexOf("run: npm run normalize:insights");
-    const validation = source.indexOf("run: npm run validate:insights && npm run scan:privacy");
+    // The deterministic step runs it, and the candidate is only uploaded when it passed.
+    expect(source).toContain("run: npm run check:insights");
+    expect(source).toContain("steps.check_candidate.outcome == 'success'");
+
+    // A post-step runs the normalization on the trusted side, and validation only afterwards.
+    const normalization = source.indexOf("run: npm run check:insights");
     expect(normalization).toBeGreaterThan(-1);
-    expect(validation).toBeGreaterThan(normalization);
 
     // A prompt change that never reached the compiled workflow would leave the agent free to write
-    // the field again, so the generated lock has to carry the same commands.
-    expect(lock).toContain("run: npm run normalize:insights");
-    expect(lock).toContain("npx tsx scripts/check-insights.ts");
+    // the field again, so the generated lock has to carry the same command.
+    expect(lock).toContain("run: npm run check:insights");
 
     // The prompt no longer lists `period` among the fields the analysis writes.
     expect(source).toContain("Do not write `period`");
@@ -599,7 +605,7 @@ describe("DEMO snapshot validation gate", () => {
    * appended. Only the rejection path is exercised: running the check for real would rewrite
    * `public/data/snapshot.json`, which no test may do.
    */
-  it("refuses arguments appended to the agent's one command", { timeout: 60_000 }, () => {
+  it("refuses arguments that would narrow what the deterministic check covers", { timeout: 60_000 }, () => {
     const result = spawnSync(
       "npx",
       ["tsx", "scripts/check-insights.ts", "--prefix", "node_modules", "--if-present"],

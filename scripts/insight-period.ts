@@ -1,22 +1,21 @@
 import type { AiInsight } from "../src/data/contracts";
 
 /**
- * `period` marks when the snapshot an insight analyzed was collected. That is all it can mean here,
- * and unlike `title`, `observation`, `impact` and `recommendedAction` it carries no analysis: the
- * snapshot is a point-in-time artifact whose sources each cover their own window — 30-day cost
- * totals, 7-day Activity Log counts, 24-hour network metrics — so there is no one window an insight
- * measured, and nothing in the snapshot lets the publisher check a per-insight claim about one. The
- * collection time, by contrast, is fixed exactly and identically for every insight in a run, so this
- * field is derived from `generatedAt` rather than written by the model.
+ * `period` marks when the snapshot an insight analyzed was collected. That is deliberately all it
+ * means: unlike `title`, `observation`, `impact` and `recommendedAction` it carries no analysis, and
+ * it is independent of the aggregation window of whichever source an insight cited — 30-day cost
+ * totals, 7-day Activity Log counts, 24-hour network metrics all sit in the same snapshot. The
+ * collection time is fixed exactly and identically for every insight in a run, so this field is
+ * derived from `generatedAt` rather than written by the model.
  *
  * Letting the model write it bought variance without buying meaning, in both directions:
  *
  * - It broke publication. Run 31037073625 emitted `"period": "2026-08-05"`, failed the Japanese
  *   audit, retried with `"2026年8月5日 収集分"` — still no kana, because a natural Japanese date
  *   label has none — and the whole analysis was discarded. Zero insights reached the site.
- * - It published windows nothing could verify. Earlier runs shipped `Last 30 days`,
- *   `Rolling 30 days` and `Last 24 hours` on insights drawn from the same snapshot, so at most one of
- *   them could match the source an insight actually cited, and no gate could tell which.
+ * - It published windows nothing checked. Earlier runs shipped `Last 30 days`, `Rolling 30 days` and
+ *   `Last 24 hours`, and no gate compared any of them against the window of the source the insight
+ *   actually cited.
  *
  * The date is the one the dashboard shows. Every timestamp on the page is rendered in `Asia/Tokyo`
  * (`formatDateTimeJa`), and collection runs at 21:00 UTC — 06:00 the next day in Japan — so slicing

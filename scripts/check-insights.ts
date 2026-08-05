@@ -1,24 +1,19 @@
 import { spawnSync } from "node:child_process";
 
 /**
- * The single command the analysis agent is allowed to run against its own output.
+ * The deterministic pass over an analysis candidate: it fills in the fields this pipeline derives
+ * rather than writes, then checks schema, Japanese prose, evidence, baseline and privacy, in that
+ * order and always in that order.
  *
- * It exists because the order matters and the order must not be the model's to choose. `period` and
- * the evidence labels are derived by this pipeline rather than written by the analysis, so validating
- * before normalizing fails on fields the analysis was told not to write. The agent's guardrails then
- * tell it to leave the existing insights alone, and the run ends green having published nothing —
- * the silent no-op this repository refuses to ship.
+ * The order matters, and it is not the analysis agent's to choose. `period` and the evidence labels
+ * are derived here, so validating before normalizing fails on fields the analysis was told not to
+ * write. Rather than grant the agent commands and depend on it running them in the right order, the
+ * agent is given no commands at all: this runs after it finishes, and the run fails visibly if it
+ * fails. Arguments are rejected so that the sequence is the only thing this entry point can do.
  *
- * Granting the normalization and the validation as two allowlist entries did not prevent that: the
- * agent could still run them in the wrong order. Granting one npm script did not prevent it either,
- * because a shell allowlist matches a command prefix and `npm run` keeps reading flags after it, so
- * `npm run check:insights --prefix <elsewhere> --if-present` exits 0 without checking anything. This
- * entry point takes no arguments at all and rejects them loudly, so the only thing the granted
- * command can do is the whole sequence.
- *
- * It is a convenience for the agent, not a security boundary. The authority lives in
- * `publish-ai-insights.yml`, which repeats these gates from a fresh checkout of the default branch
- * before anything reaches the site.
+ * The publication boundary is elsewhere and stays there: `publish-ai-insights.yml` repeats these
+ * gates from a fresh checkout of the default branch, so nothing that ran in the agent's workspace
+ * decides what reaches the site.
  */
 const steps: ReadonlyArray<readonly [string, readonly string[]]> = [
   ["scripts/normalize-ai-insight-period.ts", ["public/data/snapshot.json"]],
