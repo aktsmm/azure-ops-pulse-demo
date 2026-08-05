@@ -136,6 +136,9 @@ export function formatCostDelta(deltaPercent: number | null): string {
 /**
  * Resources whose type Azure Resource Health never evaluates are counted separately and excluded
  * from the coverage denominator, so 0% coverage always means a genuine collection gap.
+ *
+ * The dashboard reads `reliability.coverage` from the snapshot instead of re-counting the
+ * inventory; this helper stays available for tooling that only has a resource list.
  */
 export function summarizeResourceHealth(resources: ResourceItem[]) {
   const summary = {
@@ -204,6 +207,18 @@ export function formatActivityDetail(detail: string): string {
   return exact[detail] ?? detail;
 }
 
+/**
+ * Source identifiers are stable English keys in the snapshot (the AI evidence validator matches on
+ * them), so only the descriptive ones are translated for display. Azure product names stay as-is.
+ */
+export function formatSourceName(source: string): string {
+  const names: Record<string, string> = {
+    "Network inventory and metrics": "ネットワーク インベントリとメトリック",
+    "Cost Management prior period": "Cost Management（前期間）"
+  };
+  return names[source] ?? source;
+}
+
 export function formatSourceMessage(source: SourceStatus): string {
   const messages: Record<string, Partial<Record<Availability, string>>> = {
     "Azure Resource Graph": {
@@ -244,7 +259,7 @@ export function formatSourceMessage(source: SourceStatus): string {
     "Network inventory and metrics": {
       available: "ネットワーク インベントリと対応メトリックを収集しました。",
       partial:
-        "ネットワーク インベントリは収集済みです。フロー テレメトリは未収集で、接続状態は評価していません。",
+        "ネットワーク インベントリは収集済みです。未収集の項目はページ内で個別に明示します。",
       unavailable: "ネットワーク インベントリとメトリックを収集できませんでした。"
     }
   };
@@ -256,4 +271,52 @@ export function formatSourceMessage(source: SourceStatus): string {
         ? "このソースは一部の公開可能なデータのみ収集できました。"
         : "このソースのデータは利用できません。")
   );
+}
+
+/**
+ * `overview.metrics` is the machine-readable evidence surface that published AI insights cite, so
+ * its labels stay in English inside the snapshot. The dashboard is Japanese, so it is translated
+ * for display only; unknown labels fall through unchanged instead of being hidden.
+ */
+export function formatTrendMetricLabel(label: string): string {
+  const labels: Record<string, string> = {
+    "Resource Health coverage": "Resource Health の評価範囲",
+    "Cost coverage": "コストの収集範囲",
+    "Defender recommendations": "Defender の未対応推奨事項",
+    "Unavailable sources": "利用不可のソース",
+    "Resources healthy": "正常なリソース",
+    "Cost movement": "コストの変動",
+    "Open alerts": "未解決アラート",
+    Availability: "可用性"
+  };
+  return labels[label] ?? label;
+}
+
+export function formatTrendMetricValue(value: string): string {
+  const values: Record<string, string> = {
+    Available: "収集済み",
+    Partial: "一部収集",
+    Unavailable: "利用不可"
+  };
+  return values[value] ?? value;
+}
+
+export function formatTrendMetricChange(change: string): string {
+  const evaluated = change.match(
+    /^(\d+) of (\d+) supported resources evaluated \((\d+) out of scope\)$/
+  );
+  if (evaluated) {
+    return `対応 ${evaluated[2]} 件中 ${evaluated[1]} 件を評価済み（対象外 ${evaluated[3]} 件）`;
+  }
+  const changes: Record<string, string> = {
+    "Rounded public view": "公開用に丸めた値",
+    "Aggregate titles only": "集計タイトルのみ",
+    "Explicitly surfaced": "未収集を明示",
+    "vs prior period": "前期間との比較"
+  };
+  const resolved = change.match(/^(\d+) resolved$/);
+  if (resolved) return `解決済み ${resolved[1]} 件`;
+  const points = change.match(/^([+-][\d.]+) pts$/);
+  if (points) return `${points[1]} pt`;
+  return changes[change] ?? change;
 }

@@ -10,6 +10,9 @@ import {
   Coins,
   ExternalLink,
   Gauge,
+  Info,
+  Layers,
+  MapPin,
   Menu,
   Network,
   Search,
@@ -31,7 +34,8 @@ import type {
   AiInsight,
   PublicSnapshotV1,
   ResourceItem,
-  Severity
+  Severity,
+  SourceStatus
 } from "./data/contracts";
 import { ThemeToggle } from "./components/ThemeToggle";
 import { useSnapshot } from "./hooks/useSnapshot";
@@ -47,15 +51,35 @@ import {
   formatEventTimestamp,
   formatSnapshotAge,
   formatSourceMessage,
+  formatSourceName,
+  formatTrendMetricChange,
+  formatTrendMetricLabel,
+  formatTrendMetricValue,
   metricWhenSourcePublished,
   modeLabel,
   recommendationStatusLabel,
   resourceStatusLabel,
   resourceStatusSeverity,
   routeLabel,
-  severityLabel,
-  summarizeResourceHealth
+  severityLabel
 } from "./lib/display-formatters";
+import {
+  blindSpotSummary,
+  confirmedFailures,
+  coverageSegments,
+  summarizeCoverageByRegion,
+  summarizeCoverageByType,
+  supportedSharePercent,
+  type CoverageSegment,
+  type ResourceTypeCoverageRow
+} from "./lib/reliability-view";
+
+const RESOURCE_HEALTH_TYPES_DOC =
+  "https://learn.microsoft.com/azure/service-health/resource-health-checks-resource-types";
+const RESOURCE_HEALTH_OVERVIEW_DOC =
+  "https://learn.microsoft.com/azure/service-health/resource-health-overview";
+const DEFENDER_PLANS_DOC =
+  "https://learn.microsoft.com/azure/defender-for-cloud/enable-all-plans";
 
 const NAV_ITEMS = [
   { path: "/overview", label: "概要", icon: Gauge },
@@ -89,31 +113,31 @@ const RELATED_DEMOS = [
 const TITLES: Record<string, { title: string; subtitle: string }> = {
   "/overview": {
     title: "運用概要",
-    subtitle: "公開スナップショットで確認できる事実と、未収集の範囲を分けて表示します。"
+    subtitle: "収集できた事実と、まだ収集していない範囲を分けて表示します。"
   },
   "/cost": {
     title: "コスト",
-    subtitle: "丸められた概算額と、比較可能な期間・サービス別の公開値です。"
+    subtitle: "公開用に丸めた概算額と、比較できる前期間・サービス別の内訳です。"
   },
   "/resources": {
     title: "リソース インベントリ",
-    subtitle: "サニタイズ済みの名前、リソース タイプ、リージョン、収集済み状態を確認します。"
+    subtitle: "サニタイズ済みの名前・種別・リージョンと、Resource Health の状態を確認できます。"
   },
   "/reliability": {
     title: "信頼性",
-    subtitle: "Resource Health の評価範囲を明示し、未評価の状態を異常として扱いません。"
+    subtitle: "Azure Resource Health で監視できる範囲と、監視の死角を可視化します。"
   },
   "/security": {
     title: "セキュリティ",
-    subtitle: "Defender for Cloud の集計値のみを表示し、資産や脆弱性の詳細は公開しません。"
+    subtitle: "Defender for Cloud の集計値だけを表示し、資産や脆弱性の詳細は公開しません。"
   },
   "/network": {
     title: "ネットワーク",
-    subtitle: "インベントリとフロー テレメトリを分離し、未収集の接続状態を推定しません。"
+    subtitle: "インベントリとメトリック取得状況を分け、未収集の接続状態は推定しません。"
   },
   "/ai-insights": {
     title: "AI 分析",
-    subtitle: "スキーマと数値根拠を通過した、読み取り専用のサニタイズ済み分析です。"
+    subtitle: "スキーマ検証と数値根拠の照合を通過した、読み取り専用の分析だけを公開します。"
   }
 };
 
@@ -202,12 +226,111 @@ function ProgressBar({ value, label }: { value: number; label: string }) {
   );
 }
 
-function EmptyState({ title, detail }: { title: string; detail: string }) {
+/**
+ * Uncollected data is not a failure, so the neutral tone is the default; `alert` is reserved for
+ * states the visitor is expected to act on.
+ */
+function EmptyState({
+  title,
+  detail,
+  tone = "info"
+}: {
+  title: string;
+  detail: string;
+  tone?: "info" | "alert";
+}) {
   return (
     <div className="state-card">
-      <CircleAlert size={26} aria-hidden="true" />
+      {tone === "alert" ? (
+        <CircleAlert size={26} aria-hidden="true" />
+      ) : (
+        <Info size={26} aria-hidden="true" />
+      )}
       <strong>{title}</strong>
       <p>{detail}</p>
+    </div>
+  );
+}
+
+function LearnLink({ href, children }: { href: string; children: ReactNode }) {
+  return (
+    <a className="learn-link" href={href} target="_blank" rel="noreferrer">
+      {children} <ExternalLink size={13} aria-hidden="true" />
+    </a>
+  );
+}
+
+/** Collection status belongs in a footnote, not in a headline card. */
+function SourceFootnote({ sources }: { sources: SourceStatus[] }) {
+  if (!sources.length) return null;
+  return (
+    <p className="source-footnote">
+      <Info size={14} aria-hidden="true" />
+      <span>
+        {sources
+          .map((source) => `${formatSourceName(source.source)}: ${formatSourceMessage(source)}`)
+          .join(" ")}
+      </span>
+    </p>
+  );
+}
+
+/**
+ * Stacked view of every inventoried resource by Resource Health outcome. It stays readable when
+ * nothing has been evaluated yet, because "未評価" and "対象外" are segments rather than blanks.
+ */
+function CoverageBar({
+  segments,
+  total,
+  label
+}: {
+  segments: CoverageSegment[];
+  total: number;
+  label: string;
+}) {
+  if (!total || !segments.length) return null;
+  return (
+    <div className="coverage-bar-wrap">
+      <div className="coverage-bar" role="img" aria-label={`${label}: ${segments
+        .map((segment) => `${segment.label} ${segment.count} 件`)
+        .join("、")}`}>
+        {segments.map((segment) => (
+          <span
+            key={segment.key}
+            className={`coverage-segment severity-${segment.severity}`}
+            style={{ width: `${(segment.count / total) * 100}%` }}
+          />
+        ))}
+      </div>
+      <ul className="coverage-legend">
+        {segments.map((segment) => (
+          <li key={segment.key}>
+            <span className={`health-dot severity-${segment.severity}`} aria-hidden="true" />
+            <strong>{segment.label}</strong>
+            <span>{numberFormatter.format(segment.count)} 件</span>
+          </li>
+        ))}
+      </ul>
+    </div>
+  );
+}
+
+function TypeCoverageRow({ row }: { row: ResourceTypeCoverageRow }) {
+  const detail = row.supported
+    ? row.evaluated
+      ? `正常 ${row.healthy} 件・低下 ${row.degraded} 件・利用不可 ${row.unavailable} 件・未評価 ${row.unevaluated} 件`
+      : `評価待ち ${row.unevaluated} 件`
+    : "Azure が状態を公開しない種別";
+  return (
+    <div className="coverage-type-row">
+      <div>
+        <strong>{row.type}</strong>
+        <small>{detail}</small>
+      </div>
+      <span className="coverage-type-count">{numberFormatter.format(row.total)} 件</span>
+      <StatusBadge severity={row.supported ? (row.evaluated ? "healthy" : "warning") : "info"}>
+        {row.supported ? (row.evaluated ? "評価済み" : "対応・評価待ち") : "対象外"}
+      </StatusBadge>
     </div>
   );
 }
@@ -256,7 +379,7 @@ function SourceList({ data }: { data: PublicSnapshotV1 }) {
             )}
           </span>
           <div>
-            <strong>{source.source}</strong>
+            <strong>{formatSourceName(source.source)}</strong>
             <p>{formatSourceMessage(source)}</p>
           </div>
           <StatusBadge severity={availabilitySeverity(source.availability)}>
@@ -276,7 +399,7 @@ function OverviewPage({ data }: { data: PublicSnapshotV1 }) {
       block: "start"
     });
   };
-  const health = summarizeResourceHealth(data.inventory.resources);
+  const coverage = data.reliability.coverage;
   const defenderSource = data.sources.find((source) => source.source === "Defender for Cloud");
   const defenderRecommendationCount = metricWhenSourcePublished(
     defenderSource,
@@ -366,10 +489,11 @@ function OverviewPage({ data }: { data: PublicSnapshotV1 }) {
         <div>
           <span>Resource Health 評価範囲</span>
           <strong>
-            {health.evaluated}/{health.supported} 件
+            {coverage.evaluatedResources}/{coverage.supportedResources} 件
           </strong>
           <small>
-            未評価 {health.unknown} 件・対象外 {health.notApplicable} 件は正常・異常に含めません
+            未評価 {coverage.unevaluatedResources} 件・対象外 {coverage.notApplicableResources}{" "}
+            件は正常・異常に含めません
           </small>
         </div>
       </section>
@@ -455,7 +579,7 @@ function OverviewPage({ data }: { data: PublicSnapshotV1 }) {
           label="Defender 推奨事項"
           value={
             defenderRecommendationCount === null
-              ? "未取得"
+              ? "未収集"
               : `${numberFormatter.format(defenderRecommendationCount)} 件`
           }
           note={
@@ -467,9 +591,38 @@ function OverviewPage({ data }: { data: PublicSnapshotV1 }) {
         <MetricCard
           label="検証済み AI 分析"
           value={`${numberFormatter.format(data.aiInsights.length)} 件`}
-          note="数値根拠とソース パスを確認済み"
+          note={
+            data.aiInsights.length
+              ? "数値根拠とソース パスを照合済み"
+              : "公開ゲートを通過した分析がまだありません"
+          }
+          severity={data.aiInsights.length ? "healthy" : "info"}
         />
       </section>
+
+      <Panel
+        title="公開指標"
+        description="公開スナップショットに記録され、AI 分析が数値根拠として参照する指標です。"
+      >
+        {data.overview.metrics.length ? (
+          <div className="published-metric-list">
+            {data.overview.metrics.map((metric) => (
+              <article key={metric.label}>
+                <p>{formatTrendMetricLabel(metric.label)}</p>
+                <strong>{formatTrendMetricValue(metric.value)}</strong>
+                <span className={`metric-note severity-${metric.severity}`}>
+                  {formatTrendMetricChange(metric.change)}
+                </span>
+              </article>
+            ))}
+          </div>
+        ) : (
+          <EmptyState
+            title="公開指標はありません"
+            detail="この収集ウィンドウでは、公開できる指標が記録されませんでした。"
+          />
+        )}
+      </Panel>
 
       <div className="overview-grid">
         <Panel
@@ -615,33 +768,35 @@ function OverviewPage({ data }: { data: PublicSnapshotV1 }) {
           )}
         </Panel>
 
-        <Panel
-          title="AI 分析サマリー"
-          description="観測、影響、数値根拠、推奨アクションを公開スナップショット内で完結させています。"
-          className="span-12"
-        >
-          <div className="ai-summary">
-            <div>
-              <Bot size={24} aria-hidden="true" />
-              <strong>{data.aiInsights.length} 件の検証済み分析</strong>
-              <p>読み取り専用・匿名化済み・自動修復なし</p>
+        {data.aiInsights.length ? (
+          <Panel
+            title="AI 分析サマリー"
+            description="観測、影響、数値根拠、推奨アクションを公開スナップショット内で完結させています。"
+            className="span-12"
+          >
+            <div className="ai-summary">
+              <div>
+                <Bot size={24} aria-hidden="true" />
+                <strong>{data.aiInsights.length} 件の検証済み分析</strong>
+                <p>読み取り専用・匿名化済み・自動修復なし</p>
+              </div>
+              <div className="evidence-summary">
+                <span>
+                  数値根拠{" "}
+                  {data.aiInsights.reduce(
+                    (count, insight) => count + insight.numericEvidence.length,
+                    0
+                  )}{" "}
+                  件
+                </span>
+                <span>
+                  対象領域 {new Set(data.aiInsights.map((insight) => insight.route)).size} 件
+                </span>
+                <span>更新 {formatDateTimeJa(data.generatedAt)}</span>
+              </div>
             </div>
-            <div className="evidence-summary">
-              <span>
-                数値根拠{" "}
-                {data.aiInsights.reduce(
-                  (count, insight) => count + insight.numericEvidence.length,
-                  0
-                )}{" "}
-                件
-              </span>
-              <span>
-                対象領域 {new Set(data.aiInsights.map((insight) => insight.route)).size} 件
-              </span>
-              <span>更新 {formatDateTimeJa(data.generatedAt)}</span>
-            </div>
-          </div>
-        </Panel>
+          </Panel>
+        ) : null}
       </div>
     </div>
   );
@@ -652,6 +807,10 @@ function CostPage({ data }: { data: PublicSnapshotV1 }) {
     (category) => category.deltaPercent !== null
   );
   const canShowTrend = data.mode === "AZURE" && data.cost.normalizedTrend.length > 1;
+  const uncollected = [
+    data.cost.forecast.availability === "available" ? null : "予測",
+    data.cost.budget.availability === "available" ? null : "予算使用率"
+  ].filter((label): label is string => label !== null);
 
   return (
     <div className="page-stack">
@@ -664,31 +823,40 @@ function CostPage({ data }: { data: PublicSnapshotV1 }) {
       <section className="metric-grid four" aria-label="コスト指標">
         <MetricCard
           label="現在期間"
-          value={data.cost.current.approximateAmount ?? "利用不可"}
+          value={data.cost.current.approximateAmount ?? "未収集"}
           note={formatCostDelta(data.cost.deltaPercent)}
         />
         <MetricCard
           label="前期間"
-          value={data.cost.previous.approximateAmount ?? "利用不可"}
-          note="比較可能な前期間の概算値"
+          value={data.cost.previous.approximateAmount ?? "未収集"}
+          note="現在期間と同じ日数で比較した概算値"
         />
         <MetricCard
-          label="予測"
-          value={data.cost.forecast.approximateAmount ?? "未収集"}
-          note="権威ある予測値のみ表示"
-        />
-        <MetricCard
-          label="予算使用率"
+          label="期間差"
           value={
-            data.cost.budget.usedPercent === null ? "未収集" : `${data.cost.budget.usedPercent}%`
+            data.cost.deltaPercent === null
+              ? "比較不可"
+              : `${data.cost.deltaPercent > 0 ? "+" : ""}${numberFormatter.format(data.cost.deltaPercent)}%`
           }
-          note="設定済み予算を収集できた場合のみ表示"
+          note={
+            data.cost.deltaPercent === null
+              ? "比較できる前期間のデータがありません"
+              : "同じ日数の前期間との比較"
+          }
+          severity={
+            data.cost.deltaPercent !== null && data.cost.deltaPercent > 0 ? "warning" : "info"
+          }
+        />
+        <MetricCard
+          label="対象サービス"
+          value={`${numberFormatter.format(data.cost.categories.length)} 件`}
+          note="概算額を公開できたサービス数"
         />
       </section>
       <div className="content-grid">
         <Panel
           title="サービス別コスト構成"
-          description="サービス名と構成比は公開スナップショット値です。"
+          description="サービス名と構成比は公開スナップショットの値です。"
           className="span-7"
         >
           {data.cost.categories.length ? (
@@ -708,14 +876,14 @@ function CostPage({ data }: { data: PublicSnapshotV1 }) {
             </div>
           ) : (
             <EmptyState
-              title="サービス別コストなし"
-              detail="公開可能なサービス別コストが収集されていません。"
+              title="サービス別コストは未収集"
+              detail="公開できるサービス別コストがこの収集ウィンドウにはありません。"
             />
           )}
         </Panel>
         <Panel
           title="前期間からの変化"
-          description="比較可能なサービスのみを表示します。値の良否は推定しません。"
+          description="比較できるサービスだけを、変化の大きい順に表示します。"
           className="span-5"
         >
           {categoriesWithDelta.length ? (
@@ -738,17 +906,17 @@ function CostPage({ data }: { data: PublicSnapshotV1 }) {
             </div>
           ) : (
             <EmptyState
-              title="比較データなし"
-              detail="比較可能な前期間がないため、サービス別の変化は表示していません。"
+              title="比較できるサービスがありません"
+              detail="比較できる前期間がないため、サービス別の変化は表示していません。"
             />
           )}
         </Panel>
-        <Panel
-          title="正規化済み支出系列"
-          description="Azure 収集で公開された実測系列がある場合のみ表示します。"
-          className="span-12"
-        >
-          {canShowTrend ? (
+        {canShowTrend && (
+          <Panel
+            title="正規化済み支出系列"
+            description="Azure 収集で公開された実測系列です。"
+            className="span-12"
+          >
             <div className="chart-shell" aria-label="正規化済み支出系列">
               {data.cost.normalizedTrend.map((value, index) => (
                 <div className="chart-column" key={`${value}-${index}`}>
@@ -757,14 +925,24 @@ function CostPage({ data }: { data: PublicSnapshotV1 }) {
                 </div>
               ))}
             </div>
-          ) : (
-            <EmptyState
-              title="実測の時系列は未収集"
-              detail="単一期間の合計から時系列や予測を合成していません。"
-            />
-          )}
-        </Panel>
+          </Panel>
+        )}
       </div>
+      {(uncollected.length > 0 || !canShowTrend) && (
+        <p className="source-footnote">
+          <Info size={14} aria-hidden="true" />
+          <span>
+            {uncollected.length
+              ? `${uncollected.join("・")}は、このスナップショットでは収集していないため表示していません。`
+              : ""}
+            {canShowTrend
+              ? ""
+              : data.mode === "AZURE"
+                ? "単一期間の合計から時系列や予測を合成しないため、実測の支出系列も表示していません。"
+                : "デモ モードの支出系列は合成値のため、実測の系列としては表示していません。"}
+          </span>
+        </p>
+      )}
     </div>
   );
 }
@@ -862,6 +1040,7 @@ function ResourcesPage({ data }: { data: PublicSnapshotV1 }) {
   const [query, setQuery] = useState("");
   const [status, setStatus] = useState<"all" | ResourceItem["status"]>("all");
   const [selected, setSelected] = useState<ResourceItem | null>(null);
+  const coverage = data.reliability.coverage;
   const filtered = useMemo(
     () =>
       data.inventory.resources.filter(
@@ -879,17 +1058,34 @@ function ResourcesPage({ data }: { data: PublicSnapshotV1 }) {
       <section className="metric-grid four" aria-label="インベントリ サマリー">
         <MetricCard
           label="合計"
-          value={`${data.inventory.total} 件`}
-          note="公開スナップショット内"
+          value={`${numberFormatter.format(data.inventory.total)} 件`}
+          note={`${numberFormatter.format(data.inventory.byType.length)} 種別・${numberFormatter.format(data.inventory.byRegion.length)} リージョン`}
         />
-        {data.inventory.byType.slice(0, 3).map((item) => (
-          <MetricCard
-            key={item.label}
-            label={item.label}
-            value={`${item.count} 件`}
-            note="リソース タイプ"
-          />
-        ))}
+        <MetricCard
+          label="Resource Health 対応"
+          value={`${numberFormatter.format(coverage.supportedResources)} 件`}
+          note="Azure が可用性を公開する種別"
+        />
+        <MetricCard
+          label="対象外"
+          value={`${numberFormatter.format(coverage.notApplicableResources)} 件`}
+          note="Resource Health が評価しない種別。異常ではありません"
+        />
+        <MetricCard
+          label="最も多い種別"
+          value={
+            data.inventory.byType.length
+              ? `${numberFormatter.format(
+                  [...data.inventory.byType].sort((a, b) => b.count - a.count)[0]!.count
+                )} 件`
+              : "未収集"
+          }
+          note={
+            data.inventory.byType.length
+              ? [...data.inventory.byType].sort((a, b) => b.count - a.count)[0]!.label
+              : "公開できるリソース種別がありません"
+          }
+        />
       </section>
       <Panel
         title="リソース一覧"
@@ -981,149 +1177,295 @@ function ResourcesPage({ data }: { data: PublicSnapshotV1 }) {
 }
 
 function ReliabilityPage({ data }: { data: PublicSnapshotV1 }) {
+  const navigate = useNavigate();
   const coverage = data.reliability.coverage;
   const serviceHealth = data.reliability.serviceHealth;
   const resourceHealthSource = data.sources.find((source) => source.source === "Resource Health");
   const serviceHealthSource = data.sources.find((source) => source.source === "Service Health");
-  const observedIncidents = metricWhenSourcePublished(
-    resourceHealthSource,
-    data.reliability.incidentAvailability === "available" ? data.reliability.incidents : null
+  const activityLogSource = data.sources.find((source) => source.source === "Activity Log");
+  const typeRows = useMemo(
+    () => summarizeCoverageByType(data.inventory.resources),
+    [data.inventory.resources]
   );
-  const reliabilitySources = [resourceHealthSource, serviceHealthSource].filter(
-    (source): source is NonNullable<typeof source> => source !== undefined
+  const regionRows = useMemo(
+    () => summarizeCoverageByRegion(data.inventory.resources),
+    [data.inventory.resources]
+  );
+  const supportedTypeRows = typeRows.filter((row) => row.supported);
+  const blindSpots = blindSpotSummary(typeRows, 6);
+  const segments = coverageSegments(coverage);
+  const supportedShare = supportedSharePercent(coverage);
+  const failures = confirmedFailures(coverage);
+  const healthyRate = data.overview.postureScore;
+  const reliabilitySources = [
+    resourceHealthSource,
+    serviceHealthSource,
+    activityLogSource
+  ].filter((source): source is SourceStatus => source !== undefined);
+  const reliabilityEvents = data.overview.eventTimeline.filter(
+    (event) => event.route === "/reliability" || event.route === "/overview"
   );
 
   return (
     <div className="page-stack">
-      <div className="notice">
-        <Activity size={18} aria-hidden="true" />
-        <span>
-          「対象外」は Azure Resource Health が評価しない種別、「未評価」は対応種別なのに状態を取得できなかったリソースです。どちらも正常率の分母や障害件数には含めません。
-        </span>
-      </div>
-      <section className="metric-grid four" aria-label="Resource Health サマリー">
-        <MetricCard
-          label="評価済み"
-          value={`${coverage.evaluatedResources}/${coverage.supportedResources} 件`}
-          note={
-            coverage.supportedCoveragePercent === null
-              ? "Resource Health 対応リソースがありません"
-              : `対応リソースの評価範囲 ${coverage.supportedCoveragePercent}%（全 ${coverage.totalResources} 件中 ${coverage.notApplicableResources} 件は対象外）`
-          }
-        />
-        <MetricCard
-          label="正常"
-          value={`${coverage.healthyResources} 件`}
-          note="Resource Health 状態が「正常」の収集値"
-          severity={coverage.healthyResources > 0 ? "healthy" : "info"}
-        />
-        <MetricCard
-          label="観測中の障害"
-          value={observedIncidents === null ? "未取得" : `${observedIncidents} 件`}
-          note={
-            observedIncidents === null
-              ? resourceHealthSource && resourceHealthSource.availability !== "unavailable"
-                ? "障害件数を取得する観測ソースは未実装です"
-                : resourceHealthSource
-                  ? formatSourceMessage(resourceHealthSource)
-                  : "Resource Health のソース状態がありません"
-              : `低下 ${coverage.degradedResources} 件・利用不可 ${coverage.unavailableResources} 件`
-          }
-          severity={observedIncidents ? "warning" : "info"}
-        />
-        <MetricCard
-          label="未評価 / 対象外"
-          value={`${coverage.unevaluatedResources} / ${coverage.notApplicableResources} 件`}
-          note="未評価は対応種別で状態未取得、対象外は Resource Health の評価対象外"
+      <section className="coverage-hero" aria-labelledby="coverage-hero-title">
+        <div>
+          <p className="eyebrow">Azure Resource Health</p>
+          <h2 id="coverage-hero-title">
+            {numberFormatter.format(coverage.totalResources)} 件のうち{" "}
+            {numberFormatter.format(coverage.supportedResources)} 件が Resource Health で監視できます
+          </h2>
+          <p>
+            Azure は種別ごとに可用性を公開します。残り{" "}
+            {numberFormatter.format(coverage.notApplicableResources)} 件（
+            {numberFormatter.format(blindSpots.types)} 種別）は Azure
+            が状態を公開しない「対象外」で、異常ではありません。ここが Azure Monitor
+            のメトリックやアラートで補うべき監視の死角です。
+          </p>
+          <LearnLink href={RESOURCE_HEALTH_TYPES_DOC}>
+            対応リソース種別の一覧（Microsoft Learn）
+          </LearnLink>
+        </div>
+        <CoverageBar
+          segments={segments}
+          total={coverage.totalResources}
+          label="Resource Health の内訳"
         />
       </section>
+
+      <section className="metric-grid four" aria-label="Resource Health サマリー">
+        <MetricCard
+          label="監視できる範囲"
+          value={`${numberFormatter.format(coverage.supportedResources)}/${numberFormatter.format(coverage.totalResources)} 件`}
+          note={
+            supportedShare === null
+              ? "公開スナップショットにリソースがありません"
+              : `インベントリの ${supportedShare}% が Resource Health の対応種別`
+          }
+          severity={supportedShare && supportedShare >= 50 ? "healthy" : "info"}
+        />
+        <MetricCard
+          label="状態を取得できた数"
+          value={`${numberFormatter.format(coverage.evaluatedResources)}/${numberFormatter.format(coverage.supportedResources)} 件`}
+          note={
+            coverage.supportedCoveragePercent === null
+              ? "Resource Health の対応リソースがありません"
+              : `対応リソースの ${coverage.supportedCoveragePercent}% を評価済み${
+                  healthyRate === null ? "" : `・うち正常 ${healthyRate}%`
+                }`
+          }
+          severity={coverage.evaluatedResources ? "healthy" : "warning"}
+        />
+        <MetricCard
+          label="監視の死角"
+          value={`${numberFormatter.format(blindSpots.resources)} 件`}
+          note={`${numberFormatter.format(blindSpots.types)} 種別が Resource Health の対象外。Azure Monitor での代替監視が必要です`}
+        />
+        <MetricCard
+          label="確認された障害"
+          value={failures === null ? "判定前" : `${numberFormatter.format(failures)} 件`}
+          note={
+            failures === null
+              ? "評価済みが 0 件のため、障害の有無は判定していません（0 件とは表示しません）"
+              : `低下 ${coverage.degradedResources} 件・利用不可 ${coverage.unavailableResources} 件`
+          }
+          severity={failures ? "warning" : "info"}
+        />
+      </section>
+
       <div className="content-grid">
         <Panel
-          title="収集ソース"
-          description="可用性はデータ取得範囲を表し、サービス状態の判定ではありません。"
+          title="リソース種別ごとの監視カバレッジ"
+          description="Azure Resource Health が状態を公開する種別と、公開しない種別を分けて集計しています。"
+          className="span-7"
+          action={
+            <button type="button" className="text-button" onClick={() => navigate("/resources")}>
+              インベントリを開く <ChevronRight size={15} aria-hidden="true" />
+            </button>
+          }
+        >
+          {typeRows.length ? (
+            <>
+              <h3 className="coverage-subhead">
+                <Server size={15} aria-hidden="true" />
+                Resource Health 対応（{numberFormatter.format(supportedTypeRows.length)} 種別・
+                {numberFormatter.format(coverage.supportedResources)} 件）
+              </h3>
+              {supportedTypeRows.length ? (
+                <div className="coverage-type-list">
+                  {supportedTypeRows.map((row) => (
+                    <TypeCoverageRow key={row.type} row={row} />
+                  ))}
+                </div>
+              ) : (
+                <p className="muted">
+                  このスナップショットには Resource Health 対応種別のリソースがありません。
+                </p>
+              )}
+              <h3 className="coverage-subhead">
+                <Layers size={15} aria-hidden="true" />
+                対象外（{numberFormatter.format(blindSpots.types)} 種別・
+                {numberFormatter.format(blindSpots.resources)} 件）
+              </h3>
+              {blindSpots.topTypes.length ? (
+                <div className="coverage-type-list">
+                  {blindSpots.topTypes.map((row) => (
+                    <TypeCoverageRow key={row.type} row={row} />
+                  ))}
+                  {blindSpots.types > blindSpots.topTypes.length && (
+                    <p className="muted">
+                      ほか {numberFormatter.format(blindSpots.types - blindSpots.topTypes.length)}{" "}
+                      種別も対象外です。
+                    </p>
+                  )}
+                </div>
+              ) : (
+                <p className="muted">対象外の種別はありません。</p>
+              )}
+            </>
+          ) : (
+            <EmptyState
+              title="インベントリが空です"
+              detail="公開スナップショットにリソースが含まれていないため、カバレッジを集計できません。"
+            />
+          )}
+        </Panel>
+
+        <Panel
+          title="リージョン別の監視カバレッジ"
+          description="リージョンごとに、Resource Health の対応・評価済み・対象外の件数を表示します。"
           className="span-5"
         >
-          <div className="source-list">
-            {reliabilitySources.map((source) => (
-              <article className="source-row" key={source.source}>
-                <span className="source-icon" aria-hidden="true">
-                  <Server size={17} />
-                </span>
-                <div>
-                  <strong>{source.source}</strong>
-                  <p>{formatSourceMessage(source)}</p>
-                </div>
-                <StatusBadge severity={availabilitySeverity(source.availability)}>
-                  {availabilityLabel(source.availability)}
-                </StatusBadge>
-              </article>
-            ))}
-          </div>
-        </Panel>
-        <Panel
-          title="リージョン別の評価済み状態"
-          description="未評価だけのリージョンは表示しません。"
-          className="span-7"
-        >
-          {data.overview.regionalHealth.length ? (
+          {regionRows.length ? (
             <div className="region-list">
-              {data.overview.regionalHealth.map((region) => (
-                <div className="region-row" key={region.region}>
-                  <span className={`health-dot severity-${region.status}`} aria-hidden="true" />
-                  <strong>{region.region}</strong>
-                  <span>正常 {region.score}%</span>
-                  <StatusBadge severity={region.status}>{severityLabel(region.status)}</StatusBadge>
+              {regionRows.map((row) => (
+                <div className="coverage-region-row" key={row.region}>
+                  <span className="region-icon" aria-hidden="true">
+                    <MapPin size={15} />
+                  </span>
+                  <div>
+                    <strong>{row.region}</strong>
+                    <small>
+                      対応 {row.supported} 件・評価済み {row.evaluated} 件・対象外{" "}
+                      {row.notApplicable} 件
+                    </small>
+                  </div>
+                  <span className="coverage-type-count">
+                    {numberFormatter.format(row.total)} 件
+                  </span>
                 </div>
               ))}
             </div>
           ) : (
             <EmptyState
-              title="リージョン別状態は未評価"
-              detail="Resource Health が未評価のため、0% や警告として表示していません。"
+              title="リージョン情報がありません"
+              detail="公開スナップショットにリージョン付きのリソースがありません。"
             />
           )}
         </Panel>
+
         <Panel
-          title="Service Health イベント"
-          description="サブスクリプションやリソースの詳細を除いた、サービス単位の集計のみを表示します。"
+          title="監視の死角をどう埋めるか"
+          description="対象外の種別は Resource Health では監視できないため、別のシグナルで補います。"
           className="span-12"
         >
-          {serviceHealth.availability === "unavailable" ? (
-            <EmptyState title="Service Health は未取得" detail={serviceHealth.message} />
-          ) : (
-            <>
-              <section className="metric-grid two" aria-label="Service Health サマリー">
-                <MetricCard
-                  label="継続中のイベント"
-                  value={`${serviceHealth.activeEvents ?? 0} 件`}
-                  note={serviceHealth.message}
-                  severity={serviceHealth.activeEvents ? "warning" : "info"}
-                />
-                <MetricCard
-                  label="解決済みのイベント"
-                  value={`${serviceHealth.resolvedEvents ?? 0} 件`}
-                  note="収集ウィンドウ内で解決済みと報告されたイベント"
-                />
-              </section>
-              {serviceHealth.categories.length ? (
-                <div className="region-list">
-                  {serviceHealth.categories.map((category) => (
-                    <div className="region-row" key={category.label}>
-                      <strong>{category.label}</strong>
-                      <span>{category.count} 件</span>
-                    </div>
-                  ))}
+          <div className="boundary-grid">
+            <article>
+              <Gauge size={22} aria-hidden="true" />
+              <strong>Azure Monitor のメトリック</strong>
+              <p>
+                プラットフォーム メトリックを持つ種別は、しきい値アラートで可用性の代替監視ができます。
+                収集済みの取得状況はネットワーク ページで確認できます。
+              </p>
+            </article>
+            <article>
+              <Activity size={22} aria-hidden="true" />
+              <strong>Activity Log とサービス正常性アラート</strong>
+              <p>
+                管理操作とプラットフォーム側の障害は Activity Log と Service Health
+                で検知します。どちらもこのスナップショットの収集対象です。
+              </p>
+            </article>
+            <article>
+              <Info size={22} aria-hidden="true" />
+              <strong>対象種別の確認</strong>
+              <p>
+                どの種別が Resource Health の対象かは公式ドキュメントで確認できます。
+              </p>
+              <LearnLink href={RESOURCE_HEALTH_OVERVIEW_DOC}>
+                Resource Health の状態定義
+              </LearnLink>
+            </article>
+          </div>
+        </Panel>
+
+        {serviceHealth.availability !== "unavailable" ? (
+          <Panel
+            title="Service Health イベント"
+            description="サブスクリプションやリソースの詳細を除いた、サービス単位の集計だけを表示します。"
+            className="span-7"
+          >
+            <section className="metric-grid two" aria-label="Service Health サマリー">
+              <MetricCard
+                label="継続中のイベント"
+                value={`${numberFormatter.format(serviceHealth.activeEvents ?? 0)} 件`}
+                note="収集ウィンドウ内で継続中と報告されたイベント"
+                severity={serviceHealth.activeEvents ? "warning" : "healthy"}
+              />
+              <MetricCard
+                label="解決済みのイベント"
+                value={`${numberFormatter.format(serviceHealth.resolvedEvents ?? 0)} 件`}
+                note="収集ウィンドウ内で解決済みと報告されたイベント"
+              />
+            </section>
+            {serviceHealth.categories.length ? (
+              <div className="region-list">
+                {serviceHealth.categories.map((category) => (
+                  <div className="region-row" key={category.label}>
+                    <strong>{category.label}</strong>
+                    <span>{numberFormatter.format(category.count)} 件</span>
+                  </div>
+                ))}
+              </div>
+            ) : null}
+          </Panel>
+        ) : null}
+
+        <Panel
+          title="直近の運用イベント"
+          description="Activity Log から収集したイベントです。実行者と対象リソースの詳細は公開前に削除しています。"
+          className={serviceHealth.availability === "unavailable" ? "span-12" : "span-5"}
+        >
+          {reliabilityEvents.length ? (
+            <div className="timeline">
+              {reliabilityEvents.slice(0, 5).map((event) => (
+                <div className="timeline-item static" key={event.id}>
+                  <span
+                    className={`timeline-marker severity-${event.severity}`}
+                    aria-hidden="true"
+                  />
+                  <span>
+                    <small>{formatEventTimestamp(event.timestamp)}</small>
+                    <strong>{formatActivityTitle(event.title)}</strong>
+                    <p>{formatActivityDetail(event.detail)}</p>
+                  </span>
                 </div>
-              ) : null}
-            </>
+              ))}
+            </div>
+          ) : (
+            <EmptyState
+              title="公開可能な運用イベントはありません"
+              detail="この収集ウィンドウでは、公開できる Activity Log イベントがありませんでした。"
+            />
           )}
         </Panel>
-        <Panel
-          title="公開済みサービス目標"
-          description="スナップショットに明示された目標・実績・エラー バジェットのみを表示します。"
-          className="span-12"
-        >
-          {data.reliability.services.length ? (
+
+        {data.reliability.services.length ? (
+          <Panel
+            title="公開済みサービス目標"
+            description="スナップショットに明示された目標・実績・エラー バジェットだけを表示します。"
+            className="span-12"
+          >
             <div className="service-grid">
               {data.reliability.services.map((service) => (
                 <article className="service-card" key={service.name}>
@@ -1155,12 +1497,37 @@ function ReliabilityPage({ data }: { data: PublicSnapshotV1 }) {
                 </article>
               ))}
             </div>
-          ) : (
-            <EmptyState
-              title="サービス目標は未収集"
-              detail="公開スナップショットにサービス目標や実績がないため、可用性や復旧時間を合成していません。"
-            />
-          )}
+          </Panel>
+        ) : null}
+
+        <Panel
+          title="このページの収集ソース"
+          description="可用性はデータの取得範囲を表すもので、サービスが正常かどうかの判定ではありません。"
+          className="span-12"
+        >
+          <div className="source-list">
+            {reliabilitySources.map((source) => (
+              <article className="source-row" key={source.source}>
+                <span
+                  className={`source-icon severity-${availabilitySeverity(source.availability)}`}
+                  aria-hidden="true"
+                >
+                  {source.availability === "available" ? (
+                    <CircleCheck size={17} />
+                  ) : (
+                    <Info size={17} />
+                  )}
+                </span>
+                <div>
+                  <strong>{formatSourceName(source.source)}</strong>
+                  <p>{formatSourceMessage(source)}</p>
+                </div>
+                <StatusBadge severity={availabilitySeverity(source.availability)}>
+                  {availabilityLabel(source.availability)}
+                </StatusBadge>
+              </article>
+            ))}
+          </div>
         </Panel>
       </div>
     </div>
@@ -1169,6 +1536,7 @@ function ReliabilityPage({ data }: { data: PublicSnapshotV1 }) {
 
 function SecurityPage({ data }: { data: PublicSnapshotV1 }) {
   const defenderSource = data.sources.find((source) => source.source === "Defender for Cloud");
+  const defenderPublished = defenderSource !== undefined && defenderSource.availability !== "unavailable";
   const secureScore = metricWhenSourcePublished(defenderSource, data.security.secureScore);
   const activeAlerts = metricWhenSourcePublished(defenderSource, data.security.activeAlerts);
   const openRecommendations = metricWhenSourcePublished(
@@ -1182,6 +1550,116 @@ function SecurityPage({ data }: { data: PublicSnapshotV1 }) {
   const unavailableNote = defenderSource
     ? formatSourceMessage(defenderSource)
     : "Defender for Cloud のソース状態が公開されていません。";
+  const activityLogSource = data.sources.find((source) => source.source === "Activity Log");
+  const managementEvents = data.overview.eventTimeline.filter(
+    (event) => event.id !== "collection-complete"
+  );
+
+  if (!defenderPublished) {
+    return (
+      <div className="page-stack">
+        <div className="notice muted">
+          <ShieldCheck size={18} aria-hidden="true" />
+          <span>{unavailableNote}</span>
+          {defenderSource && (
+            <StatusBadge severity={availabilitySeverity(defenderSource.availability)}>
+              {availabilityLabel(defenderSource.availability)}
+            </StatusBadge>
+          )}
+        </div>
+        <Panel
+          title="Defender for Cloud は未収集です"
+          description="このサブスクリプションでは Defender のプランが有効ではないため、集計値を公開していません。0 件や 0% として表示することはしません。"
+        >
+          <div className="pending-metric-grid" aria-label="有効化すると公開される指標">
+            {[
+              { label: "Secure score", detail: "推奨事項の達成率（0〜100）" },
+              { label: "アクティブ アラート", detail: "未解決のセキュリティ アラート件数" },
+              { label: "未解決の推奨事項", detail: "対応が必要な推奨事項の集計件数" },
+              { label: "コンプライアンス集計", detail: "規制コンプライアンスのスコア集計" }
+            ].map((item) => (
+              <article key={item.label}>
+                <p>{item.label}</p>
+                <strong>未収集</strong>
+                <span>{item.detail}</span>
+              </article>
+            ))}
+          </div>
+          <p className="source-footnote">
+            <Info size={14} aria-hidden="true" />
+            <span>
+              Defender for Cloud のプランを有効にすると、次回の収集からこれらの集計値が公開されます。
+            </span>
+          </p>
+          <LearnLink href={DEFENDER_PLANS_DOC}>
+            Defender for Cloud のプランを有効にする（Microsoft Learn）
+          </LearnLink>
+        </Panel>
+        <Panel
+          title="収集できているセキュリティ関連シグナル"
+          description="Defender が未収集でも、管理操作の可視化は Activity Log から収集しています。"
+        >
+          {activityLogSource && (
+            <div className="source-list">
+              <article className="source-row">
+                <span
+                  className={`source-icon severity-${availabilitySeverity(activityLogSource.availability)}`}
+                  aria-hidden="true"
+                >
+                  {activityLogSource.availability === "available" ? (
+                    <CircleCheck size={17} />
+                  ) : (
+                    <Info size={17} />
+                  )}
+                </span>
+                <div>
+                  <strong>{formatSourceName(activityLogSource.source)}</strong>
+                  <p>{formatSourceMessage(activityLogSource)}</p>
+                </div>
+                <StatusBadge severity={availabilitySeverity(activityLogSource.availability)}>
+                  {availabilityLabel(activityLogSource.availability)}
+                </StatusBadge>
+              </article>
+            </div>
+          )}
+          {managementEvents.length ? (
+            <div className="timeline">
+              {managementEvents.slice(0, 5).map((event) => (
+                <div className="timeline-item static" key={event.id}>
+                  <span
+                    className={`timeline-marker severity-${event.severity}`}
+                    aria-hidden="true"
+                  />
+                  <span>
+                    <small>{formatEventTimestamp(event.timestamp)}</small>
+                    <strong>{formatActivityTitle(event.title)}</strong>
+                    <p>{formatActivityDetail(event.detail)}</p>
+                  </span>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <EmptyState
+              title="公開できる管理操作イベントはありません"
+              detail="この収集ウィンドウでは、公開できる Activity Log イベントがありませんでした。"
+            />
+          )}
+        </Panel>
+        <Panel title="公開データ ポリシー">
+          <div className="privacy-card horizontal">
+            <ShieldCheck size={28} aria-hidden="true" />
+            <div>
+              <strong>集計を前提に公開</strong>
+              <p>
+                資産名、脆弱性の詳細、悪用情報、識別子は公開しません。Secure score
+                はソースが値を公開した場合だけ表示し、実測の 0 と未収集を区別します。
+              </p>
+            </div>
+          </div>
+        </Panel>
+      </div>
+    );
+  }
 
   return (
     <div className="page-stack">
@@ -1197,29 +1675,35 @@ function SecurityPage({ data }: { data: PublicSnapshotV1 }) {
       <section className="metric-grid four" aria-label="セキュリティ サマリー">
         <MetricCard
           label="Secure score"
-          value={secureScore === null ? "未取得" : `${secureScore}%`}
+          value={secureScore === null ? "未収集" : `${secureScore}%`}
           note={
             secureScore === null
-              ? defenderSource?.availability === "available"
-                ? "現在のスナップショットに Secure score はありません。"
-                : unavailableNote
-              : "公開スナップショット値・傾向は未収集"
+              ? "このスナップショットに Secure score は含まれていません"
+              : "推奨事項の達成率（公開スナップショット値）"
           }
+          severity={secureScore !== null && secureScore >= 70 ? "healthy" : "info"}
         />
         <MetricCard
           label="アクティブ アラート"
-          value={activeAlerts === null ? "未取得" : `${activeAlerts} 件`}
-          note={activeAlerts === null ? unavailableNote : "集計件数のみ"}
+          value={activeAlerts === null ? "未収集" : `${numberFormatter.format(activeAlerts)} 件`}
+          note={activeAlerts === null ? unavailableNote : "未解決のアラート件数のみ"}
+          severity={activeAlerts ? "warning" : "info"}
         />
         <MetricCard
           label="未解決の推奨事項"
-          value={openRecommendations === null ? "未取得" : `${openRecommendations} 件`}
-          note={openRecommendations === null ? unavailableNote : "資産詳細を除外"}
+          value={
+            openRecommendations === null
+              ? "未収集"
+              : `${numberFormatter.format(openRecommendations)} 件`
+          }
+          note={openRecommendations === null ? unavailableNote : "資産の詳細は除外して集計"}
         />
         <MetricCard
           label="コンプライアンス集計"
-          value={complianceCount === null ? "未取得" : `${complianceCount} 件`}
-          note={complianceCount === null ? unavailableNote : "収集済みフレームワーク"}
+          value={
+            complianceCount === null ? "未収集" : `${numberFormatter.format(complianceCount)} 件`
+          }
+          note={complianceCount === null ? unavailableNote : "収集できたフレームワーク数"}
         />
       </section>
       <div className="content-grid">
@@ -1228,9 +1712,7 @@ function SecurityPage({ data }: { data: PublicSnapshotV1 }) {
           description="タイトル、重要度、影響件数、対応状態だけを公開します。"
           className="span-8"
         >
-          {defenderSource?.availability !== "available" ? (
-            <EmptyState title="Defender データは未取得" detail={unavailableNote} />
-          ) : data.security.recommendations.length ? (
+          {data.security.recommendations.length ? (
             <div className="recommendation-list">
               {data.security.recommendations.map((item) => (
                 <article className="recommendation-row" key={item.title}>
@@ -1247,19 +1729,17 @@ function SecurityPage({ data }: { data: PublicSnapshotV1 }) {
             </div>
           ) : (
             <EmptyState
-              title="公開可能な推奨事項なし"
-              detail="0 件が安全を意味するとは推定しません。現在の公開スナップショットに推奨事項がない状態です。"
+              title="公開できる推奨事項はありません"
+              detail="推奨事項が 0 件でも安全だとは判断しません。この収集ウィンドウで公開できる推奨事項がなかった状態です。"
             />
           )}
         </Panel>
         <Panel
           title="コンプライアンス集計"
-          description="収集されたスコアのみを表示します。"
+          description="収集できたスコアだけを表示します。"
           className="span-4"
         >
-          {defenderSource?.availability !== "available" ? (
-            <EmptyState title="コンプライアンス集計は未取得" detail={unavailableNote} />
-          ) : data.security.compliance.length ? (
+          {data.security.compliance.length ? (
             <div className="compliance-list">
               {data.security.compliance.map((item) => (
                 <ProgressBar key={item.framework} value={item.score} label={item.framework} />
@@ -1267,8 +1747,8 @@ function SecurityPage({ data }: { data: PublicSnapshotV1 }) {
             </div>
           ) : (
             <EmptyState
-              title="コンプライアンス集計なし"
-              detail="フレームワーク別スコアは収集されていません。"
+              title="コンプライアンス集計は未収集"
+              detail="フレームワーク別のスコアはこのスナップショットに含まれていません。"
             />
           )}
         </Panel>
@@ -1278,8 +1758,8 @@ function SecurityPage({ data }: { data: PublicSnapshotV1 }) {
             <div>
               <strong>集計を前提に公開</strong>
               <p>
-                資産名、脆弱性詳細、悪用情報、ID は公開しません。Secure score
-                はソースが収集済みで値が存在する場合だけ表示し、実測 0 と未取得を区別します。
+                資産名、脆弱性の詳細、悪用情報、識別子は公開しません。Secure score
+                はソースが値を公開した場合だけ表示し、実測の 0 と未収集を区別します。
               </p>
             </div>
           </div>
@@ -1293,161 +1773,202 @@ function NetworkPage({ data }: { data: PublicSnapshotV1 }) {
   const [filter, setFilter] = useState<"all" | "Allowed" | "Degraded" | "Blocked">("all");
   const telemetry = data.network.telemetry;
   const metricCoverage = data.network.metricCoverage;
+  const networkSource = data.sources.find(
+    (source) => source.source === "Network inventory and metrics"
+  );
   const rows = telemetry.flows.filter((flow) => filter === "all" || flow.status === filter);
+  const telemetryPublished = telemetry.availability !== "unavailable";
+  const networkResources = data.inventory.resources.filter((resource) =>
+    resource.type.startsWith("microsoft.network/")
+  );
+  const networkInInventory = networkResources.length;
+  const networkBlindSpot = networkResources.filter(
+    (resource) => resource.status === "NotApplicable"
+  ).length;
+  const networkTotalsAgree = networkInInventory === data.network.inventory.total;
   const telemetryMessage =
-    telemetry.availability === "unavailable"
-      ? "フロー テレメトリは未収集です。ネットワーク リソースの存在から接続状態を推定しません。"
-      : telemetry.availability === "partial"
-        ? "フロー テレメトリは一部のみ収集されています。表示値の範囲外は評価しません。"
-        : "収集済みフロー テレメトリの集計値です。";
+    telemetry.availability === "partial"
+      ? "フロー テレメトリは一部のみ収集されています。範囲外の接続は評価しません。"
+      : "収集済みフロー テレメトリの集計値です。";
 
   return (
     <div className="page-stack">
       <section className="metric-grid four" aria-label="ネットワーク サマリー">
         <MetricCard
           label="ネットワーク リソース"
-          value={`${data.network.inventory.total} 件`}
-          note="インベントリのみ"
+          value={`${numberFormatter.format(data.network.inventory.total)} 件`}
+          note="Azure Resource Graph から収集したインベントリ"
         />
         <MetricCard
-          label="リソース タイプ"
-          value={`${data.network.inventory.byType.length} 件`}
-          note="Azure タイプ名を保持"
+          label="リソース種別"
+          value={`${numberFormatter.format(data.network.inventory.byType.length)} 件`}
+          note="Azure のリソース種別名をそのまま保持"
         />
         <MetricCard
           label="リージョン"
-          value={`${data.network.inventory.byRegion.length} 件`}
-          note="インベントリ分布"
+          value={`${numberFormatter.format(data.network.inventory.byRegion.length)} 件`}
+          note="ネットワーク リソースが存在するリージョン数"
         />
-        <MetricCard
-          label="フロー テレメトリ"
-          value={availabilityLabel(telemetry.availability)}
-          note="インベントリとは別の収集状態"
-          severity={availabilitySeverity(telemetry.availability)}
-        />
+        {metricCoverage ? (
+          <MetricCard
+            label="メトリック取得済み"
+            value={`${numberFormatter.format(metricCoverage.metricCapableResources)}/${numberFormatter.format(metricCoverage.sampledResources)} 件`}
+            note={`合計 ${numberFormatter.format(metricCoverage.metricSeries)} 系列を Azure Monitor から取得`}
+            severity={metricCoverage.metricCapableResources ? "healthy" : "info"}
+          />
+        ) : (
+          <MetricCard
+            label="Resource Health 対象外"
+            value={
+              networkTotalsAgree
+                ? `${numberFormatter.format(networkBlindSpot)}/${numberFormatter.format(networkInInventory)} 件`
+                : `${numberFormatter.format(networkBlindSpot)} 件`
+            }
+            note="ネットワーク種別のうち Azure が可用性を公開しない件数。Azure Monitor での代替監視が必要です"
+          />
+        )}
       </section>
       <div className="content-grid">
-        <Panel title="ネットワーク リソース タイプ" className="span-6">
+        <Panel
+          title="ネットワーク リソース種別"
+          description="Azure のリソース種別名は原文のまま表示します。"
+          className="span-6"
+        >
           <DistributionList
             items={data.network.inventory.byType}
-            emptyTitle="ネットワーク インベントリなし"
+            emptyTitle="ネットワーク インベントリは未収集"
             emptyDetail="対応するネットワーク リソースは収集されていません。"
           />
         </Panel>
-        <Panel title="ネットワーク リージョン" className="span-6">
+        <Panel
+          title="ネットワーク リージョン"
+          description="リージョンごとのネットワーク リソース数です。"
+          className="span-6"
+        >
           <DistributionList
             items={data.network.inventory.byRegion}
-            emptyTitle="リージョン情報なし"
+            emptyTitle="リージョン情報は未収集"
             emptyDetail="ネットワーク リソースのリージョン情報は収集されていません。"
           />
         </Panel>
-        <Panel
-          title="Azure Monitor メトリック取得状況"
-          description="プラットフォーム メトリックを持たないリソース種別は「対象外」であり、取得失敗ではありません。"
-          className="span-12"
-        >
-          {metricCoverage ? (
+        {metricCoverage ? (
+          <Panel
+            title="Azure Monitor メトリック取得状況"
+            description="プラットフォーム メトリックを持たない種別は「対象外」であり、取得失敗ではありません。"
+            className="span-12"
+          >
             <section className="metric-grid four" aria-label="メトリック取得状況">
               <MetricCard
                 label="サンプリング対象"
-                value={`${metricCoverage.sampledResources}/${metricCoverage.inventoryTotal} 件`}
+                value={`${numberFormatter.format(metricCoverage.sampledResources)}/${numberFormatter.format(metricCoverage.inventoryTotal)} 件`}
                 note="収集ごとにサンプリングするネットワーク リソース数"
               />
               <MetricCard
                 label="メトリック取得済み"
-                value={`${metricCoverage.metricCapableResources} 件`}
-                note={`合計 ${metricCoverage.metricSeries} 系列`}
+                value={`${numberFormatter.format(metricCoverage.metricCapableResources)} 件`}
+                note={`合計 ${numberFormatter.format(metricCoverage.metricSeries)} 系列`}
                 severity={metricCoverage.metricCapableResources ? "healthy" : "info"}
               />
               <MetricCard
                 label="対象外"
-                value={`${metricCoverage.notApplicableResources} 件`}
-                note="プラットフォーム メトリック名前空間を持たない種別"
+                value={`${numberFormatter.format(metricCoverage.notApplicableResources)} 件`}
+                note="プラットフォーム メトリックの名前空間を持たない種別"
               />
               <MetricCard
                 label="取得失敗"
-                value={`${metricCoverage.failedResources} 件`}
+                value={`${numberFormatter.format(metricCoverage.failedResources)} 件`}
                 note="対象外とは区別した実際の取得エラー"
                 severity={metricCoverage.failedResources ? "warning" : "info"}
               />
             </section>
-          ) : (
-            <EmptyState
-              title="メトリック取得状況は未記録"
-              detail="このスナップショットにはメトリック探索の内訳が含まれていません。"
-            />
-          )}
-        </Panel>
-        <Panel
-          title="フロー テレメトリ"
-          description={telemetryMessage}
-          className="span-12"
-          action={
-            <label className="select-label compact">
-              <span>状態フィルター</span>
-              <select
-                value={filter}
-                onChange={(event) =>
-                  setFilter(
-                    event.target.value as "all" | "Allowed" | "Degraded" | "Blocked"
-                  )
-                }
-              >
-                <option value="all">すべて</option>
-                <option value="Allowed">許可</option>
-                <option value="Degraded">低下</option>
-                <option value="Blocked">ブロック</option>
-              </select>
-            </label>
-          }
-        >
-          {telemetry.availability === "unavailable" ? (
-            <EmptyState
-              title="フロー テレメトリは利用不可"
-              detail="正常接続、低下接続、ブロック フローは 0 件ではなく未収集です。"
-            />
-          ) : rows.length ? (
-            <div className="flow-list">
-              {rows.map((flow) => (
-                <article className="flow-row" key={flow.id}>
-                  <span className="flow-icon">
-                    <Network size={18} aria-hidden="true" />
-                  </span>
-                  <div className="flow-endpoint">
-                    <small>送信元</small>
-                    <strong>{flow.source}</strong>
-                  </div>
-                  <ChevronRight size={18} aria-hidden="true" />
-                  <div className="flow-endpoint">
-                    <small>送信先</small>
-                    <strong>{flow.destination}</strong>
-                  </div>
-                  <div className="flow-stat">
-                    <small>プロトコル</small>
-                    <strong>{flow.protocol}</strong>
-                  </div>
-                  <div className="flow-stat">
-                    <small>遅延</small>
-                    <strong>{flow.latency}</strong>
-                  </div>
-                  <div className="flow-stat">
-                    <small>スループット</small>
-                    <strong>{flow.throughput}</strong>
-                  </div>
-                  <StatusBadge severity={flowStatusSeverity(flow.status)}>
-                    {flowStatusLabel(flow.status)}
-                  </StatusBadge>
-                </article>
-              ))}
-            </div>
-          ) : (
-            <EmptyState
-              title="この状態のフローはありません"
-              detail="別の状態フィルターを選択してください。"
-            />
-          )}
-        </Panel>
+          </Panel>
+        ) : null}
+        {telemetryPublished && (
+          <Panel
+            title="フロー テレメトリ"
+            description={telemetryMessage}
+            className="span-12"
+            action={
+              <label className="select-label compact">
+                <span>状態フィルター</span>
+                <select
+                  value={filter}
+                  onChange={(event) =>
+                    setFilter(
+                      event.target.value as "all" | "Allowed" | "Degraded" | "Blocked"
+                    )
+                  }
+                >
+                  <option value="all">すべて</option>
+                  <option value="Allowed">許可</option>
+                  <option value="Degraded">低下</option>
+                  <option value="Blocked">ブロック</option>
+                </select>
+              </label>
+            }
+          >
+            {rows.length ? (
+              <div className="flow-list">
+                {rows.map((flow) => (
+                  <article className="flow-row" key={flow.id}>
+                    <span className="flow-icon">
+                      <Network size={18} aria-hidden="true" />
+                    </span>
+                    <div className="flow-endpoint">
+                      <small>送信元</small>
+                      <strong>{flow.source}</strong>
+                    </div>
+                    <ChevronRight size={18} aria-hidden="true" />
+                    <div className="flow-endpoint">
+                      <small>送信先</small>
+                      <strong>{flow.destination}</strong>
+                    </div>
+                    <div className="flow-stat">
+                      <small>プロトコル</small>
+                      <strong>{flow.protocol}</strong>
+                    </div>
+                    <div className="flow-stat">
+                      <small>遅延</small>
+                      <strong>{flow.latency}</strong>
+                    </div>
+                    <div className="flow-stat">
+                      <small>スループット</small>
+                      <strong>{flow.throughput}</strong>
+                    </div>
+                    <StatusBadge severity={flowStatusSeverity(flow.status)}>
+                      {flowStatusLabel(flow.status)}
+                    </StatusBadge>
+                  </article>
+                ))}
+              </div>
+            ) : (
+              <EmptyState
+                title="この状態のフローはありません"
+                detail="別の状態フィルターを選択してください。"
+              />
+            )}
+          </Panel>
+        )}
       </div>
+      {!metricCoverage && (
+        <p className="source-footnote">
+          <Info size={14} aria-hidden="true" />
+          <span>
+            Azure Monitor
+            のメトリック取得状況（サンプリング数・取得系列・対象外・取得失敗）は、このスナップショットを生成した収集では記録されていません。次回の収集から公開されます。
+          </span>
+        </p>
+      )}
+      {!telemetryPublished && (
+        <p className="source-footnote">
+          <Info size={14} aria-hidden="true" />
+          <span>
+            フロー テレメトリ（正常接続・低下接続・ブロック フロー）は未収集のため表示していません。ネットワーク
+            リソースが存在することを接続の正常性とは解釈しません。
+          </span>
+        </p>
+      )}
+      <SourceFootnote sources={networkSource ? [networkSource] : []} />
     </div>
   );
 }
@@ -1516,6 +2037,56 @@ function AiInsightsPage({ data }: { data: PublicSnapshotV1 }) {
   ).length;
   const domains = new Set(data.aiInsights.map((insight) => routeLabel(insight.route)));
   const periods = [...new Set(data.aiInsights.map((insight) => insight.period))];
+  const evidenceCount = data.aiInsights.reduce(
+    (count, insight) => count + insight.numericEvidence.length,
+    0
+  );
+
+  if (!data.aiInsights.length) {
+    return (
+      <div className="page-stack">
+        <div className="ai-banner">
+          <span className="ai-icon">
+            <Bot size={22} aria-hidden="true" />
+          </span>
+          <div>
+            <strong>検証済み・読み取り専用の分析</strong>
+            <p>サニタイズ済みの構造化データだけを使用し、Azure の変更や修復は実行しません。</p>
+          </div>
+          <StatusBadge severity="info">公開 0 件</StatusBadge>
+        </div>
+        <Panel
+          title="公開済みの分析はまだありません"
+          description="分析は、記載されたすべての数値が公開スナップショットの値と一致した場合だけ公開されます。条件を満たさない候補は破棄されるため、ここが空になることがあります。"
+        >
+          <div className="boundary-grid">
+            <article>
+              <Bot size={22} aria-hidden="true" />
+              <strong>1. 分析候補を生成</strong>
+              <p>スナップショットの公開 JSON だけを読み、観測・影響・推奨アクションを作成します。</p>
+            </article>
+            <article>
+              <CircleCheck size={22} aria-hidden="true" />
+              <strong>2. 数値根拠を照合</strong>
+              <p>各数値がスナップショット内のスカラー値と一致するかを検証し、一致しない候補は破棄します。</p>
+            </article>
+            <article>
+              <ShieldCheck size={22} aria-hidden="true" />
+              <strong>3. 人がレビューして公開</strong>
+              <p>Pull Request でレビューされた分析だけが、このページに公開されます。</p>
+            </article>
+          </div>
+          <p className="source-footnote">
+            <Info size={14} aria-hidden="true" />
+            <span>
+              最終収集は {formatDateTimeJa(data.generatedAt)}（{formatSnapshotAge(data.generatedAt)}
+              ）です。次回の分析ワークフローで候補が作成されます。
+            </span>
+          </p>
+        </Panel>
+      </div>
+    );
+  }
 
   return (
     <div className="page-stack">
@@ -1537,20 +2108,20 @@ function AiInsightsPage({ data }: { data: PublicSnapshotV1 }) {
       <section className="metric-grid four" aria-label="AI 分析サマリー">
         <MetricCard
           label="検証済み"
-          value={`${data.aiInsights.length} 件`}
-          note="スキーマ・数値根拠・プライバシー ゲート"
+          value={`${numberFormatter.format(data.aiInsights.length)} 件`}
+          note={`数値根拠 ${numberFormatter.format(evidenceCount)} 件を照合済み`}
           severity="healthy"
         />
         <MetricCard
           label="要確認"
-          value={`${warnings} 件`}
+          value={`${numberFormatter.format(warnings)} 件`}
           note="重大または要確認の分析"
           severity={warnings ? "warning" : "info"}
         />
         <MetricCard
           label="対象領域"
-          value={`${domains.size} 件`}
-          note={[...domains].join("、") || "対象なし"}
+          value={`${numberFormatter.format(domains.size)} 件`}
+          note={[...domains].join("、")}
         />
         <MetricCard
           label="更新"
@@ -1564,7 +2135,9 @@ function AiInsightsPage({ data }: { data: PublicSnapshotV1 }) {
         description="各分析に記録された期間ラベルです。期間外の傾向は推定しません。"
       >
         <div className="chip-list">
-          {periods.length ? periods.map((period) => <span key={period}>{period}</span>) : <span>なし</span>}
+          {periods.map((period) => (
+            <span key={period}>{period}</span>
+          ))}
         </div>
       </Panel>
 
@@ -1572,38 +2145,24 @@ function AiInsightsPage({ data }: { data: PublicSnapshotV1 }) {
         title="優先アクション"
         description="推奨は人による確認を前提とし、自動実行されません。"
       >
-        {data.aiInsights.length ? (
-          <div className="priority-action-grid">
-            {data.aiInsights.map((insight) => (
-              <article key={insight.id}>
-                <StatusBadge severity={insight.severity}>
-                  {severityLabel(insight.severity)}
-                </StatusBadge>
-                <strong>{insight.title}</strong>
-                <p>{insight.recommendedAction}</p>
-              </article>
-            ))}
-          </div>
-        ) : (
-          <EmptyState
-            title="検証済みアクションなし"
-            detail="公開ゲートを通過した分析がないため、推奨アクションを表示していません。"
-          />
-        )}
-      </Panel>
-
-      {data.aiInsights.length ? (
-        <div className="insight-grid">
+        <div className="priority-action-grid">
           {data.aiInsights.map((insight) => (
-            <InsightCard insight={insight} key={insight.id} />
+            <article key={insight.id}>
+              <StatusBadge severity={insight.severity}>
+                {severityLabel(insight.severity)}
+              </StatusBadge>
+              <strong>{insight.title}</strong>
+              <p>{insight.recommendedAction}</p>
+            </article>
           ))}
         </div>
-      ) : (
-        <EmptyState
-          title="検証済み AI 分析なし"
-          detail="直近の分析では、公開ゲートを通過する数値根拠がありませんでした。"
-        />
-      )}
+      </Panel>
+
+      <div className="insight-grid">
+        {data.aiInsights.map((insight) => (
+          <InsightCard insight={insight} key={insight.id} />
+        ))}
+      </div>
 
       <Panel title="分析の境界">
         <div className="boundary-grid">
