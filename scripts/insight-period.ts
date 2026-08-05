@@ -1,13 +1,13 @@
 import type { AiInsight } from "../src/data/contracts";
 
 /**
- * `period` is the window an insight claims to describe, and unlike `title`, `observation`, `impact`
- * and `recommendedAction` it carries no analysis. It cannot: the snapshot is a point-in-time
- * artifact whose sources were each collected over their own window — 30-day cost totals, 7-day
- * Activity Log counts, 24-hour network metrics — so there is no single window the analysis measured,
- * and nothing in the snapshot lets the publisher check a per-insight one. What the snapshot does fix,
- * exactly and identically for every insight in a run, is when it was collected. So this field is the
- * snapshot's as-of marker, and it is derived from `generatedAt` rather than written by the model.
+ * `period` marks when the snapshot an insight analyzed was collected. That is all it can mean here,
+ * and unlike `title`, `observation`, `impact` and `recommendedAction` it carries no analysis: the
+ * snapshot is a point-in-time artifact whose sources each cover their own window — 30-day cost
+ * totals, 7-day Activity Log counts, 24-hour network metrics — so there is no one window an insight
+ * measured, and nothing in the snapshot lets the publisher check a per-insight claim about one. The
+ * collection time, by contrast, is fixed exactly and identically for every insight in a run, so this
+ * field is derived from `generatedAt` rather than written by the model.
  *
  * Letting the model write it bought variance without buying meaning, in both directions:
  *

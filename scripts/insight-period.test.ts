@@ -206,10 +206,9 @@ function runDeterministicValidation(file: string): { ok: boolean; output: string
   return { ok: result.status === 0, output: `${result.stdout ?? ""}${result.stderr ?? ""}` };
 }
 
-describe("the period gate inside deterministic validation", () => {
-  // Spawning the real validator costs a TypeScript startup, which exceeds the default per-test
+describe("the period gate inside deterministic validation", () => {  // Spawning the real validator costs a TypeScript startup, which exceeds the default per-test
   // budget when the whole suite competes for the machine.
-  it("rejects a window the snapshot never contained", { timeout: 120_000 }, () => {
+  it("rejects a period the collection time did not produce", { timeout: 120_000 }, () => {
     const snapshot = buildDemoSnapshot(COLLECTED_AT);
     const [first, ...rest] = snapshot.aiInsights;
     if (!first) throw new Error("demo fixture must publish at least one insight");
@@ -218,8 +217,9 @@ describe("the period gate inside deterministic validation", () => {
     const derived = join(directory, "derived.json");
     const authored = join(directory, "authored.json");
     writeFileSync(derived, JSON.stringify(snapshot), "utf8");
-    // Japanese, inside the length limits, and a plausible thing for the analysis to write: the only
-    // thing wrong with it is that a single point-in-time snapshot contains no such window.
+    // Japanese, inside the length limits, and a plausible thing for the analysis to write. It is
+    // rejected because the field reports the collection time and this is not it, whether or not some
+    // source in the snapshot happens to cover 30 days.
     writeFileSync(
       authored,
       JSON.stringify({

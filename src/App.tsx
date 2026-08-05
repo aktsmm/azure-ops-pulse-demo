@@ -2159,7 +2159,7 @@ function AiInsightsPage({ data }: { data: PublicSnapshotV1 }) {
 
       <Panel
         title="分析の基準時点"
-        description="各分析が参照したスナップショットの収集時点です。収集元ごとの集計期間は各ページで確認してください。"
+        description="各分析が参照したスナップショットの収集時点です。分析対象の集計期間そのものではありません。"
       >
         <div className="chip-list">
           {periods.map((period) => (

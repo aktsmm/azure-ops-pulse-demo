@@ -1,4 +1,4 @@
-import { execFileSync } from "node:child_process";
+import { execFileSync, spawnSync } from "node:child_process";
 import { mkdtempSync, readFileSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
@@ -378,15 +378,22 @@ describe("AI insight publication gate", () => {
     // The agent's one command normalizes before it validates. Granting the two separately would let
     // it validate first, fail on a field it was told not to write, and then honour the guardrail
     // that says to leave insights unchanged on a failed validation - publishing nothing while the
-    // run stays green, which is the silent no-op this repository refuses to ship.
-    const check = packageJson.scripts["check:insights"];
-    expect(check).toBe(
-      "npm run normalize:insights && npm run validate:insights && npm run scan:privacy -- public"
-    );
+    // run stays green, which is the silent no-op this repository refuses to ship. The granted
+    // command takes no arguments, because a shell allowlist matches a prefix and `npm run` keeps
+    // reading flags after it: `npm run <script> --prefix <elsewhere> --if-present` exits 0 having
+    // checked nothing.
+    expect(packageJson.scripts["check:insights"]).toBe("tsx scripts/check-insights.ts");
     const allowlist = /bash:(?:\r?\n\s+- .*)+/.exec(source)?.[0] ?? "";
-    expect(allowlist).toContain('- "npm run check:insights"');
-    expect(allowlist).not.toContain('- "npm run validate:insights"');
-    expect(allowlist).not.toContain('- "npm run normalize:insights"');
+    expect(allowlist).toContain('- "npx tsx scripts/check-insights.ts"');
+    expect(allowlist).not.toContain("npm run");
+    const check = readFileSync("scripts/check-insights.ts", "utf8");
+    expect(check).toContain("scripts/normalize-ai-insight-period.ts");
+    expect(check).toContain("scripts/normalize-ai-insight-labels.ts");
+    expect(check).toContain("scripts/validate-public-data.ts");
+    expect(check).toContain("scripts/privacy-scan.ts");
+    expect(check.indexOf("scripts/validate-public-data.ts")).toBeGreaterThan(
+      check.indexOf("scripts/normalize-ai-insight-period.ts")
+    );
 
     // A post-step runs the normalization again on the trusted side, and validation only afterwards.
     const normalization = source.indexOf("run: npm run normalize:insights");
@@ -397,7 +404,7 @@ describe("AI insight publication gate", () => {
     // A prompt change that never reached the compiled workflow would leave the agent free to write
     // the field again, so the generated lock has to carry the same commands.
     expect(lock).toContain("run: npm run normalize:insights");
-    expect(lock).toContain("npm run check:insights");
+    expect(lock).toContain("npx tsx scripts/check-insights.ts");
 
     // The prompt no longer lists `period` among the fields the analysis writes.
     expect(source).toContain("Do not write `period`");
@@ -564,8 +571,7 @@ describe("DEMO snapshot validation gate", () => {
 
   // Spawning the real validator costs a TypeScript startup, which exceeds the default per-test
   // budget when the whole suite competes for the machine.
-  it("keeps the rendered-language check inside deterministic validation", { timeout: 60_000 }, () => {
-    const snapshot = buildDemoSnapshot("2026-08-05T13:00:00.000Z");
+  it("keeps the rendered-language check inside deterministic validation", { timeout: 60_000 }, () => {    const snapshot = buildDemoSnapshot("2026-08-05T13:00:00.000Z");
     const [first, ...rest] = snapshot.inventory.resources;
     if (!first) throw new Error("demo fixture must publish at least one resource");
     const leaking = {
@@ -586,5 +592,21 @@ describe("DEMO snapshot validation gate", () => {
         shell: process.platform === "win32"
       })
     ).toThrow();
+  });
+
+  /**
+   * The agent's allowlist entry is a command prefix, so arguments it did not ask for can still be
+   * appended. Only the rejection path is exercised: running the check for real would rewrite
+   * `public/data/snapshot.json`, which no test may do.
+   */
+  it("refuses arguments appended to the agent's one command", { timeout: 60_000 }, () => {
+    const result = spawnSync(
+      "npx",
+      ["tsx", "scripts/check-insights.ts", "--prefix", "node_modules", "--if-present"],
+      { encoding: "utf8", shell: process.platform === "win32" }
+    );
+
+    expect(result.status).not.toBe(0);
+    expect(`${result.stdout ?? ""}${result.stderr ?? ""}`).toContain("takes no arguments");
   });
 });
