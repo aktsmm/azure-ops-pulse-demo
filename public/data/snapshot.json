@@ -1,11 +1,11 @@
 {
   "schemaVersion": "1.4.0",
-  "generatedAt": "2026-08-05T11:02:02.479Z",
+  "generatedAt": "2026-08-05T18:56:06.400Z",
   "mode": "AZURE",
   "freshness": {
     "state": "fresh",
     "ageMinutes": 0,
-    "lastSuccessfulCollection": "2026-08-05T11:02:02.479Z",
+    "lastSuccessfulCollection": "2026-08-05T18:56:06.400Z",
     "nextScheduledCollection": "Tuesday / Friday 06:00 JST"
   },
   "scope": {
@@ -21,8 +21,8 @@
     },
     {
       "source": "Cost Management",
-      "availability": "unavailable",
-      "message": "Current Cost Management period is unavailable; billing scope or role access may be required."
+      "availability": "available",
+      "message": "Current and prior comparable rounded JPY periods were collected from 14 and 9 records."
     },
     {
       "source": "Resource Health",
@@ -53,9 +53,9 @@
   "overview": {
     "metrics": [
       {
-        "label": "Resource Health coverage",
+        "label": "Resource Health の評価範囲",
         "value": "68%",
-        "change": "13 of 19 supported resources evaluated (63 out of scope)",
+        "change": "対応 19 件中 13 件を評価済み（対象外 63 件）",
         "direction": "flat",
         "severity": "info",
         "points": [
@@ -64,25 +64,25 @@
         ]
       },
       {
-        "label": "Cost coverage",
-        "value": "Unavailable",
-        "change": "Rounded public view",
+        "label": "コストの収集範囲",
+        "value": "収集済み",
+        "change": "公開用に丸めた値",
         "direction": "flat",
-        "severity": "warning",
+        "severity": "healthy",
         "points": [
           1,
           1
         ]
       },
       {
-        "label": "Unavailable sources",
-        "value": "2",
-        "change": "Explicitly surfaced",
+        "label": "利用不可のソース",
+        "value": "1",
+        "change": "未収集を明示",
         "direction": "flat",
         "severity": "warning",
         "points": [
-          2,
-          2
+          1,
+          1
         ]
       }
     ],
@@ -90,15 +90,15 @@
     "eventTimeline": [
       {
         "id": "event-55b8dadb",
-        "timestamp": "Current snapshot",
+        "timestamp": "現在のスナップショット",
         "severity": "warning",
         "title": "Azure データ収集が完了",
-        "detail": "82 件のリソースをサニタイズし、利用不可の任意ソースは 2 件でした。",
+        "detail": "82 件のリソースをサニタイズし、利用不可の任意ソースは 1 件でした。",
         "route": "/overview"
       },
       {
         "id": "event-cd198459",
-        "timestamp": "2026-08-05T05:14:46.6100452Z",
+        "timestamp": "2026-08-05T17:12:14.20652Z",
         "severity": "info",
         "title": "管理操作を検出",
         "detail": "公開前に実行者と対象リソースの詳細を削除しています。",
@@ -106,7 +106,7 @@
       },
       {
         "id": "event-cc1982c6",
-        "timestamp": "2026-08-05T05:14:45.0006473Z",
+        "timestamp": "2026-08-05T17:12:13.8315206Z",
         "severity": "info",
         "title": "管理操作を検出",
         "detail": "公開前に実行者と対象リソースの詳細を削除しています。",
@@ -114,7 +114,7 @@
       },
       {
         "id": "event-cb198133",
-        "timestamp": "2026-08-04T17:42:03.4249194Z",
+        "timestamp": "2026-08-05T17:11:08.3373469Z",
         "severity": "info",
         "title": "管理操作を検出",
         "detail": "公開前に実行者と対象リソースの詳細を削除しています。",
@@ -122,7 +122,7 @@
       },
       {
         "id": "event-ca197fa0",
-        "timestamp": "2026-08-04T17:42:03.1280385Z",
+        "timestamp": "2026-08-05T17:11:07.9154431Z",
         "severity": "info",
         "title": "管理操作を検出",
         "detail": "公開前に実行者と対象リソースの詳細を削除しています。",
@@ -130,7 +130,7 @@
       },
       {
         "id": "event-ff907070",
-        "timestamp": "Current collection window",
+        "timestamp": "現在の収集期間",
         "severity": "info",
         "title": "Service Health イベントを検出",
         "detail": "影響を受けたサブスクリプションやリソースの詳細を除き、サービス単位の状態のみを表示します。",
@@ -138,8 +138,8 @@
       },
       {
         "id": "event-00907203",
-        "timestamp": "Current collection window",
-        "severity": "info",
+        "timestamp": "現在の収集期間",
+        "severity": "warning",
         "title": "Service Health イベントを検出",
         "detail": "影響を受けたサブスクリプションやリソースの詳細を除き、サービス単位の状態のみを表示します。",
         "route": "/reliability"
@@ -165,14 +165,14 @@
   },
   "cost": {
     "current": {
-      "availability": "unavailable",
-      "approximateAmount": null
+      "availability": "available",
+      "approximateAmount": "約¥2.1万"
     },
     "previous": {
-      "availability": "unavailable",
-      "approximateAmount": null
+      "availability": "available",
+      "approximateAmount": "約¥1.2万"
     },
-    "deltaPercent": null,
+    "deltaPercent": 76.7,
     "forecast": {
       "availability": "unavailable",
       "approximateAmount": null
@@ -182,7 +182,56 @@
       "usedPercent": null
     },
     "normalizedTrend": [],
-    "categories": []
+    "categories": [
+      {
+        "name": "Azure Cognitive Search",
+        "approximateAmount": "約¥1.4万",
+        "sharePercent": 67.5,
+        "deltaPercent": 91
+      },
+      {
+        "name": "Foundry Tools",
+        "approximateAmount": "約¥5千",
+        "sharePercent": 24.7,
+        "deltaPercent": 55.6
+      },
+      {
+        "name": "Container Registry",
+        "approximateAmount": "約¥1千未満",
+        "sharePercent": 3.6,
+        "deltaPercent": null
+      },
+      {
+        "name": "Logic Apps",
+        "approximateAmount": "約¥1千未満",
+        "sharePercent": 2.1,
+        "deltaPercent": null
+      },
+      {
+        "name": "Log Analytics",
+        "approximateAmount": "約¥1千未満",
+        "sharePercent": 1.3,
+        "deltaPercent": null
+      },
+      {
+        "name": "Load Balancer",
+        "approximateAmount": "約¥1千未満",
+        "sharePercent": 0.5,
+        "deltaPercent": null
+      },
+      {
+        "name": "Storage",
+        "approximateAmount": "約¥1千未満",
+        "sharePercent": 0.2,
+        "deltaPercent": null
+      },
+      {
+        "name": "Virtual Machines",
+        "approximateAmount": "約¥1千未満",
+        "sharePercent": 0.2,
+        "deltaPercent": null
+      }
+    ]
   },
   "inventory": {
     "total": 82,
@@ -196,7 +245,7 @@
         "status": "NotApplicable",
         "owner": "identity-caac8562",
         "tags": {},
-        "change": "Collected from Azure Resource Graph"
+        "change": "Azure Resource Graph から収集"
       },
       {
         "id": "res-b16f9e95",
@@ -207,7 +256,7 @@
         "status": "NotApplicable",
         "owner": "identity-caac8562",
         "tags": {},
-        "change": "Collected from Azure Resource Graph"
+        "change": "Azure Resource Graph から収集"
       },
       {
         "id": "res-2637eb84",
@@ -218,7 +267,7 @@
         "status": "NotApplicable",
         "owner": "identity-caac8562",
         "tags": {},
-        "change": "Collected from Azure Resource Graph"
+        "change": "Azure Resource Graph から収集"
       },
       {
         "id": "res-e52ced7c",
@@ -229,7 +278,7 @@
         "status": "NotApplicable",
         "owner": "identity-caac8562",
         "tags": {},
-        "change": "Collected from Azure Resource Graph"
+        "change": "Azure Resource Graph から収集"
       },
       {
         "id": "res-fcf8d05e",
@@ -240,7 +289,7 @@
         "status": "NotApplicable",
         "owner": "identity-caac8562",
         "tags": {},
-        "change": "Collected from Azure Resource Graph"
+        "change": "Azure Resource Graph から収集"
       },
       {
         "id": "res-2bbd2d3d",
@@ -251,7 +300,7 @@
         "status": "NotApplicable",
         "owner": "identity-caac8562",
         "tags": {},
-        "change": "Collected from Azure Resource Graph"
+        "change": "Azure Resource Graph から収集"
       },
       {
         "id": "res-f623fba7",
@@ -262,7 +311,7 @@
         "status": "NotApplicable",
         "owner": "identity-caac8562",
         "tags": {},
-        "change": "Collected from Azure Resource Graph"
+        "change": "Azure Resource Graph から収集"
       },
       {
         "id": "res-39e5e1ad",
@@ -273,7 +322,7 @@
         "status": "NotApplicable",
         "owner": "identity-caac8562",
         "tags": {},
-        "change": "Collected from Azure Resource Graph"
+        "change": "Azure Resource Graph から収集"
       },
       {
         "id": "res-29421a58",
@@ -284,7 +333,7 @@
         "status": "NotApplicable",
         "owner": "identity-caac8562",
         "tags": {},
-        "change": "Collected from Azure Resource Graph"
+        "change": "Azure Resource Graph から収集"
       },
       {
         "id": "res-2d7649a4",
@@ -295,7 +344,7 @@
         "status": "NotApplicable",
         "owner": "identity-caac8562",
         "tags": {},
-        "change": "Collected from Azure Resource Graph"
+        "change": "Azure Resource Graph から収集"
       },
       {
         "id": "res-42d30a40",
@@ -306,7 +355,7 @@
         "status": "NotApplicable",
         "owner": "identity-caac8562",
         "tags": {},
-        "change": "Collected from Azure Resource Graph"
+        "change": "Azure Resource Graph から収集"
       },
       {
         "id": "res-c5208249",
@@ -317,7 +366,7 @@
         "status": "NotApplicable",
         "owner": "identity-caac8562",
         "tags": {},
-        "change": "Collected from Azure Resource Graph"
+        "change": "Azure Resource Graph から収集"
       },
       {
         "id": "res-6f51e0d3",
@@ -328,7 +377,7 @@
         "status": "NotApplicable",
         "owner": "identity-caac8562",
         "tags": {},
-        "change": "Collected from Azure Resource Graph"
+        "change": "Azure Resource Graph から収集"
       },
       {
         "id": "res-c3344744",
@@ -339,7 +388,7 @@
         "status": "NotApplicable",
         "owner": "identity-caac8562",
         "tags": {},
-        "change": "Collected from Azure Resource Graph"
+        "change": "Azure Resource Graph から収集"
       },
       {
         "id": "res-b62a74e8",
@@ -350,7 +399,7 @@
         "status": "NotApplicable",
         "owner": "identity-caac8562",
         "tags": {},
-        "change": "Collected from Azure Resource Graph"
+        "change": "Azure Resource Graph から収集"
       },
       {
         "id": "res-dd3568bd",
@@ -361,7 +410,7 @@
         "status": "NotApplicable",
         "owner": "identity-caac8562",
         "tags": {},
-        "change": "Collected from Azure Resource Graph"
+        "change": "Azure Resource Graph から収集"
       },
       {
         "id": "res-ab090959",
@@ -372,7 +421,7 @@
         "status": "Healthy",
         "owner": "identity-caac8562",
         "tags": {},
-        "change": "Collected from Azure Resource Graph"
+        "change": "Azure Resource Graph から収集"
       },
       {
         "id": "res-e7a2df7a",
@@ -383,7 +432,7 @@
         "status": "Healthy",
         "owner": "identity-caac8562",
         "tags": {},
-        "change": "Collected from Azure Resource Graph"
+        "change": "Azure Resource Graph から収集"
       },
       {
         "id": "res-f99db5f1",
@@ -394,7 +443,7 @@
         "status": "Healthy",
         "owner": "identity-caac8562",
         "tags": {},
-        "change": "Collected from Azure Resource Graph"
+        "change": "Azure Resource Graph から収集"
       },
       {
         "id": "res-a505ce94",
@@ -405,7 +454,7 @@
         "status": "Healthy",
         "owner": "identity-caac8562",
         "tags": {},
-        "change": "Collected from Azure Resource Graph"
+        "change": "Azure Resource Graph から収集"
       },
       {
         "id": "res-748a2ebe",
@@ -418,7 +467,7 @@
         "tags": {
           "environment": "value-626092f4"
         },
-        "change": "Collected from Azure Resource Graph"
+        "change": "Azure Resource Graph から収集"
       },
       {
         "id": "res-ed3cac31",
@@ -429,7 +478,7 @@
         "status": "NotApplicable",
         "owner": "identity-caac8562",
         "tags": {},
-        "change": "Collected from Azure Resource Graph"
+        "change": "Azure Resource Graph から収集"
       },
       {
         "id": "res-0e1fc878",
@@ -440,7 +489,7 @@
         "status": "Healthy",
         "owner": "identity-caac8562",
         "tags": {},
-        "change": "Collected from Azure Resource Graph"
+        "change": "Azure Resource Graph から収集"
       },
       {
         "id": "res-beb18c1c",
@@ -451,7 +500,7 @@
         "status": "NotApplicable",
         "owner": "identity-caac8562",
         "tags": {},
-        "change": "Collected from Azure Resource Graph"
+        "change": "Azure Resource Graph から収集"
       },
       {
         "id": "res-9e8e71a0",
@@ -462,7 +511,7 @@
         "status": "NotApplicable",
         "owner": "identity-caac8562",
         "tags": {},
-        "change": "Collected from Azure Resource Graph"
+        "change": "Azure Resource Graph から収集"
       },
       {
         "id": "res-26e2d3ba",
@@ -473,7 +522,7 @@
         "status": "NotApplicable",
         "owner": "identity-caac8562",
         "tags": {},
-        "change": "Collected from Azure Resource Graph"
+        "change": "Azure Resource Graph から収集"
       },
       {
         "id": "res-61879d72",
@@ -484,7 +533,7 @@
         "status": "NotApplicable",
         "owner": "identity-caac8562",
         "tags": {},
-        "change": "Collected from Azure Resource Graph"
+        "change": "Azure Resource Graph から収集"
       },
       {
         "id": "res-62e40a63",
@@ -495,7 +544,7 @@
         "status": "NotApplicable",
         "owner": "identity-caac8562",
         "tags": {},
-        "change": "Collected from Azure Resource Graph"
+        "change": "Azure Resource Graph から収集"
       },
       {
         "id": "res-210b3db7",
@@ -506,7 +555,7 @@
         "status": "NotApplicable",
         "owner": "identity-caac8562",
         "tags": {},
-        "change": "Collected from Azure Resource Graph"
+        "change": "Azure Resource Graph から収集"
       },
       {
         "id": "res-d322a95b",
@@ -517,7 +566,7 @@
         "status": "NotApplicable",
         "owner": "identity-caac8562",
         "tags": {},
-        "change": "Collected from Azure Resource Graph"
+        "change": "Azure Resource Graph から収集"
       },
       {
         "id": "res-f0d4a2f6",
@@ -528,7 +577,7 @@
         "status": "NotApplicable",
         "owner": "identity-caac8562",
         "tags": {},
-        "change": "Collected from Azure Resource Graph"
+        "change": "Azure Resource Graph から収集"
       },
       {
         "id": "res-dfded8d1",
@@ -539,7 +588,7 @@
         "status": "NotApplicable",
         "owner": "identity-caac8562",
         "tags": {},
-        "change": "Collected from Azure Resource Graph"
+        "change": "Azure Resource Graph から収集"
       },
       {
         "id": "res-0e7ffe8a",
@@ -550,7 +599,7 @@
         "status": "NotApplicable",
         "owner": "identity-caac8562",
         "tags": {},
-        "change": "Collected from Azure Resource Graph"
+        "change": "Azure Resource Graph から収集"
       },
       {
         "id": "res-993fff5e",
@@ -561,7 +610,7 @@
         "status": "NotApplicable",
         "owner": "identity-caac8562",
         "tags": {},
-        "change": "Collected from Azure Resource Graph"
+        "change": "Azure Resource Graph から収集"
       },
       {
         "id": "res-63610b75",
@@ -572,7 +621,7 @@
         "status": "NotApplicable",
         "owner": "identity-caac8562",
         "tags": {},
-        "change": "Collected from Azure Resource Graph"
+        "change": "Azure Resource Graph から収集"
       },
       {
         "id": "res-f498a9ea",
@@ -583,7 +632,7 @@
         "status": "NotApplicable",
         "owner": "identity-caac8562",
         "tags": {},
-        "change": "Collected from Azure Resource Graph"
+        "change": "Azure Resource Graph から収集"
       },
       {
         "id": "res-c96f09ca",
@@ -594,7 +643,7 @@
         "status": "NotApplicable",
         "owner": "identity-caac8562",
         "tags": {},
-        "change": "Collected from Azure Resource Graph"
+        "change": "Azure Resource Graph から収集"
       },
       {
         "id": "res-85facbe9",
@@ -605,7 +654,7 @@
         "status": "NotApplicable",
         "owner": "identity-caac8562",
         "tags": {},
-        "change": "Collected from Azure Resource Graph"
+        "change": "Azure Resource Graph から収集"
       },
       {
         "id": "res-b2759462",
@@ -616,7 +665,7 @@
         "status": "NotApplicable",
         "owner": "identity-caac8562",
         "tags": {},
-        "change": "Collected from Azure Resource Graph"
+        "change": "Azure Resource Graph から収集"
       },
       {
         "id": "res-8cf5fc55",
@@ -627,7 +676,7 @@
         "status": "NotApplicable",
         "owner": "identity-caac8562",
         "tags": {},
-        "change": "Collected from Azure Resource Graph"
+        "change": "Azure Resource Graph から収集"
       },
       {
         "id": "res-9e6d20a4",
@@ -638,7 +687,7 @@
         "status": "NotApplicable",
         "owner": "identity-caac8562",
         "tags": {},
-        "change": "Collected from Azure Resource Graph"
+        "change": "Azure Resource Graph から収集"
       },
       {
         "id": "res-f5a7136e",
@@ -649,7 +698,7 @@
         "status": "NotApplicable",
         "owner": "identity-caac8562",
         "tags": {},
-        "change": "Collected from Azure Resource Graph"
+        "change": "Azure Resource Graph から収集"
       },
       {
         "id": "res-b6ca734d",
@@ -660,7 +709,7 @@
         "status": "NotApplicable",
         "owner": "identity-caac8562",
         "tags": {},
-        "change": "Collected from Azure Resource Graph"
+        "change": "Azure Resource Graph から収集"
       },
       {
         "id": "res-b8cbab4f",
@@ -671,7 +720,7 @@
         "status": "NotApplicable",
         "owner": "identity-caac8562",
         "tags": {},
-        "change": "Collected from Azure Resource Graph"
+        "change": "Azure Resource Graph から収集"
       },
       {
         "id": "res-1690c203",
@@ -682,7 +731,7 @@
         "status": "NotApplicable",
         "owner": "identity-caac8562",
         "tags": {},
-        "change": "Collected from Azure Resource Graph"
+        "change": "Azure Resource Graph から収集"
       },
       {
         "id": "res-e3d2a8d1",
@@ -693,7 +742,7 @@
         "status": "NotApplicable",
         "owner": "identity-caac8562",
         "tags": {},
-        "change": "Collected from Azure Resource Graph"
+        "change": "Azure Resource Graph から収集"
       },
       {
         "id": "res-9c16f428",
@@ -704,7 +753,7 @@
         "status": "NotApplicable",
         "owner": "identity-caac8562",
         "tags": {},
-        "change": "Collected from Azure Resource Graph"
+        "change": "Azure Resource Graph から収集"
       },
       {
         "id": "res-6feffa80",
@@ -715,7 +764,7 @@
         "status": "NotApplicable",
         "owner": "identity-caac8562",
         "tags": {},
-        "change": "Collected from Azure Resource Graph"
+        "change": "Azure Resource Graph から収集"
       },
       {
         "id": "res-5362bd0a",
@@ -726,7 +775,7 @@
         "status": "NotApplicable",
         "owner": "identity-caac8562",
         "tags": {},
-        "change": "Collected from Azure Resource Graph"
+        "change": "Azure Resource Graph から収集"
       },
       {
         "id": "res-d19be39c",
@@ -737,7 +786,7 @@
         "status": "NotApplicable",
         "owner": "identity-caac8562",
         "tags": {},
-        "change": "Collected from Azure Resource Graph"
+        "change": "Azure Resource Graph から収集"
       },
       {
         "id": "res-e26c4762",
@@ -748,7 +797,7 @@
         "status": "NotApplicable",
         "owner": "identity-caac8562",
         "tags": {},
-        "change": "Collected from Azure Resource Graph"
+        "change": "Azure Resource Graph から収集"
       },
       {
         "id": "res-03a2d108",
@@ -759,7 +808,7 @@
         "status": "NotApplicable",
         "owner": "identity-caac8562",
         "tags": {},
-        "change": "Collected from Azure Resource Graph"
+        "change": "Azure Resource Graph から収集"
       },
       {
         "id": "res-886334a2",
@@ -772,7 +821,7 @@
         "tags": {
           "environment": "value-626092f4"
         },
-        "change": "Collected from Azure Resource Graph"
+        "change": "Azure Resource Graph から収集"
       },
       {
         "id": "res-41902ccd",
@@ -783,7 +832,7 @@
         "status": "NotApplicable",
         "owner": "identity-caac8562",
         "tags": {},
-        "change": "Collected from Azure Resource Graph"
+        "change": "Azure Resource Graph から収集"
       },
       {
         "id": "res-72b9c51f",
@@ -794,7 +843,7 @@
         "status": "NotApplicable",
         "owner": "identity-caac8562",
         "tags": {},
-        "change": "Collected from Azure Resource Graph"
+        "change": "Azure Resource Graph から収集"
       },
       {
         "id": "res-28f21a15",
@@ -805,7 +854,7 @@
         "status": "NotApplicable",
         "owner": "identity-caac8562",
         "tags": {},
-        "change": "Collected from Azure Resource Graph"
+        "change": "Azure Resource Graph から収集"
       },
       {
         "id": "res-c318f6ff",
@@ -816,7 +865,7 @@
         "status": "NotApplicable",
         "owner": "identity-caac8562",
         "tags": {},
-        "change": "Collected from Azure Resource Graph"
+        "change": "Azure Resource Graph から収集"
       },
       {
         "id": "res-672786aa",
@@ -827,7 +876,7 @@
         "status": "NotApplicable",
         "owner": "identity-caac8562",
         "tags": {},
-        "change": "Collected from Azure Resource Graph"
+        "change": "Azure Resource Graph から収集"
       },
       {
         "id": "res-2bda15ca",
@@ -838,7 +887,7 @@
         "status": "NotApplicable",
         "owner": "identity-caac8562",
         "tags": {},
-        "change": "Collected from Azure Resource Graph"
+        "change": "Azure Resource Graph から収集"
       },
       {
         "id": "res-af9a0b33",
@@ -849,7 +898,7 @@
         "status": "NotApplicable",
         "owner": "identity-caac8562",
         "tags": {},
-        "change": "Collected from Azure Resource Graph"
+        "change": "Azure Resource Graph から収集"
       },
       {
         "id": "res-728d35fe",
@@ -862,7 +911,7 @@
         "tags": {
           "environment": "value-626092f4"
         },
-        "change": "Collected from Azure Resource Graph"
+        "change": "Azure Resource Graph から収集"
       },
       {
         "id": "res-360adff8",
@@ -875,7 +924,7 @@
         "tags": {
           "environment": "value-626092f4"
         },
-        "change": "Collected from Azure Resource Graph"
+        "change": "Azure Resource Graph から収集"
       },
       {
         "id": "res-0dec37bf",
@@ -886,7 +935,7 @@
         "status": "Unknown",
         "owner": "identity-caac8562",
         "tags": {},
-        "change": "Collected from Azure Resource Graph"
+        "change": "Azure Resource Graph から収集"
       },
       {
         "id": "res-137af75b",
@@ -897,7 +946,7 @@
         "status": "Unknown",
         "owner": "identity-caac8562",
         "tags": {},
-        "change": "Collected from Azure Resource Graph"
+        "change": "Azure Resource Graph から収集"
       },
       {
         "id": "res-0f970ed7",
@@ -908,7 +957,7 @@
         "status": "Unknown",
         "owner": "identity-caac8562",
         "tags": {},
-        "change": "Collected from Azure Resource Graph"
+        "change": "Azure Resource Graph から収集"
       },
       {
         "id": "res-7c2c5886",
@@ -919,7 +968,7 @@
         "status": "Unknown",
         "owner": "identity-caac8562",
         "tags": {},
-        "change": "Collected from Azure Resource Graph"
+        "change": "Azure Resource Graph から収集"
       },
       {
         "id": "res-d1c7f840",
@@ -930,7 +979,7 @@
         "status": "Healthy",
         "owner": "identity-caac8562",
         "tags": {},
-        "change": "Collected from Azure Resource Graph"
+        "change": "Azure Resource Graph から収集"
       },
       {
         "id": "res-5670c3b7",
@@ -941,7 +990,7 @@
         "status": "Healthy",
         "owner": "identity-caac8562",
         "tags": {},
-        "change": "Collected from Azure Resource Graph"
+        "change": "Azure Resource Graph から収集"
       },
       {
         "id": "res-1fcaf1f3",
@@ -952,7 +1001,7 @@
         "status": "NotApplicable",
         "owner": "identity-caac8562",
         "tags": {},
-        "change": "Collected from Azure Resource Graph"
+        "change": "Azure Resource Graph から収集"
       },
       {
         "id": "res-e3c0c25f",
@@ -963,7 +1012,7 @@
         "status": "NotApplicable",
         "owner": "identity-caac8562",
         "tags": {},
-        "change": "Collected from Azure Resource Graph"
+        "change": "Azure Resource Graph から収集"
       },
       {
         "id": "res-209c1d37",
@@ -974,7 +1023,7 @@
         "status": "NotApplicable",
         "owner": "identity-caac8562",
         "tags": {},
-        "change": "Collected from Azure Resource Graph"
+        "change": "Azure Resource Graph から収集"
       },
       {
         "id": "res-dc440abe",
@@ -985,7 +1034,7 @@
         "status": "Healthy",
         "owner": "identity-caac8562",
         "tags": {},
-        "change": "Collected from Azure Resource Graph"
+        "change": "Azure Resource Graph から収集"
       },
       {
         "id": "res-de42d182",
@@ -996,7 +1045,7 @@
         "status": "Healthy",
         "owner": "identity-caac8562",
         "tags": {},
-        "change": "Collected from Azure Resource Graph"
+        "change": "Azure Resource Graph から収集"
       },
       {
         "id": "res-976ccfcd",
@@ -1009,7 +1058,7 @@
         "tags": {
           "environment": "value-626092f4"
         },
-        "change": "Collected from Azure Resource Graph"
+        "change": "Azure Resource Graph から収集"
       },
       {
         "id": "res-61e65c0b",
@@ -1022,7 +1071,7 @@
         "tags": {
           "environment": "value-626092f4"
         },
-        "change": "Collected from Azure Resource Graph"
+        "change": "Azure Resource Graph から収集"
       },
       {
         "id": "res-22eb53f3",
@@ -1033,7 +1082,7 @@
         "status": "Healthy",
         "owner": "identity-caac8562",
         "tags": {},
-        "change": "Collected from Azure Resource Graph"
+        "change": "Azure Resource Graph から収集"
       },
       {
         "id": "res-49f01cec",
@@ -1044,7 +1093,7 @@
         "status": "Healthy",
         "owner": "identity-caac8562",
         "tags": {},
-        "change": "Collected from Azure Resource Graph"
+        "change": "Azure Resource Graph から収集"
       },
       {
         "id": "res-f0481154",
@@ -1055,7 +1104,7 @@
         "status": "NotApplicable",
         "owner": "identity-caac8562",
         "tags": {},
-        "change": "Collected from Azure Resource Graph"
+        "change": "Azure Resource Graph から収集"
       },
       {
         "id": "res-d2ee329d",
@@ -1066,7 +1115,7 @@
         "status": "NotApplicable",
         "owner": "identity-caac8562",
         "tags": {},
-        "change": "Collected from Azure Resource Graph"
+        "change": "Azure Resource Graph から収集"
       },
       {
         "id": "res-6bb85822",
@@ -1077,7 +1126,7 @@
         "status": "NotApplicable",
         "owner": "identity-caac8562",
         "tags": {},
-        "change": "Collected from Azure Resource Graph"
+        "change": "Azure Resource Graph から収集"
       },
       {
         "id": "res-1630a8ba",
@@ -1088,7 +1137,7 @@
         "status": "NotApplicable",
         "owner": "identity-caac8562",
         "tags": {},
-        "change": "Collected from Azure Resource Graph"
+        "change": "Azure Resource Graph から収集"
       },
       {
         "id": "res-cc375eb3",
@@ -1099,7 +1148,7 @@
         "status": "NotApplicable",
         "owner": "identity-caac8562",
         "tags": {},
-        "change": "Collected from Azure Resource Graph"
+        "change": "Azure Resource Graph から収集"
       }
     ],
     "byType": [
@@ -1364,93 +1413,5 @@
       "flows": []
     }
   },
-  "aiInsights": [
-    {
-      "id": "insight-a1b2c3d4",
-      "severity": "warning",
-      "title": "Service Health のアクティブイベントを検出",
-      "observation": "Service Health に 2 件のアクティブなイベントが存在しており、要確認の状態にある可能性がある。収集期間内に解決済みイベントは 3 件確認されている。",
-      "impact": "アクティブなサービス障害または勧告がサブスクリプション内のサービス可用性に影響を与えている可能性があり、関連するワークロードの運用に支障をきたすおそれがある。",
-      "numericEvidence": [
-        {
-          "label": "アクティブな Service Health イベント数",
-          "value": "2",
-          "source": "reliability.serviceHealth.activeEvents"
-        },
-        {
-          "label": "解決済み Service Health イベント数",
-          "value": "3",
-          "source": "reliability.serviceHealth.resolvedEvents"
-        }
-      ],
-      "recommendedAction": "/reliability ダッシュボードで Service Health イベントの詳細を確認し、影響範囲の精査を担当チームに依頼することを推奨する。",
-      "confidence": 0.85,
-      "period": "2026-08-05 スナップショット収集時点",
-      "route": "/reliability"
-    },
-    {
-      "id": "insight-e5f6a7b8",
-      "severity": "info",
-      "title": "Resource Health のカバレッジが部分的",
-      "observation": "対応リソース 19 件のうち 13 件のみが Resource Health で評価されており、6 件が未評価のままである。カバレッジ率は 68% にとどまっており、一部リソースの正常性が把握できていない可能性がある。",
-      "impact": "未評価の 6 件のリソースについては正常性が不明のため、障害の早期検知が困難になる可能性がある。",
-      "numericEvidence": [
-        {
-          "label": "Resource Health カバレッジ率（%）",
-          "value": "68",
-          "source": "reliability.coverage.supportedCoveragePercent"
-        },
-        {
-          "label": "未評価リソース数",
-          "value": "6",
-          "source": "reliability.coverage.unevaluatedResources"
-        }
-      ],
-      "recommendedAction": "未評価リソースの種別を /reliability ダッシュボードで確認し、Resource Health 対応状況の改善を検討することを推奨する。",
-      "confidence": 0.8,
-      "period": "2026-08-05 スナップショット収集時点",
-      "route": "/reliability"
-    },
-    {
-      "id": "insight-c9d0e1f2",
-      "severity": "warning",
-      "title": "2 件のデータソースが利用不可",
-      "observation": "Cost Management と Defender for Cloud の 2 件のデータソースが利用不可であり、コストおよびセキュリティ態勢の可視性が欠如している。これらのソースが利用不可の場合、関連する分析は実施できない。",
-      "impact": "コスト超過やセキュリティリスクが存在していても、現時点のスナップショットでは検知できない可能性がある。",
-      "numericEvidence": [
-        {
-          "label": "利用不可のデータソース数",
-          "value": "2",
-          "source": "overview.metrics.2.value"
-        }
-      ],
-      "recommendedAction": "/overview ダッシュボードでデータソースの状況を確認し、Cost Management のスコープ設定および Defender for Cloud プランの有効化について担当チームへの確認を推奨する。",
-      "confidence": 0.9,
-      "period": "2026-08-05 スナップショット収集時点",
-      "route": "/overview"
-    },
-    {
-      "id": "insight-3a4b5c6d",
-      "severity": "info",
-      "title": "Logic Apps ワークフローが多数配置されている",
-      "observation": "サブスクリプション全体で microsoft.logic/workflows が 22 件配置されており、全リソース 82 件の約 27% を占める。大半は japaneast リージョンに集中していることが確認されている。",
-      "impact": "ワークフロー数が多い場合、依存関係の管理や障害時の影響範囲が広がる可能性があり、定期的な棚卸しが有効な可能性がある。",
-      "numericEvidence": [
-        {
-          "label": "Logic Apps ワークフロー数",
-          "value": "22",
-          "source": "inventory.byType.16.count"
-        },
-        {
-          "label": "インベントリ総リソース数",
-          "value": "82",
-          "source": "inventory.total"
-        }
-      ],
-      "recommendedAction": "/resources ダッシュボードで Logic Apps の一覧を確認し、未使用または冗長なワークフローの整理を担当チームに検討させることを推奨する。",
-      "confidence": 0.75,
-      "period": "2026-08-05 スナップショット収集時点",
-      "route": "/resources"
-    }
-  ]
+  "aiInsights": []
 }
