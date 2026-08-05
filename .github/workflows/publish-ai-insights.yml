@@ -99,8 +99,10 @@ jobs:
           git commit -m "Publish validated public AI insights"
           git push origin "HEAD:${{ github.event.repository.default_branch }}"
           echo "published=true" >> "$GITHUB_OUTPUT"
-      - name: Deploy updated AI insights to Pages
-        if: steps.publish.outputs.published == 'true'
-        env:
-          GH_TOKEN: ${{ github.token }}
-        run: gh workflow run pages.yml --ref "${{ github.event.repository.default_branch }}"
+      # Deliberately not conditional on a new commit, so a deployment that failed earlier is
+      # repaired instead of being hidden by a later run that happens to produce identical insights.
+      - name: Deploy to Pages and fail if the site does not receive these insights
+        uses: ./.github/actions/await-pages-deployment
+        with:
+          branch: ${{ github.event.repository.default_branch }}
+          github-token: ${{ github.token }}
