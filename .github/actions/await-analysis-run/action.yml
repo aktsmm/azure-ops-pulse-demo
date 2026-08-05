@@ -1,0 +1,35 @@
+name: Await analysis run
+description: >-
+  Waits for a dispatched analysis run and reports its id only once it has succeeded, so its validated
+  candidate can be handed to a publisher instead of waiting for an event that never arrives.
+
+inputs:
+  run-id:
+    description: Analysis run to wait for.
+    required: true
+  github-token:
+    description: Token used to read the run.
+    required: true
+  timeout-minutes:
+    description: >-
+      How long to wait before giving up and failing. The analysis allows 20 minutes for the agent and
+      45 for its safe-output processing, so a shorter wait would abandon runs that still succeed.
+    required: false
+    default: "90"
+
+outputs:
+  run-id:
+    description: The analysis run id, set only when that run succeeded.
+    value: ${{ steps.await.outputs.run-id }}
+
+runs:
+  using: composite
+  steps:
+    - name: Wait for the analysis to finish
+      id: await
+      shell: bash
+      env:
+        GH_TOKEN: ${{ inputs.github-token }}
+        RUN_ID: ${{ inputs.run-id }}
+        TIMEOUT_MINUTES: ${{ inputs.timeout-minutes }}
+      run: bash "$GITHUB_ACTION_PATH/await-analysis.sh"

@@ -17,6 +17,8 @@ concurrency:
 jobs:
   collect:
     runs-on: ubuntu-latest
+    outputs:
+      analysis-run-id: ${{ steps.await-analysis.outputs.run-id }}
     steps:
       - name: Checkout
         uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
@@ -69,16 +71,26 @@ jobs:
           git push origin "HEAD:${{ github.event.repository.default_branch }}"
           echo "published=true" >> "$GITHUB_OUTPUT"
       - name: Dispatch AI analysis
+        id: analysis
+        # Skipped when the snapshot is byte-identical to the published one, which spares an agent run
+        # that could only reproduce the insights already on the site. In practice the collection
+        # timestamp changes every run, so this rarely skips; it is a guard against a pointless run,
+        # not a budget control.
         if: steps.publish.outputs.published == 'true'
         env:
           GH_TOKEN: ${{ github.token }}
-        # Not awaited on purpose. The analysis hands a candidate to publish-ai-insights.yml, which
-        # revalidates it and runs its own deployment gate, so a failure here leaves aiInsights empty
-        # rather than wrong and the site stays truthful. It is also an agent run of unbounded
-        # duration, and it shares the azure-pulse-publication concurrency group through its
-        # publisher, so waiting here would hold that lock for the whole run and delay the very
-        # publication that depends on it.
-        run: gh workflow run ai-insights.lock.yml --ref "${{ github.event.repository.default_branch }}"
+          BRANCH: ${{ github.event.repository.default_branch }}
+        run: |
+          response=$(gh api -X POST \
+            "repos/$GITHUB_REPOSITORY/actions/workflows/ai-insights.lock.yml/dispatches" \
+            -H "X-GitHub-Api-Version: 2026-03-10" \
+            -f "ref=$BRANCH" 2>&1) || true
+          if [[ "$response" =~ \"workflow_run_id\"[[:space:]]*:[[:space:]]*([1-9][0-9]*) ]]; then
+            echo "run-id=${BASH_REMATCH[1]}" >> "$GITHUB_OUTPUT"
+          else
+            echo "::error::Dispatching the AI analysis did not report a run, so its insights cannot be published. Response: $response"
+            exit 1
+          fi
       # Deliberately not conditional on a new commit. If an earlier deployment failed, the branch
       # already carries data the site never received, and a later run that collects identical data
       # would skip the deployment and leave that mismatch in place forever.
@@ -87,3 +99,35 @@ jobs:
         with:
           branch: ${{ github.event.repository.default_branch }}
           github-token: ${{ github.token }}
+      # The analysis runs under GITHUB_TOKEN, so its completion emits no workflow_run event and the
+      # publisher that listens for one never starts. Waiting here and reporting the run to the
+      # publishing job below is what turns the analysis from a run nobody reads into insights the
+      # site actually serves.
+      #
+      # Deliberately not conditional on the deployment above succeeding. A failed deployment already
+      # fails this job, and skipping the wait would strand an analysis that is about to succeed while
+      # the publisher below could have deployed the site again and repaired it.
+      - name: Await the AI analysis
+        id: await-analysis
+        if: ${{ !cancelled() && steps.analysis.outputs.run-id != '' }}
+        uses: ./.github/actions/await-analysis-run
+        with:
+          run-id: ${{ steps.analysis.outputs.run-id }}
+          github-token: ${{ github.token }}
+
+  # Calling the publisher instead of dispatching it makes its validation, publication, and deployment
+  # part of this run, so insights that never reach the site fail the collection rather than being
+  # reported nowhere. A dispatched run could also be left queued indefinitely behind this one, which
+  # shares its publication concurrency group.
+  publish-insights:
+    needs: collect
+    # Runs even when the collection failed, because the only failure that can happen after the
+    # analysis is dispatched is the site deployment, and publishing the insights deploys the site
+    # again. The run stays red either way; a failed job cannot be cancelled into a green one.
+    if: ${{ !cancelled() && needs.collect.outputs.analysis-run-id != '' }}
+    permissions:
+      actions: write
+      contents: write
+    uses: ./.github/workflows/publish-ai-insights.yml
+    with:
+      analysis-run-id: ${{ needs.collect.outputs.analysis-run-id }}
