@@ -30,8 +30,26 @@ function getUploadBlocks(workflow: string): string[] {
   return blocks;
 }
 
+function getStepContaining(workflow: string, needle: string): string {
+  const lines = workflow.replace(/\r\n/g, "\n").split("\n");
+  const index = lines.findIndex((line) => line.includes(needle));
+  if (index === -1) return "";
+
+  let start = index;
+  while (start > 0 && !STEP_HEADER.test(lines[start] ?? "")) start -= 1;
+  let end = index + 1;
+  while (
+    end < lines.length &&
+    !STEP_HEADER.test(lines[end] ?? "") &&
+    !JOB_HEADER.test(lines[end] ?? "")
+  ) {
+    end += 1;
+  }
+  return lines.slice(start, end).join("\n");
+}
+
 describe("AI insight publication gate", () => {
-  it("publishes validated snapshots and explicitly dispatches downstream workflows", () => {
+  it("publishes validated snapshots and gates the site on the deployment result", () => {
     const collection = readFileSync(".github/workflows/collect-azure.yml", "utf8");
 
     expect(collection).toContain('cron: "0 21 * * 1,4"');
@@ -41,15 +59,98 @@ describe("AI insight publication gate", () => {
     expect(collection).toContain("ref: ${{ github.event.repository.default_branch }}");
     expect(collection).toContain("Publish validated snapshot to main");
     expect(collection).toContain('git push origin "HEAD:${{ github.event.repository.default_branch }}"');
-    expect(collection).toContain("Dispatch AI analysis and Pages deployment");
+    expect(collection).toContain("Dispatch AI analysis");
     expect(collection).toContain(
       'gh workflow run ai-insights.lock.yml --ref "${{ github.event.repository.default_branch }}"'
     );
-    expect(collection).toContain(
-      'gh workflow run pages.yml --ref "${{ github.event.repository.default_branch }}"'
-    );
+    expect(collection).toContain("uses: ./.github/actions/await-pages-deployment");
+    // A bare dispatch would publish to the branch and never learn whether the site received it.
+    expect(collection).not.toContain("gh workflow run pages.yml");
     expect(collection).not.toContain("gh pr create");
     expect(collection).not.toContain("pull-requests: write");
+  });
+
+  it("fails the publishing workflow when the site deployment does not succeed", () => {
+    const action = readFileSync(".github/actions/await-pages-deployment/action.yml", "utf8");
+    const script = readFileSync(
+      ".github/actions/await-pages-deployment/await-deployment.sh",
+      "utf8"
+    );
+
+    expect(action).toContain('run: bash "$GITHUB_ACTION_PATH/await-deployment.sh"');
+    expect(action).toMatch(/timeout-minutes:\r?\n(?:.*\r?\n)*?\s+default: "30"/);
+    // Success is asserted positively so an unexpected conclusion can never pass the gate.
+    expect(script).toContain('if [ "$conclusion" = "success" ]; then');
+    // Waiting forever would turn a stuck deployment into a stuck collection instead of an alert.
+    expect(script).toContain("deadline=$(( $(date +%s) + TIMEOUT_MINUTES * 60 ))");
+    for (const failure of [
+      "did not report a deployment run",
+      "did not finish within $TIMEOUT_MINUTES minutes",
+      "finished as '$conclusion'"
+    ]) {
+      expect(script).toContain("::error::");
+      expect(script).toContain(failure);
+    }
+  });
+
+  it("identifies the deployment it dispatched instead of guessing from timing", () => {
+    const script = readFileSync(
+      ".github/actions/await-pages-deployment/await-deployment.sh",
+      "utf8"
+    );
+
+    // The dispatch endpoint reports the run it created from this API version onwards. Adopting the
+    // newest run instead can adopt one allocated just before the dispatch, which builds a
+    // pre-publication commit and would report success while the real deployment is still queued.
+    expect(script).toContain("X-GitHub-Api-Version: 2026-03-10");
+    expect(script).toMatch(
+      /gh api -X POST \\\r?\n\s+"repos\/\$GITHUB_REPOSITORY\/actions\/workflows\/\$WORKFLOW\/dispatches"/
+    );
+    expect(script).toMatch(/workflow_run_id.*BASH_REMATCH\[1\]/s);
+    expect(script).toContain('gh run view "$run_id"');
+    expect(script).not.toContain("gh run list");
+    expect(script).not.toContain('gh workflow run "$WORKFLOW"');
+  });
+
+  it("verifies the deployed site on every successful publication run", () => {
+    const collection = readFileSync(".github/workflows/collect-azure.yml", "utf8");
+    const insights = readFileSync(".github/workflows/publish-ai-insights.yml", "utf8");
+
+    // Gating the deployment on a fresh commit would leave a previously failed deployment in place
+    // forever: the branch already carries data the site never received, and a later run that
+    // collects identical data would skip the deployment and preserve the mismatch. The whole step
+    // is inspected because YAML key order is free, so a condition can sit after `uses:`.
+    for (const workflow of [collection, insights]) {
+      const step = getStepContaining(workflow, "uses: ./.github/actions/await-pages-deployment");
+      expect(step).toContain("await-pages-deployment");
+      expect(step).not.toContain("if:");
+    }
+  });
+
+  it("keeps the deployment gate covered by executable scenarios", () => {
+    const ci = readFileSync(".github/workflows/ci.yml", "utf8");
+    const scenarios = readFileSync(
+      ".github/actions/await-pages-deployment/scenarios.test.sh",
+      "utf8"
+    );
+
+    expect(ci).toContain("bash .github/actions/await-pages-deployment/scenarios.test.sh");
+    for (const covered of [
+      "failed deployment fails caller",
+      "cancellation past the deadline fails",
+      "run never completes times out",
+      "dispatch without a run id fails",
+      "transient view errors are retried"
+    ]) {
+      expect(scenarios).toContain(`scenario "${covered}"`);
+    }
+    // A cancelled deployment never ran, so it must not be reported as success; retrying it keeps a
+    // benign supersede from raising a false alarm without weakening that guarantee.
+    expect(scenarios).toContain("cancelled run is retried and then succeeds");
+    expect(scenarios).toContain("retry that fails still fails the caller");
+    // Asserting only the exit status would pass even if the gate watched an unrelated run.
+    expect(scenarios).toContain("never lists runs to guess the deployment");
+    expect(scenarios).toContain("reads only the dispatched run");
   });
 
   it("keeps collection scheduled and AI analysis event driven", () => {
@@ -212,10 +313,9 @@ describe("AI insight publication gate", () => {
     expect(workflow).toContain(
       'git push origin "HEAD:${{ github.event.repository.default_branch }}"'
     );
-    expect(workflow).toContain("Deploy updated AI insights to Pages");
-    expect(workflow).toContain(
-      'gh workflow run pages.yml --ref "${{ github.event.repository.default_branch }}"'
-    );
+    expect(workflow).toContain("Deploy to Pages and fail if the site does not receive these insights");
+    expect(workflow).toContain("uses: ./.github/actions/await-pages-deployment");
+    expect(workflow).not.toContain("gh workflow run pages.yml");
     expect(workflow).not.toContain("pull-requests: write");
     expect(workflow).not.toContain("gh pr create");
     expect(workflow).not.toContain("issues: write");

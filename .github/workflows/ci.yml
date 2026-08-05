@@ -23,6 +23,8 @@ jobs:
         run: npm ci --ignore-scripts
       - name: Lint
         run: npm run lint
+      - name: Deployment gate scenarios
+        run: bash .github/actions/await-pages-deployment/scenarios.test.sh
       - name: Typecheck
         run: npm run typecheck
       - name: Unit tests

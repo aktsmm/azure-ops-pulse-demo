@@ -1,0 +1,32 @@
+name: Await Pages deployment
+description: >-
+  Dispatches the GitHub Pages workflow and fails unless that deployment succeeds, so a snapshot can
+  never sit on the default branch while the published site keeps serving the previous one.
+
+inputs:
+  workflow:
+    description: Workflow file that deploys the site.
+    required: false
+    default: pages.yml
+  branch:
+    description: Branch to dispatch against and to look for the resulting run on.
+    required: true
+  github-token:
+    description: Token used to dispatch the workflow and read the resulting run.
+    required: true
+  timeout-minutes:
+    description: How long to wait before giving up and failing.
+    required: false
+    default: "30"
+
+runs:
+  using: composite
+  steps:
+    - name: Dispatch the deployment and wait for its result
+      shell: bash
+      env:
+        GH_TOKEN: ${{ inputs.github-token }}
+        WORKFLOW: ${{ inputs.workflow }}
+        BRANCH: ${{ inputs.branch }}
+        TIMEOUT_MINUTES: ${{ inputs.timeout-minutes }}
+      run: bash "$GITHUB_ACTION_PATH/await-deployment.sh"

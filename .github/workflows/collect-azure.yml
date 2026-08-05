@@ -68,10 +68,22 @@ jobs:
           git commit -m "Publish sanitized Azure operations snapshot"
           git push origin "HEAD:${{ github.event.repository.default_branch }}"
           echo "published=true" >> "$GITHUB_OUTPUT"
-      - name: Dispatch AI analysis and Pages deployment
+      - name: Dispatch AI analysis
         if: steps.publish.outputs.published == 'true'
         env:
           GH_TOKEN: ${{ github.token }}
-        run: |
-          gh workflow run ai-insights.lock.yml --ref "${{ github.event.repository.default_branch }}"
-          gh workflow run pages.yml --ref "${{ github.event.repository.default_branch }}"
+        # Not awaited on purpose. The analysis hands a candidate to publish-ai-insights.yml, which
+        # revalidates it and runs its own deployment gate, so a failure here leaves aiInsights empty
+        # rather than wrong and the site stays truthful. It is also an agent run of unbounded
+        # duration, and it shares the azure-pulse-publication concurrency group through its
+        # publisher, so waiting here would hold that lock for the whole run and delay the very
+        # publication that depends on it.
+        run: gh workflow run ai-insights.lock.yml --ref "${{ github.event.repository.default_branch }}"
+      # Deliberately not conditional on a new commit. If an earlier deployment failed, the branch
+      # already carries data the site never received, and a later run that collects identical data
+      # would skip the deployment and leave that mismatch in place forever.
+      - name: Deploy to Pages and fail if the site does not receive this snapshot
+        uses: ./.github/actions/await-pages-deployment
+        with:
+          branch: ${{ github.event.repository.default_branch }}
+          github-token: ${{ github.token }}

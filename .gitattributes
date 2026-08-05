@@ -1,1 +1,4 @@
 .github/workflows/*.lock.yml linguist-generated=true merge=ours
+# Shell scripts run on Linux runners, where a CR would break the shebang and every command. This
+# repository is developed on Windows, so the checkout must not be allowed to convert them.
+*.sh text eol=lf
