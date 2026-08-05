@@ -3,6 +3,7 @@ import type {
   RawSnapshot,
   SecurityRecommendation
 } from "../src/data/contracts";
+import { snapshotInsightPeriod } from "./insight-period";
 
 const guid = (...segments: string[]) => segments.join("-");
 const address = (...octets: string[]) => octets.join(".");
@@ -43,10 +44,7 @@ function demoHealthyPercent(): number {
   return Math.round((healthy / evaluated) * 100);
 }
 
-const dayOf = (generatedAt: string): string => generatedAt.slice(0, 10);
-
-const DEMO_COST_JPY = 1_248_730;
-const DEMO_PREVIOUS_COST_JPY = 1_158_380;
+const DEMO_COST_JPY = 1_248_730;const DEMO_PREVIOUS_COST_JPY = 1_158_380;
 /** The sanitizer derives the published `cost.deltaPercent` from the same two amounts. */
 const demoCostDeltaPercent = (): number =>
   Math.round(((DEMO_COST_JPY - DEMO_PREVIOUS_COST_JPY) / DEMO_PREVIOUS_COST_JPY) * 1000) / 10;
@@ -485,7 +483,7 @@ export function createDemoRawSnapshot(generatedAt = new Date().toISOString()): R
         recommendedAction:
           "コスト ページで増加が大きい要因を確認し、次回の収集までにスケール設定を見直すことを推奨する。",
         confidence: 0.92,
-        period: `${dayOf(generatedAt)} スナップショット収集時点`,
+        period: snapshotInsightPeriod(generatedAt),
         route: "/cost"
       },
       {
@@ -508,7 +506,7 @@ export function createDemoRawSnapshot(generatedAt = new Date().toISOString()): R
         recommendedAction:
           "信頼性ページのサービス目標とエラー バジェット残量を確認し、直近のエッジ構成変更と突き合わせることを推奨する。",
         confidence: 0.88,
-        period: `${dayOf(generatedAt)} スナップショット収集時点`,
+        period: snapshotInsightPeriod(generatedAt),
         route: "/reliability"
       },
       {
@@ -530,7 +528,7 @@ export function createDemoRawSnapshot(generatedAt = new Date().toISOString()): R
         recommendedAction:
           "Defender for Cloud を非公開の環境で開き、資産の所有者とクリティカルな推奨事項を確認することを推奨する。",
         confidence: 0.96,
-        period: `${dayOf(generatedAt)} スナップショット収集時点`,
+        period: snapshotInsightPeriod(generatedAt),
         route: "/security"
       },
       {
@@ -561,7 +559,7 @@ export function createDemoRawSnapshot(generatedAt = new Date().toISOString()): R
         recommendedAction:
           "プロバイダー側の稼働状況を確認し、プライベート ネットワークのテレメトリと経路を比較することを推奨する。",
         confidence: 0.81,
-        period: `${dayOf(generatedAt)} スナップショット収集時点`,
+        period: snapshotInsightPeriod(generatedAt),
         route: "/network"
       }
     ]

@@ -353,12 +353,53 @@ describe("AI insight publication gate", () => {
     expect(source).toContain(
       "Validate generated insight JSON Schema, runtime schema, Japanese prose, evidence, and privacy"
     );
-    expect(source).toContain("normalize-ai-insight-labels.ts");
+    expect(source).toContain("npm run normalize:insights");
     expect(source).toContain("never copy an English-only metric label or source path");
     expect(deterministicValidation).toContain("validateJapaneseInsights(parsed.aiInsights)");
     expect(source).toContain("Do not inspect Azure, workflow secrets,");
     expect(source).toContain("logs, artifacts, commit history, or external services");
     expect(hardenAgentWorkflowLock(lock)).toBe(lock.replace(/\r\n/g, "\n"));
+  });
+
+  it("derives the deterministic insight fields instead of asking the analysis for them", () => {
+    const source = readFileSync(".github/workflows/ai-insights.md", "utf8");
+    const lock = readFileSync(".github/workflows/ai-insights.lock.yml", "utf8");
+    const packageJson = JSON.parse(readFileSync("package.json", "utf8")) as {
+      scripts: Record<string, string>;
+    };
+    const deterministicValidation = readFileSync("scripts/validate-public-data.ts", "utf8");
+
+    // One command owns every field the pipeline derives rather than authors, so the pass the agent
+    // runs and the pass that runs after it cannot drift apart.
+    const normalize = packageJson.scripts["normalize:insights"];
+    expect(normalize).toContain("scripts/normalize-ai-insight-period.ts public/data/snapshot.json");
+    expect(normalize).toContain("scripts/normalize-ai-insight-labels.ts public/data/snapshot.json");
+
+    // The agent may run it, a post-step runs it again, and validation only runs afterwards.
+    expect(source).toMatch(/bash:(?:.*\r?\n)+?\s+- "npm run normalize:insights"/);
+    const normalization = source.indexOf("run: npm run normalize:insights");
+    const validation = source.indexOf("run: npm run validate:insights && npm run scan:privacy");
+    expect(normalization).toBeGreaterThan(-1);
+    expect(validation).toBeGreaterThan(normalization);
+
+    // A prompt change that never reached the compiled workflow would leave the agent free to write
+    // the field again, so the generated lock has to carry the same command.
+    expect(lock).toContain("run: npm run normalize:insights");
+
+    // The prompt no longer lists `period` among the fields the analysis writes.
+    expect(source).toContain("Do not write `period`");
+    expect(source).not.toMatch(/^- `period`$/m);
+    expect(source).not.toContain("`recommendedAction`, and `period`");
+
+    // And the trusted publisher re-derives it, so a candidate that skipped the overwrite is
+    // rejected rather than published with whatever wording the analysis chose.
+    const periodGate = deterministicValidation.indexOf("validateInsightPeriods(parsed)");
+    const proseGate = deterministicValidation.indexOf("validateJapaneseInsights(parsed.aiInsights)");
+    expect(periodGate).toBeGreaterThan(-1);
+    expect(proseGate).toBeGreaterThan(periodGate);
+    expect(
+      readFileSync(".github/workflows/publish-ai-insights.yml", "utf8")
+    ).toContain("scripts/validate-public-data.ts .candidate/snapshot.json --insights-only");
   });
 
   it("retains every compiler audit and candidate artifact for one day", () => {

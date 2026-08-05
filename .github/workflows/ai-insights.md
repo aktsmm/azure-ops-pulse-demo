@@ -15,6 +15,7 @@ max-ai-credits: 1000
 
 tools:
   bash:
+    - "npm run normalize:insights"
     - "npm run validate:insights"
     - "npm run scan:privacy -- public"
 
@@ -23,10 +24,10 @@ steps:
     run: npm ci --ignore-scripts
 
 post-steps:
-  - name: Normalize evidence labels for Japanese display
+  - name: Normalize the deterministic insight fields, period and evidence labels
     id: normalize_labels
     if: success()
-    run: npx tsx scripts/normalize-ai-insight-labels.ts public/data/snapshot.json
+    run: npm run normalize:insights
   - name: Validate generated insight JSON Schema, runtime schema, Japanese prose, evidence, and privacy
     id: validate_candidate
     if: success() && steps.normalize_labels.outcome == 'success'
@@ -86,7 +87,7 @@ Update only the `aiInsights` array in `public/data/snapshot.json` with zero to f
 insights. Preserve every other byte-level data value and the existing schema version.
 
 Write every human-facing prose field in natural Japanese: `title`, `observation`, `impact`,
-`numericEvidence[].label`, `recommendedAction`, and `period`. Keep Azure product names, resource
+`numericEvidence[].label`, and `recommendedAction`. Keep Azure product names, resource
 types, regions, sanitized values, numeric values, and source paths unchanged. Do not emit complete
 English sentences except where an official product or technical term has no useful Japanese form.
 For `numericEvidence[].label`, never copy an English-only metric label or source path. Use a Japanese
@@ -105,9 +106,14 @@ Each insight must contain:
   and the numeric token in `value` must equal the scalar at that path
 - `recommendedAction`
 - `confidence`: a number from 0 through 1
-- `period`
 - `route`: one of `/overview`, `/cost`, `/resources`, `/reliability`, `/security`, `/network`,
   `/ai-insights`
+
+Do not write `period`. You read one snapshot collected at `generatedAt` and no history, so the
+analysis window is the same for every insight and the pipeline derives it from `generatedAt`. Leave
+the field out, or leave the existing value alone; a deterministic step overwrites it either way and
+a later gate rejects any candidate whose `period` did not come from `generatedAt`. Do not describe a
+window such as "直近 30 日" anywhere else either: the snapshot does not contain one.
 
 ## Guardrails
 
@@ -120,7 +126,10 @@ Each insight must contain:
 6. Do not add exact JPY amounts. Use only existing approximate labels and percentages.
 7. Do not alter identifiers, resource rows, source status, freshness, or any field outside
    `aiInsights`.
-8. Run `npm run validate:insights` and `npm run scan:privacy -- public`.
+8. Run `npm run normalize:insights`, then `npm run validate:insights` and
+   `npm run scan:privacy -- public`. The normalization is deterministic and idempotent: it fills in
+   the fields this pipeline derives rather than writes, and the same command runs again after you
+   finish, so running it changes nothing you are responsible for.
 9. If validation fails or the evidence is insufficient, leave the existing insights unchanged.
 10. Do not request or emit a safe output. gh-aw requires a non-builtin safe output to avoid
    auto-injecting `create_issue`, so the only configured capability is a staged, non-publishing
