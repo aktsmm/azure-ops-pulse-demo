@@ -25,6 +25,8 @@ jobs:
         run: npm run lint
       - name: Deployment gate scenarios
         run: bash .github/actions/await-pages-deployment/scenarios.test.sh
+      - name: Analysis handover scenarios
+        run: bash .github/actions/await-analysis-run/scenarios.test.sh
       - name: Typecheck
         run: npm run typecheck
       - name: Unit tests

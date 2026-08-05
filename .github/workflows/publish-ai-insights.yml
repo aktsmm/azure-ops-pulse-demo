@@ -4,25 +4,74 @@ on:
   workflow_run:
     workflows: ["Azure Ops Pulse evidence-bound analysis"]
     types: [completed]
+  # An analysis dispatched with GITHUB_TOKEN completes without emitting a workflow_run event, because
+  # GitHub only lets GITHUB_TOKEN create runs through workflow_dispatch and repository_dispatch. The
+  # scheduled collection dispatches the analysis that way, so it calls this workflow directly rather
+  # than waiting for an event that never arrives. See
+  # https://docs.github.com/en/actions/how-tos/write-workflows/choose-when-workflows-run/trigger-a-workflow#triggering-a-workflow-from-a-workflow
+  workflow_call:
+    inputs:
+      analysis-run-id:
+        description: Run id of a successful analysis whose validated candidate should be published.
+        required: true
+        type: string
 
 permissions:
   contents: read
 
+# A called workflow evaluates this group in the caller's context, so sharing a group with the caller
+# queues the call behind the very run that is waiting for it and the caller fails. Only the
+# workflow_run entry point needs the shared slot; a call already runs inside the collection holding it.
 concurrency:
-  group: azure-pulse-publication
+  group: ${{ github.event_name == 'workflow_run' && 'azure-pulse-publication' || format('azure-pulse-publication-nested-{0}', github.run_id) }}
   cancel-in-progress: false
 
 jobs:
   validate:
+    # A call is only reachable from a workflow in this repository, and the run id it supplies is
+    # verified in the first step below. Payloads from the workflow_run entry point are filtered here
+    # and verified again there.
     if: >-
-      github.event.workflow_run.conclusion == 'success' &&
+      github.event_name != 'workflow_run' ||
+      (github.event.workflow_run.conclusion == 'success' &&
       github.event.workflow_run.head_repository.full_name == github.repository &&
-      github.event.workflow_run.head_branch == github.event.repository.default_branch
+      github.event.workflow_run.head_branch == github.event.repository.default_branch)
     runs-on: ubuntu-latest
     permissions:
       actions: read
       contents: read
     steps:
+      # The workflow_run trigger vouches for the run it reports, but a run id passed in by a caller is
+      # just a number, so it is checked against the same conditions before anything it produced is
+      # trusted. The workflow_run path is re-checked here too rather than trusting the job condition
+      # alone.
+      - name: Resolve and verify the analysis run
+        id: analysis
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RUN_ID: ${{ github.event.workflow_run.id || inputs.analysis-run-id }}
+          DEFAULT_BRANCH: ${{ github.event.repository.default_branch }}
+        run: |
+          expected_path=.github/workflows/ai-insights.lock.yml
+          reject() {
+            echo "::error::Refusing to publish from run $RUN_ID: $1. See $GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/$RUN_ID"
+            exit 1
+          }
+          case "$RUN_ID" in
+            '' | *[!0-9]*)
+              echo "::error::'$RUN_ID' is not an analysis run id."
+              exit 1
+              ;;
+          esac
+          summary=$(gh api "repos/$GITHUB_REPOSITORY/actions/runs/$RUN_ID" \
+            --jq '[.path, (.conclusion // "-"), .head_branch, .head_repository.full_name] | @tsv') ||
+            reject "it could not be read"
+          read -r path conclusion branch repo <<<"$summary" || true
+          [ "$path" = "$expected_path" ] || reject "it is '$path', not $expected_path"
+          [ "$conclusion" = success ] || reject "it finished as '$conclusion'"
+          [ "$branch" = "$DEFAULT_BRANCH" ] || reject "it ran on '$branch', not $DEFAULT_BRANCH"
+          [ "$repo" = "$GITHUB_REPOSITORY" ] || reject "it belongs to '$repo'"
+          echo "run-id=$RUN_ID" >> "$GITHUB_OUTPUT"
       - name: Checkout trusted default branch
         uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
         with:
@@ -40,7 +89,7 @@ jobs:
           name: validated-ai-insights
           path: .candidate
           github-token: ${{ github.token }}
-          run-id: ${{ github.event.workflow_run.id }}
+          run-id: ${{ steps.analysis.outputs.run-id }}
       - name: Verify candidate artifact scope
         run: |
           mapfile -t candidate_files < <(find .candidate -type f -printf '%P\n' | sort)

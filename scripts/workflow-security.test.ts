@@ -60,9 +60,7 @@ describe("AI insight publication gate", () => {
     expect(collection).toContain("Publish validated snapshot to main");
     expect(collection).toContain('git push origin "HEAD:${{ github.event.repository.default_branch }}"');
     expect(collection).toContain("Dispatch AI analysis");
-    expect(collection).toContain(
-      'gh workflow run ai-insights.lock.yml --ref "${{ github.event.repository.default_branch }}"'
-    );
+    expect(collection).toContain("actions/workflows/ai-insights.lock.yml/dispatches");
     expect(collection).toContain("uses: ./.github/actions/await-pages-deployment");
     // A bare dispatch would publish to the branch and never learn whether the site received it.
     expect(collection).not.toContain("gh workflow run pages.yml");
@@ -133,8 +131,13 @@ describe("AI insight publication gate", () => {
       ".github/actions/await-pages-deployment/scenarios.test.sh",
       "utf8"
     );
+    const handover = readFileSync(
+      ".github/actions/await-analysis-run/scenarios.test.sh",
+      "utf8"
+    );
 
     expect(ci).toContain("bash .github/actions/await-pages-deployment/scenarios.test.sh");
+    expect(ci).toContain("bash .github/actions/await-analysis-run/scenarios.test.sh");
     for (const covered of [
       "failed deployment fails caller",
       "cancellation past the deadline fails",
@@ -151,6 +154,78 @@ describe("AI insight publication gate", () => {
     // Asserting only the exit status would pass even if the gate watched an unrelated run.
     expect(scenarios).toContain("never lists runs to guess the deployment");
     expect(scenarios).toContain("reads only the dispatched run");
+
+    // The analysis handover has the same shape of failure: anything other than a successful run must
+    // never reach the publisher, and a successful one must always reach it.
+    for (const covered of [
+      "successful analysis is published",
+      "failed analysis is not published",
+      "cancelled analysis is not published",
+      "run never completes times out",
+      "transient view errors are retried",
+      "non-numeric run id fails"
+    ]) {
+      expect(handover).toContain(`scenario "${covered}"`);
+    }
+    // Exit status alone would accept a script that succeeded without handing the run on, which is
+    // exactly the silent break this gate exists to catch.
+    expect(handover).toContain("hands the run to the publisher");
+    expect(handover).toContain("hands nothing to the publisher");
+  });
+
+  it("carries the analysis it dispatched through to the publisher", () => {
+    const collection = readFileSync(".github/workflows/collect-azure.yml", "utf8");
+    const insights = readFileSync(".github/workflows/publish-ai-insights.yml", "utf8");
+
+    // GITHUB_TOKEN only creates runs through workflow_dispatch and repository_dispatch, so an
+    // analysis the collection dispatches emits no workflow_run event when it finishes. Relying on
+    // that event alone left every automated analysis unpublished while the collection reported
+    // success, which is the silent staleness this gate exists to prevent.
+    const dispatch = getStepContaining(collection, "name: Dispatch AI analysis");
+    expect(dispatch).toContain("actions/workflows/ai-insights.lock.yml/dispatches");
+    expect(dispatch).toContain("X-GitHub-Api-Version: 2026-03-10");
+    expect(dispatch).toContain('echo "run-id=${BASH_REMATCH[1]}" >> "$GITHUB_OUTPUT"');
+
+    const await_ = getStepContaining(collection, "name: Await the AI analysis");
+    expect(await_).toContain("id: await-analysis");
+    expect(await_).toContain("uses: ./.github/actions/await-analysis-run");
+    expect(await_).toContain("run-id: ${{ steps.analysis.outputs.run-id }}");
+    // A failed site deployment must not strand an analysis that is about to succeed, because
+    // publishing its insights deploys the site again and repairs it.
+    expect(await_).toContain("if: ${{ !cancelled() && steps.analysis.outputs.run-id != '' }}");
+
+    // Calling the publisher rather than dispatching it makes its outcome part of this run. A
+    // dispatch reports only that the run started, so a publisher that then failed would leave the
+    // collection green with insights the site never received.
+    expect(collection).toContain("uses: ./.github/workflows/publish-ai-insights.yml");
+    expect(collection).toContain(
+      "analysis-run-id: ${{ needs.collect.outputs.analysis-run-id }}"
+    );
+    expect(collection).toContain("analysis-run-id: ${{ steps.await-analysis.outputs.run-id }}");
+    expect(collection).toContain(
+      "if: ${{ !cancelled() && needs.collect.outputs.analysis-run-id != '' }}"
+    );
+    expect(collection).not.toContain("actions/workflows/publish-ai-insights.yml/dispatches");
+    expect(insights).toContain("workflow_call:");
+    // A public entry point would let anyone replay an old analysis over fresh insights.
+    expect(insights).not.toContain("workflow_dispatch:");
+
+    // A called workflow evaluates its own concurrency group in the caller's context, so reusing the
+    // caller's group queues the call behind the run waiting for it and the whole run fails.
+    expect(insights).toMatch(
+      /group: \$\{\{ github\.event_name == 'workflow_run' && 'azure-pulse-publication' \|\| format\('azure-pulse-publication-nested-\{0\}', github\.run_id\) \}\}/
+    );
+    expect(collection).toContain("group: azure-pulse-publication");
+
+    // The caller-supplied run id is attacker-controlled in a way the workflow_run payload is not, so
+    // the publisher re-derives every condition its job guard asserts before trusting the artifact.
+    expect(insights).toContain("analysis-run-id:");
+    expect(insights).toContain("name: Resolve and verify the analysis run");
+    expect(insights).toContain("expected_path=.github/workflows/ai-insights.lock.yml");
+    expect(insights).toContain('[ "$path" = "$expected_path" ] || reject');
+    expect(insights).toContain('[ "$conclusion" = success ] || reject');
+    expect(insights).toContain('[ "$branch" = "$DEFAULT_BRANCH" ] || reject');
+    expect(insights).toContain('[ "$repo" = "$GITHUB_REPOSITORY" ] || reject');
   });
 
   it("keeps collection scheduled and AI analysis event driven", () => {
@@ -307,7 +382,7 @@ describe("AI insight publication gate", () => {
     expect(workflow).toContain("privacy-scan.ts .candidate");
     expect(workflow).toContain("retention-days: 1");
     expect(workflow).toContain("name: validated-ai-insights");
-    expect(workflow).toContain("run-id: ${{ github.event.workflow_run.id }}");
+    expect(workflow).toContain("run-id: ${{ steps.analysis.outputs.run-id }}");
     expect(workflow).not.toContain("pattern:");
     expect(workflow).toMatch(/permissions:\r?\n\s+actions: write\r?\n\s+contents: write/);
     expect(workflow).toContain(
