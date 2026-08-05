@@ -144,14 +144,23 @@ describe("blindSpotSummary", () => {
   it("counts only the types Resource Health never evaluates", () => {
     const summary = blindSpotSummary(summarizeCoverageByType(publishedResources));
 
+    // Invariant only: a collection may legitimately have no out-of-scope type at all.
     expect(summary.resources).toBe(publishedCoverage.notApplicableResources);
-    expect(summary.types).toBeGreaterThan(0);
     expect(summary.topTypes.every((row) => !row.supported)).toBe(true);
   });
 
   it("caps the highlighted types at the requested count", () => {
-    const summary = blindSpotSummary(summarizeCoverageByType(publishedResources), 3);
+    // Pinned to a fixture: the published inventory may legitimately contain fewer than three
+    // out-of-scope types, and the cap is what this test is about.
+    const manyTypes = [
+      { type: "microsoft.logic/workflows", region: "japaneast", status: "NotApplicable" },
+      { type: "microsoft.web/connections", region: "japaneast", status: "NotApplicable" },
+      { type: "microsoft.network/networkinterfaces", region: "japaneast", status: "NotApplicable" },
+      { type: "microsoft.insights/components", region: "japaneast", status: "NotApplicable" }
+    ] as const;
+    const summary = blindSpotSummary(summarizeCoverageByType([...manyTypes]), 3);
 
+    expect(summary.types).toBe(4);
     expect(summary.topTypes).toHaveLength(3);
   });
 });
@@ -170,7 +179,6 @@ describe("supportedSharePercent", () => {
 
 describe("confirmedFailures", () => {
   it("returns null while nothing has been evaluated so zero is never implied", () => {
-    expect(confirmedFailures(publishedCoverage)).toBeNull();
     expect(
       confirmedFailures(coverageOf({ supportedResources: 14, unevaluatedResources: 14 }))
     ).toBeNull();

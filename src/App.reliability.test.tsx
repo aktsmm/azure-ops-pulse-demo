@@ -2,13 +2,20 @@ import "@testing-library/jest-dom/vitest";
 import { cleanup, render, screen } from "@testing-library/react";
 import { HashRouter } from "react-router-dom";
 import { afterEach, describe, expect, it, vi } from "vitest";
-import baseSnapshot from "../public/data/snapshot.json";
-import type { PublicSnapshotV1, ResourceHealthStatus } from "./data/contracts";
+import type { PublicSnapshotV1 } from "./data/contracts";
+import { publicSnapshotSchema } from "../scripts/public-schema";
+import {
+  fixtureTypes,
+  publishedSnapshot,
+  reliabilityFixture,
+  withDefenderUnavailable
+} from "./test/reliability-fixtures";
 import App from "./App";
 
-const publishedSnapshot = baseSnapshot as unknown as PublicSnapshotV1;
-
 function renderAt(route: string, snapshot: PublicSnapshotV1) {
+  // Rendering a snapshot the pipeline would reject proves nothing, so every fixture (including any
+  // hand-tweaked one) has to satisfy the published contract before the UI ever sees it.
+  publicSnapshotSchema.parse(snapshot);
   vi.stubGlobal(
     "fetch",
     vi.fn().mockResolvedValue({
@@ -25,38 +32,10 @@ function renderAt(route: string, snapshot: PublicSnapshotV1) {
 }
 
 /**
- * Promotes the first `count` unevaluated resources to Healthy/Degraded so the reliability page can
- * be asserted in the state it will reach once a scheduled collection publishes real statuses.
+ * Behavioural assertions build their own reliability state (see ./test/reliability-fixtures) because
+ * the published snapshot is rewritten by every scheduled collection. Only assertions that stay true
+ * for any collection read `publishedSnapshot` directly.
  */
-function withEvaluatedResources(count: number, degraded: number): PublicSnapshotV1 {
-  const snapshot = structuredClone(publishedSnapshot);
-  let promoted = 0;
-  let markedDegraded = 0;
-  for (const resource of snapshot.inventory.resources) {
-    if (promoted >= count) break;
-    if (resource.status !== "Unknown") continue;
-    const next: ResourceHealthStatus = markedDegraded < degraded ? "Degraded" : "Healthy";
-    if (next === "Degraded") markedDegraded += 1;
-    resource.status = next;
-    promoted += 1;
-  }
-  const healthy = promoted - markedDegraded;
-  const coverage = snapshot.reliability.coverage;
-  coverage.evaluatedResources = promoted;
-  coverage.unevaluatedResources = coverage.supportedResources - promoted;
-  coverage.healthyResources = healthy;
-  coverage.degradedResources = markedDegraded;
-  coverage.unavailableResources = 0;
-  coverage.supportedCoveragePercent = Math.round((promoted / coverage.supportedResources) * 100);
-  snapshot.overview.postureScore = Math.round((healthy / promoted) * 100);
-  const resourceHealth = snapshot.sources.find((source) => source.source === "Resource Health");
-  if (resourceHealth) {
-    resourceHealth.availability = "available";
-    resourceHealth.message = `Resource Health returned availability for ${promoted} resources.`;
-  }
-  return snapshot;
-}
-
 afterEach(() => {
   cleanup();
   vi.unstubAllGlobals();
@@ -79,7 +58,7 @@ describe("Reliability page", () => {
   });
 
   it("says failures are not judged yet instead of reporting zero incidents", async () => {
-    renderAt("/reliability", publishedSnapshot);
+    renderAt("/reliability", reliabilityFixture({ supported: 14, evaluated: 0, notApplicable: 48 }));
 
     expect(await screen.findByText("確認された障害")).toBeInTheDocument();
     expect(screen.getByText("判定前")).toBeInTheDocument();
@@ -99,10 +78,10 @@ describe("Reliability page", () => {
   });
 
   it("breaks the blind spot down by resource type with a Learn reference", async () => {
-    renderAt("/reliability", publishedSnapshot);
+    renderAt("/reliability", reliabilityFixture({ supported: 4, evaluated: 2, notApplicable: 6 }));
 
     expect(await screen.findByText("リソース種別ごとの監視カバレッジ")).toBeInTheDocument();
-    expect(screen.getByText("microsoft.logic/workflows")).toBeInTheDocument();
+    expect(screen.getByText(fixtureTypes.notApplicable)).toBeInTheDocument();
     expect(
       screen.getByRole("link", { name: "対応リソース種別の一覧（Microsoft Learn）" })
     ).toHaveAttribute(
@@ -112,16 +91,21 @@ describe("Reliability page", () => {
   });
 
   it("groups regions by monitored footprint instead of hiding unevaluated ones", async () => {
-    renderAt("/reliability", publishedSnapshot);
+    // The fixture puts every unevaluated resource in koreacentral, so a region with nothing
+    // evaluated must still be listed for the blind spot to be honest.
+    renderAt("/reliability", reliabilityFixture({ supported: 6, evaluated: 4, notApplicable: 3 }));
 
     expect(await screen.findByText("リージョン別の監視カバレッジ")).toBeInTheDocument();
     expect(document.body.textContent).not.toContain("未評価だけのリージョンは表示しません");
-    expect(document.querySelectorAll(".coverage-region-row").length).toBeGreaterThan(0);
+    expect(screen.getByText("koreacentral")).toBeInTheDocument();
+    expect(document.querySelectorAll(".coverage-region-row").length).toBeGreaterThan(1);
   });
 
   it("reports the real failure count once resources have been evaluated", async () => {
-    const snapshot = withEvaluatedResources(10, 2);
-    renderAt("/reliability", snapshot);
+    renderAt(
+      "/reliability",
+      reliabilityFixture({ supported: 14, evaluated: 10, degraded: 2, notApplicable: 48 })
+    );
 
     const failureCard = (await screen.findByText("確認された障害")).closest(".metric-card");
     if (!failureCard) throw new Error("Failure metric card was not rendered");
@@ -136,54 +120,83 @@ describe("Reliability page", () => {
 describe("Overview page", () => {
   it("publishes the collected trend metrics in Japanese instead of dropping them", async () => {
     renderAt("/overview", publishedSnapshot);
+    const coverage = publishedSnapshot.reliability.coverage;
 
     expect(await screen.findByText("公開指標")).toBeInTheDocument();
     expect(screen.getByText("Resource Health の評価範囲")).toBeInTheDocument();
-    expect(screen.getByText("対応 14 件中 0 件を評価済み（対象外 48 件）")).toBeInTheDocument();
+    expect(
+      screen.getByText(
+        `対応 ${coverage.supportedResources} 件中 ${coverage.evaluatedResources} 件を評価済み（対象外 ${coverage.notApplicableResources} 件）`
+      )
+    ).toBeInTheDocument();
     expect(screen.getByText("利用不可のソース")).toBeInTheDocument();
   });
 });
 
 describe("Network page", () => {
   it("pairs the blind-spot count with a total from the same inventory scope", async () => {
-    renderAt("/network", publishedSnapshot);
-
-    const networkResources = publishedSnapshot.inventory.resources.filter((resource) =>
-      resource.type.startsWith("microsoft.network/")
+    // The blind-spot card is the fallback rendered while Azure Monitor metrics are unavailable.
+    renderAt(
+      "/network",
+      reliabilityFixture({
+        supported: 4,
+        evaluated: 4,
+        notApplicable: 2,
+        networkNotApplicable: 6,
+        metricCoverage: null
+      })
     );
-    const blindSpot = networkResources.filter(
-      (resource) => resource.status === "NotApplicable"
-    ).length;
 
     const card = (await screen.findByText("Resource Health 対象外")).closest("article");
     expect(card).not.toBeNull();
-    expect(card?.textContent).toContain(
-      `${blindSpot}/${networkResources.length} 件`
-    );
-    expect(networkResources.length).toBe(publishedSnapshot.network.inventory.total);
+    expect(card?.textContent).toContain("6/6 件");
   });
 
   it("drops the ratio when the two inventory scopes disagree instead of showing conflicting totals", async () => {
-    const snapshot = structuredClone(publishedSnapshot);
+    const snapshot = reliabilityFixture({
+      supported: 4,
+      evaluated: 4,
+      notApplicable: 2,
+      networkNotApplicable: 6,
+      metricCoverage: null
+    });
     snapshot.network.inventory.total += 3;
     renderAt("/network", snapshot);
 
-    const networkResources = snapshot.inventory.resources.filter((resource) =>
-      resource.type.startsWith("microsoft.network/")
-    );
-    const blindSpot = networkResources.filter(
-      (resource) => resource.status === "NotApplicable"
-    ).length;
-
     const card = (await screen.findByText("Resource Health 対象外")).closest("article");
-    expect(card?.textContent).toContain(`${blindSpot} 件`);
-    expect(card?.textContent).not.toContain(`/${networkResources.length} 件`);
+    expect(card?.textContent).toContain("6 件");
+    expect(card?.textContent).not.toContain("/6 件");
+  });
+
+  it("reports the Azure Monitor probe result once metrics were collected", async () => {
+    renderAt(
+      "/network",
+      reliabilityFixture({
+        supported: 4,
+        evaluated: 4,
+        networkNotApplicable: 10,
+        metricCoverage: {
+          inventoryTotal: 10,
+          sampledResources: 10,
+          metricCapableResources: 3,
+          metricSeries: 5,
+          notApplicableResources: 7,
+          failedResources: 0
+        }
+      })
+    );
+
+    const card = (await screen.findByText("3/10 件")).closest("article");
+    expect(card).not.toBeNull();
+    expect(card?.textContent).toContain("メトリック取得済み");
+    expect(card?.textContent).toContain("合計 5 系列を Azure Monitor から取得");
+    expect(screen.queryByText("Resource Health 対象外")).not.toBeInTheDocument();
   });
 });
 
 describe("Security page", () => {
   it("explains the disabled Defender plans rather than showing four empty metrics", async () => {
-    renderAt("/security", publishedSnapshot);
+    renderAt("/security", withDefenderUnavailable(reliabilityFixture({ supported: 4, evaluated: 4 })));
 
     expect(await screen.findByText("Defender for Cloud は未収集です")).toBeInTheDocument();
     expect(
