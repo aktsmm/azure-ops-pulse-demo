@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { createDemoRawSnapshot } from "../../scripts/demo-data";
 import { publicSnapshotSchema } from "../../scripts/public-schema";
+import { JPY_DISCLOSURE_FLOOR, WITHHELD_JPY_AMOUNT_LABEL } from "./jpy-disclosure";
 import {
   classifyEndpoint,
   formatApproximateJpy,
@@ -139,7 +140,7 @@ describe("public sanitization boundary", () => {
         name: "Compute",
         approximateAmount: "約¥1千未満",
         sharePercent: 90.9,
-        deltaPercent: 5
+        deltaPercent: null
       },
       {
         name: "Refund credit",
@@ -149,6 +150,108 @@ describe("public sanitization boundary", () => {
       }
     ]);
     expect(() => publicSnapshotSchema.parse(snapshot)).not.toThrow();
+  });
+
+  it("withholds a service change while the published amount is withheld", () => {
+    const raw = createDemoRawSnapshot();
+    raw.exactCostJpy = JPY_DISCLOSURE_FLOOR - 1;
+    raw.costCategories = [
+      { name: "Storage", amountJpy: JPY_DISCLOSURE_FLOOR - 1, deltaPercent: 38_537.8 }
+    ];
+    const snapshot = sanitizeSnapshot(raw);
+
+    expect(snapshot.cost.categories[0]?.approximateAmount).toBe(WITHHELD_JPY_AMOUNT_LABEL);
+    expect(snapshot.cost.categories[0]?.deltaPercent).toBeNull();
+    expect(() => publicSnapshotSchema.parse(snapshot)).not.toThrow();
+  });
+
+  it("keeps a service change once the published amount reaches the rounding unit", () => {
+    const raw = createDemoRawSnapshot();
+    raw.exactCostJpy = JPY_DISCLOSURE_FLOOR;
+    raw.costCategories = [{ name: "Storage", amountJpy: JPY_DISCLOSURE_FLOOR, deltaPercent: 12.5 }];
+    const snapshot = sanitizeSnapshot(raw);
+
+    expect(snapshot.cost.categories[0]?.approximateAmount).not.toBe(WITHHELD_JPY_AMOUNT_LABEL);
+    expect(snapshot.cost.categories[0]?.deltaPercent).toBe(12.5);
+    expect(() => publicSnapshotSchema.parse(snapshot)).not.toThrow();
+  });
+
+  it("withholds the portfolio change while a period total is below the rounding unit", () => {
+    const raw = createDemoRawSnapshot();
+    raw.exactCostJpy = 400;
+    raw.exactPreviousCostJpy = 1;
+    const snapshot = sanitizeSnapshot(raw);
+
+    expect(snapshot.cost.current.approximateAmount).toBe(WITHHELD_JPY_AMOUNT_LABEL);
+    expect(snapshot.cost.deltaPercent).toBeNull();
+    expect(() => publicSnapshotSchema.parse(snapshot)).not.toThrow();
+  });
+
+  it("still publishes the portfolio change once both periods reach the rounding unit", () => {
+    const raw = createDemoRawSnapshot();
+    raw.exactCostJpy = 2 * JPY_DISCLOSURE_FLOOR;
+    raw.exactPreviousCostJpy = JPY_DISCLOSURE_FLOOR;
+    const snapshot = sanitizeSnapshot(raw);
+
+    expect(snapshot.cost.deltaPercent).toBe(100);
+    expect(() => publicSnapshotSchema.parse(snapshot)).not.toThrow();
+  });
+
+  it("withholds the portfolio change when only the prior total is below the rounding unit", () => {
+    const raw = createDemoRawSnapshot();
+    raw.exactCostJpy = 140_000;
+    raw.exactPreviousCostJpy = JPY_DISCLOSURE_FLOOR - 1;
+    const snapshot = sanitizeSnapshot(raw);
+
+    expect(snapshot.cost.current.approximateAmount).not.toBe(WITHHELD_JPY_AMOUNT_LABEL);
+    expect(snapshot.cost.previous.approximateAmount).toBe(WITHHELD_JPY_AMOUNT_LABEL);
+    expect(snapshot.cost.deltaPercent).toBeNull();
+    expect(() => publicSnapshotSchema.parse(snapshot)).not.toThrow();
+  });
+
+  it("refuses to express a portfolio swing across zero as a percentage", () => {
+    const raw = createDemoRawSnapshot();
+    raw.exactCostJpy = -50_000;
+    raw.exactPreviousCostJpy = JPY_DISCLOSURE_FLOOR;
+    const snapshot = sanitizeSnapshot(raw);
+
+    expect(snapshot.cost.deltaPercent).toBeNull();
+    expect(() => publicSnapshotSchema.parse(snapshot)).not.toThrow();
+  });
+
+  it("compares two net-credit periods by magnitude rather than by signed division", () => {
+    const raw = createDemoRawSnapshot();
+    raw.exactCostJpy = -2 * JPY_DISCLOSURE_FLOOR;
+    raw.exactPreviousCostJpy = -JPY_DISCLOSURE_FLOOR;
+    const snapshot = sanitizeSnapshot(raw);
+
+    expect(snapshot.cost.deltaPercent).toBe(100);
+    expect(() => publicSnapshotSchema.parse(snapshot)).not.toThrow();
+  });
+
+  it("rejects a snapshot that publishes a change against a withheld amount", () => {
+    const raw = createDemoRawSnapshot();
+    const snapshot = sanitizeSnapshot(raw);
+    const tampered = structuredClone(snapshot);
+    const [first] = tampered.cost.categories;
+    if (!first) throw new Error("Demo snapshot must publish at least one cost category");
+    tampered.cost.categories[0] = {
+      ...first,
+      approximateAmount: WITHHELD_JPY_AMOUNT_LABEL,
+      deltaPercent: 38_537.8
+    };
+
+    expect(() => publicSnapshotSchema.parse(tampered)).toThrow();
+  });
+
+  it("rejects a snapshot that publishes a portfolio change against a withheld prior total", () => {
+    const raw = createDemoRawSnapshot();
+    raw.exactCostJpy = 140_000;
+    raw.exactPreviousCostJpy = JPY_DISCLOSURE_FLOOR - 1;
+    const tampered = structuredClone(sanitizeSnapshot(raw));
+    tampered.cost.deltaPercent = 13_913.9;
+
+    expect(() => publicSnapshotSchema.parse(tampered)).toThrow();
   });
 
   it("keeps an unevaluated health posture null instead of publishing zero", () => {

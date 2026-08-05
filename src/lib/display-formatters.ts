@@ -1,9 +1,11 @@
 import type {
   Availability,
+  PublicSnapshotV1,
   ResourceItem,
   Severity,
   SourceStatus
 } from "../data/contracts";
+import { isWithheldJpyAmount } from "./jpy-disclosure";
 
 const dateTimeFormatter = new Intl.DateTimeFormat("ja-JP", {
   dateStyle: "medium",
@@ -131,6 +133,17 @@ export function formatCostDelta(deltaPercent: number | null): string {
   if (deltaPercent === null) return "比較可能な前期間データなし";
   if (deltaPercent === 0) return "前期間比 0%";
   return `前期間比 ${deltaPercent > 0 ? "+" : ""}${numberFormatter.format(deltaPercent)}%`;
+}
+
+/**
+ * The change the dashboard is allowed to show for the portfolio total. The browser fetches
+ * `snapshot.json` at runtime without revalidating it, so a file published before the disclosure
+ * floor existed could still carry a percentage measured against a withheld amount.
+ */
+export function publishedCostDeltaPercent(cost: PublicSnapshotV1["cost"]): number | null {
+  if (isWithheldJpyAmount(cost.current.approximateAmount)) return null;
+  if (isWithheldJpyAmount(cost.previous.approximateAmount)) return null;
+  return cost.deltaPercent;
 }
 
 /**

@@ -61,9 +61,49 @@
           "sharePercent": { "type": "number", "minimum": 0, "maximum": 100 },
           "deltaPercent": { "type": ["number", "null"] }
         },
+        "allOf": [
+          {
+            "if": {
+              "type": "object",
+              "required": ["approximateAmount"],
+              "properties": { "approximateAmount": { "type": "string", "pattern": "^約¥1千未満" } }
+            },
+            "then": { "properties": { "deltaPercent": { "type": "null" } } }
+          }
+        ],
         "additionalProperties": false
       }
     }
   },
+  "allOf": [
+    {
+      "if": {
+        "type": "object",
+        "required": ["current"],
+        "properties": {
+          "current": {
+            "type": "object",
+            "required": ["approximateAmount"],
+            "properties": { "approximateAmount": { "type": "string", "pattern": "^約¥1千未満" } }
+          }
+        }
+      },
+      "then": { "properties": { "deltaPercent": { "type": "null" } } }
+    },
+    {
+      "if": {
+        "type": "object",
+        "required": ["previous"],
+        "properties": {
+          "previous": {
+            "type": "object",
+            "required": ["approximateAmount"],
+            "properties": { "approximateAmount": { "type": "string", "pattern": "^約¥1千未満" } }
+          }
+        }
+      },
+      "then": { "properties": { "deltaPercent": { "type": "null" } } }
+    }
+  ],
   "additionalProperties": false
 }

@@ -4,6 +4,7 @@ import Ajv2020 from "ajv/dist/2020.js";
 import addFormats from "ajv-formats";
 import { describe, expect, it } from "vitest";
 import type { ReliabilityCoverage } from "../src/data/contracts";
+import { costFixture } from "../src/test/cost-fixtures";
 import { publicSnapshotSchema } from "./public-schema";
 import {
   PUBLIC_SCHEMA_DIRECTORY,
@@ -26,6 +27,15 @@ type MutableSnapshot = {
   security: {
     secureScore: number | null;
     activeAlerts: number | null;
+  };
+};
+
+type MutableCostSnapshot = {
+  cost: {
+    current: { approximateAmount: string };
+    previous: { approximateAmount: string };
+    deltaPercent: number | null;
+    categories: Array<{ approximateAmount: string; deltaPercent: number | null }>;
   };
 };
 
@@ -147,6 +157,39 @@ describe("public JSON Schema contract", () => {
     availableWithoutValue.reliability.incidents = null;
     expect(() => validatePublicJsonSchema(availableWithoutValue)).toThrow(/1\.3\.0/);
     expect(() => publicSnapshotSchema.parse(availableWithoutValue)).toThrow();
+  });
+
+  it("keeps the JSON Schema and the runtime contract in agreement on withheld cost changes", () => {
+    // Built from the real transform + sanitize pipeline so the shapes are the ones we actually ship.
+    const bothWithheld = costFixture([
+      { name: "Storage", amountJpy: 400, previousAmountJpy: 1 }
+    ]) as unknown as MutableCostSnapshot;
+    expect(() => validatePublicJsonSchema(bothWithheld)).not.toThrow();
+
+    const priorWithheld = costFixture([
+      { name: "Ramped up", amountJpy: 140_000, previousAmountJpy: 900 }
+    ]) as unknown as MutableCostSnapshot;
+    expect(priorWithheld.cost.previous.approximateAmount).toContain("約¥1千未満");
+    expect(priorWithheld.cost.current.approximateAmount).not.toContain("約¥1千未満");
+    expect(() => validatePublicJsonSchema(priorWithheld)).not.toThrow();
+
+    // Each endpoint gets its own rule, so each has to be provably enforced on its own.
+    const publishedAgainstWithheldPrior = structuredClone(priorWithheld);
+    publishedAgainstWithheldPrior.cost.deltaPercent = 13_913.9;
+    expect(() => validatePublicJsonSchema(publishedAgainstWithheldPrior)).toThrow(/1\.3\.0/);
+    expect(() => publicSnapshotSchema.parse(publishedAgainstWithheldPrior)).toThrow();
+
+    const publishedAgainstWithheldCurrent = structuredClone(bothWithheld);
+    publishedAgainstWithheldCurrent.cost.deltaPercent = 38_537.8;
+    expect(() => validatePublicJsonSchema(publishedAgainstWithheldCurrent)).toThrow(/1\.3\.0/);
+    expect(() => publicSnapshotSchema.parse(publishedAgainstWithheldCurrent)).toThrow();
+
+    const publishedAgainstWithheldService = structuredClone(bothWithheld);
+    const [service] = publishedAgainstWithheldService.cost.categories;
+    if (!service) throw new Error("Fixture must publish at least one cost category");
+    service.deltaPercent = 38_537.8;
+    expect(() => validatePublicJsonSchema(publishedAgainstWithheldService)).toThrow(/1\.3\.0/);
+    expect(() => publicSnapshotSchema.parse(publishedAgainstWithheldService)).toThrow();
   });
 
   it("rejects reliability coverage that contradicts the inventory or the Resource Health source", () => {
