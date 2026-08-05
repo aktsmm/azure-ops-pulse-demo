@@ -47,7 +47,7 @@ import {
   formatEventTimestamp,
   formatSnapshotAge,
   formatSourceMessage,
-  metricWhenSourceAvailable,
+  metricWhenSourcePublished,
   modeLabel,
   recommendationStatusLabel,
   resourceStatusLabel,
@@ -278,7 +278,7 @@ function OverviewPage({ data }: { data: PublicSnapshotV1 }) {
   };
   const health = summarizeResourceHealth(data.inventory.resources);
   const defenderSource = data.sources.find((source) => source.source === "Defender for Cloud");
-  const defenderRecommendationCount = metricWhenSourceAvailable(
+  const defenderRecommendationCount = metricWhenSourcePublished(
     defenderSource,
     data.security.recommendations.length
   );
@@ -366,9 +366,11 @@ function OverviewPage({ data }: { data: PublicSnapshotV1 }) {
         <div>
           <span>Resource Health 評価範囲</span>
           <strong>
-            {health.evaluated}/{health.total} 件
+            {health.evaluated}/{health.supported} 件
           </strong>
-          <small>未評価 {health.unknown} 件は正常・異常に含めません</small>
+          <small>
+            未評価 {health.unknown} 件・対象外 {health.notApplicable} 件は正常・異常に含めません
+          </small>
         </div>
       </section>
 
@@ -916,6 +918,7 @@ function ResourcesPage({ data }: { data: PublicSnapshotV1 }) {
               <option value="Degraded">低下</option>
               <option value="Unavailable">利用不可</option>
               <option value="Unknown">未評価</option>
+              <option value="NotApplicable">対象外</option>
             </select>
           </label>
           <span className="result-count" aria-live="polite">
@@ -978,10 +981,11 @@ function ResourcesPage({ data }: { data: PublicSnapshotV1 }) {
 }
 
 function ReliabilityPage({ data }: { data: PublicSnapshotV1 }) {
-  const health = summarizeResourceHealth(data.inventory.resources);
+  const coverage = data.reliability.coverage;
+  const serviceHealth = data.reliability.serviceHealth;
   const resourceHealthSource = data.sources.find((source) => source.source === "Resource Health");
   const serviceHealthSource = data.sources.find((source) => source.source === "Service Health");
-  const observedIncidents = metricWhenSourceAvailable(
+  const observedIncidents = metricWhenSourcePublished(
     resourceHealthSource,
     data.reliability.incidentAvailability === "available" ? data.reliability.incidents : null
   );
@@ -994,39 +998,43 @@ function ReliabilityPage({ data }: { data: PublicSnapshotV1 }) {
       <div className="notice">
         <Activity size={18} aria-hidden="true" />
         <span>
-          「未評価」は正常率の分母や障害件数には含めず、収集できた状態だけを表示します。
+          「対象外」は Azure Resource Health が評価しない種別、「未評価」は対応種別なのに状態を取得できなかったリソースです。どちらも正常率の分母や障害件数には含めません。
         </span>
       </div>
       <section className="metric-grid four" aria-label="Resource Health サマリー">
         <MetricCard
           label="評価済み"
-          value={`${health.evaluated}/${health.total} 件`}
-          note={`評価範囲 ${health.coveragePercent}%`}
+          value={`${coverage.evaluatedResources}/${coverage.supportedResources} 件`}
+          note={
+            coverage.supportedCoveragePercent === null
+              ? "Resource Health 対応リソースがありません"
+              : `対応リソースの評価範囲 ${coverage.supportedCoveragePercent}%（全 ${coverage.totalResources} 件中 ${coverage.notApplicableResources} 件は対象外）`
+          }
         />
         <MetricCard
           label="正常"
-          value={`${health.healthy} 件`}
+          value={`${coverage.healthyResources} 件`}
           note="Resource Health 状態が「正常」の収集値"
-          severity={health.healthy > 0 ? "healthy" : "info"}
+          severity={coverage.healthyResources > 0 ? "healthy" : "info"}
         />
         <MetricCard
           label="観測中の障害"
           value={observedIncidents === null ? "未取得" : `${observedIncidents} 件`}
           note={
             observedIncidents === null
-              ? resourceHealthSource?.availability === "available"
+              ? resourceHealthSource && resourceHealthSource.availability !== "unavailable"
                 ? "障害件数を取得する観測ソースは未実装です"
                 : resourceHealthSource
                   ? formatSourceMessage(resourceHealthSource)
                   : "Resource Health のソース状態がありません"
-              : `低下 ${health.degraded} 件・利用不可 ${health.unavailable} 件`
+              : `低下 ${coverage.degradedResources} 件・利用不可 ${coverage.unavailableResources} 件`
           }
           severity={observedIncidents ? "warning" : "info"}
         />
         <MetricCard
-          label="未評価"
-          value={`${health.unknown} 件`}
-          note="正常・異常を推定しません"
+          label="未評価 / 対象外"
+          value={`${coverage.unevaluatedResources} / ${coverage.notApplicableResources} 件`}
+          note="未評価は対応種別で状態未取得、対象外は Resource Health の評価対象外"
         />
       </section>
       <div className="content-grid">
@@ -1073,6 +1081,41 @@ function ReliabilityPage({ data }: { data: PublicSnapshotV1 }) {
               title="リージョン別状態は未評価"
               detail="Resource Health が未評価のため、0% や警告として表示していません。"
             />
+          )}
+        </Panel>
+        <Panel
+          title="Service Health イベント"
+          description="サブスクリプションやリソースの詳細を除いた、サービス単位の集計のみを表示します。"
+          className="span-12"
+        >
+          {serviceHealth.availability === "unavailable" ? (
+            <EmptyState title="Service Health は未取得" detail={serviceHealth.message} />
+          ) : (
+            <>
+              <section className="metric-grid two" aria-label="Service Health サマリー">
+                <MetricCard
+                  label="継続中のイベント"
+                  value={`${serviceHealth.activeEvents ?? 0} 件`}
+                  note={serviceHealth.message}
+                  severity={serviceHealth.activeEvents ? "warning" : "info"}
+                />
+                <MetricCard
+                  label="解決済みのイベント"
+                  value={`${serviceHealth.resolvedEvents ?? 0} 件`}
+                  note="収集ウィンドウ内で解決済みと報告されたイベント"
+                />
+              </section>
+              {serviceHealth.categories.length ? (
+                <div className="region-list">
+                  {serviceHealth.categories.map((category) => (
+                    <div className="region-row" key={category.label}>
+                      <strong>{category.label}</strong>
+                      <span>{category.count} 件</span>
+                    </div>
+                  ))}
+                </div>
+              ) : null}
+            </>
           )}
         </Panel>
         <Panel
@@ -1126,13 +1169,13 @@ function ReliabilityPage({ data }: { data: PublicSnapshotV1 }) {
 
 function SecurityPage({ data }: { data: PublicSnapshotV1 }) {
   const defenderSource = data.sources.find((source) => source.source === "Defender for Cloud");
-  const secureScore = metricWhenSourceAvailable(defenderSource, data.security.secureScore);
-  const activeAlerts = metricWhenSourceAvailable(defenderSource, data.security.activeAlerts);
-  const openRecommendations = metricWhenSourceAvailable(
+  const secureScore = metricWhenSourcePublished(defenderSource, data.security.secureScore);
+  const activeAlerts = metricWhenSourcePublished(defenderSource, data.security.activeAlerts);
+  const openRecommendations = metricWhenSourcePublished(
     defenderSource,
     data.security.recommendations.filter((item) => item.status !== "Resolved").length
   );
-  const complianceCount = metricWhenSourceAvailable(
+  const complianceCount = metricWhenSourcePublished(
     defenderSource,
     data.security.compliance.length
   );
@@ -1249,6 +1292,7 @@ function SecurityPage({ data }: { data: PublicSnapshotV1 }) {
 function NetworkPage({ data }: { data: PublicSnapshotV1 }) {
   const [filter, setFilter] = useState<"all" | "Allowed" | "Degraded" | "Blocked">("all");
   const telemetry = data.network.telemetry;
+  const metricCoverage = data.network.metricCoverage;
   const rows = telemetry.flows.filter((flow) => filter === "all" || flow.status === filter);
   const telemetryMessage =
     telemetry.availability === "unavailable"
@@ -1296,6 +1340,43 @@ function NetworkPage({ data }: { data: PublicSnapshotV1 }) {
             emptyTitle="リージョン情報なし"
             emptyDetail="ネットワーク リソースのリージョン情報は収集されていません。"
           />
+        </Panel>
+        <Panel
+          title="Azure Monitor メトリック取得状況"
+          description="プラットフォーム メトリックを持たないリソース種別は「対象外」であり、取得失敗ではありません。"
+          className="span-12"
+        >
+          {metricCoverage ? (
+            <section className="metric-grid four" aria-label="メトリック取得状況">
+              <MetricCard
+                label="サンプリング対象"
+                value={`${metricCoverage.sampledResources}/${metricCoverage.inventoryTotal} 件`}
+                note="収集ごとにサンプリングするネットワーク リソース数"
+              />
+              <MetricCard
+                label="メトリック取得済み"
+                value={`${metricCoverage.metricCapableResources} 件`}
+                note={`合計 ${metricCoverage.metricSeries} 系列`}
+                severity={metricCoverage.metricCapableResources ? "healthy" : "info"}
+              />
+              <MetricCard
+                label="対象外"
+                value={`${metricCoverage.notApplicableResources} 件`}
+                note="プラットフォーム メトリック名前空間を持たない種別"
+              />
+              <MetricCard
+                label="取得失敗"
+                value={`${metricCoverage.failedResources} 件`}
+                note="対象外とは区別した実際の取得エラー"
+                severity={metricCoverage.failedResources ? "warning" : "info"}
+              />
+            </section>
+          ) : (
+            <EmptyState
+              title="メトリック取得状況は未記録"
+              detail="このスナップショットにはメトリック探索の内訳が含まれていません。"
+            />
+          )}
         </Panel>
         <Panel
           title="フロー テレメトリ"

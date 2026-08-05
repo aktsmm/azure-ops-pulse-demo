@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
   formatDateTimeJa,
   formatEventTimestamp,
-  metricWhenSourceAvailable,
+  metricWhenSourcePublished,
   resourceStatusLabel,
   resourceStatusSeverity,
   summarizeResourceHealth
@@ -14,22 +14,31 @@ describe("Japanese display formatters", () => {
     expect(resourceStatusSeverity("Unknown")).toBe("info");
   });
 
-  it("computes evaluation coverage without counting Unknown as unhealthy", () => {
+  it("computes evaluation coverage while separating NotApplicable from Unknown", () => {
     const resources = [
       { status: "Healthy" },
       { status: "Unknown" },
       { status: "Degraded" },
-      { status: "Unknown" }
+      { status: "Unknown" },
+      { status: "NotApplicable" },
+      { status: "NotApplicable" }
     ] as Parameters<typeof summarizeResourceHealth>[0];
 
     expect(summarizeResourceHealth(resources)).toMatchObject({
-      total: 4,
+      total: 6,
+      supported: 4,
       evaluated: 2,
       healthy: 1,
       degraded: 1,
       unknown: 2,
+      notApplicable: 2,
       coveragePercent: 50
     });
+  });
+
+  it("labels NotApplicable as 対象外 so it is not confused with 未評価", () => {
+    expect(resourceStatusLabel("NotApplicable")).toBe("対象外");
+    expect(resourceStatusSeverity("NotApplicable")).toBe("info");
   });
 
   it("formats snapshot timestamps in ja-JP and handles collection labels", () => {
@@ -37,24 +46,25 @@ describe("Japanese display formatters", () => {
     expect(formatEventTimestamp("Current snapshot")).toBe("現在のスナップショット");
   });
 
-  it("shows source metrics only when available while preserving a real zero", () => {
+  it("shows source metrics whenever the source published data, preserving a real zero", () => {
     expect(
-      metricWhenSourceAvailable(
+      metricWhenSourcePublished(
         { source: "Defender for Cloud", availability: "available", message: "Collected." },
         0
       )
     ).toBe(0);
     expect(
-      metricWhenSourceAvailable(
+      metricWhenSourcePublished(
         { source: "Defender for Cloud", availability: "partial", message: "Partial." },
         0
       )
-    ).toBeNull();
+    ).toBe(0);
     expect(
-      metricWhenSourceAvailable(
+      metricWhenSourcePublished(
         { source: "Defender for Cloud", availability: "unavailable", message: "Unavailable." },
         0
       )
     ).toBeNull();
+    expect(metricWhenSourcePublished(undefined, 0)).toBeNull();
   });
 });

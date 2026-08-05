@@ -29,13 +29,23 @@ export function createDemoRawSnapshot(generatedAt = new Date().toISOString()): R
         message: "Health and activity signals normalized for the demo."
       },
       {
+        source: "Service Health",
+        availability: "available",
+        message: "Synthetic Service Health events were collected in aggregate."
+      },
+      {
+        source: "Activity Log",
+        availability: "available",
+        message: "Synthetic Activity Log events were collected without actor or resource detail."
+      },
+      {
         source: "Defender for Cloud",
         availability: "available",
         message: "Synthetic recommendations and aggregate counts were collected."
       },
       {
-        source: "Network inventory",
-        availability: "available",
+        source: "Network inventory and metrics",
+        availability: "partial",
         message: "Endpoints are masked or reduced to service classification."
       }
     ],
@@ -214,6 +224,28 @@ export function createDemoRawSnapshot(generatedAt = new Date().toISOString()): R
         owner: identity("platform-network", "example.invalid"),
         tags: { environment: "production", team: "platform", criticality: "high" },
         change: "Backend health variance observed"
+      },
+      {
+        id: "/subscriptions/demo/resourceGroups/observability/providers/Microsoft.Insights/actionGroups/on-call",
+        name: "operations-on-call-action-group",
+        resourceGroup: "observability-production",
+        type: "Action group",
+        location: "Global",
+        status: "NotApplicable",
+        owner: identity("platform-observability", "example.invalid"),
+        tags: { environment: "production", team: "platform", criticality: "low" },
+        change: "Azure Resource Health does not evaluate this resource type"
+      },
+      {
+        id: "/subscriptions/demo/resourceGroups/data/providers/Microsoft.DocumentDB/databaseAccounts/pulse-catalog",
+        name: "pulse-catalog-cosmos",
+        resourceGroup: "data-platform-production",
+        type: "Cosmos DB account",
+        location: "Japan West",
+        status: "Unknown",
+        owner: identity("platform-data", "example.invalid"),
+        tags: { environment: "production", team: "platform", criticality: "medium" },
+        change: "Resource Health has not reported a recent availability state"
       }
     ],
     reliability: {
@@ -254,7 +286,18 @@ export function createDemoRawSnapshot(generatedAt = new Date().toISOString()): R
           status: "healthy",
           budgetRemainingPercent: 91
         }
-      ]
+      ],
+      serviceHealth: {
+        availability: "available",
+        message:
+          "Synthetic DEMO Service Health aggregate; only event counts and categories are published.",
+        activeEvents: 1,
+        resolvedEvents: 3,
+        categories: [
+          { label: "ServiceIssue", count: 3 },
+          { label: "HealthAdvisory", count: 1 }
+        ]
+      }
     },
     security: {
       secureScore: 77,
@@ -298,6 +341,14 @@ export function createDemoRawSnapshot(generatedAt = new Date().toISOString()): R
       { id: "network-04", type: "microsoft.network/networkSecurityGroups", location: "Japan West" },
       { id: "network-05", type: "microsoft.network/privateEndpoints", location: "Japan East" }
     ],
+    networkMetricCoverage: {
+      inventoryTotal: 5,
+      sampledResources: 5,
+      metricCapableResources: 3,
+      metricSeries: 9,
+      notApplicableResources: 2,
+      failedResources: 0
+    },
     networkTelemetry: {
       availability: "available",
       message: "Synthetic DEMO flow telemetry; Azure inventory is not treated as connection health.",

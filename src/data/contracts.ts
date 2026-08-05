@@ -1,6 +1,18 @@
 export type Severity = "critical" | "warning" | "healthy" | "info";
 export type Availability = "available" | "partial" | "unavailable";
 
+/**
+ * `NotApplicable` means Azure Resource Health never evaluates this resource type (対象外).
+ * `Unknown` means the resource type is in scope but no availability state was collected (未評価).
+ * Collapsing both into `Unknown` made a fully supported subscription look unmonitored.
+ */
+export type ResourceHealthStatus =
+  | "Healthy"
+  | "Degraded"
+  | "Unavailable"
+  | "Unknown"
+  | "NotApplicable";
+
 export interface SourceStatus {
   source: string;
   availability: Availability;
@@ -22,7 +34,7 @@ export interface ResourceItem {
   resourceGroup: string;
   type: string;
   region: string;
-  status: "Healthy" | "Degraded" | "Unavailable" | "Unknown";
+  status: ResourceHealthStatus;
   owner: string;
   tags: Record<string, string>;
   change: string;
@@ -61,6 +73,36 @@ export interface ReliabilityService {
   incidents: number;
   status: Severity;
   budgetRemainingPercent: number;
+}
+
+/** Explicit split between 対象外 (NotApplicable) and 未評価 (supported but not evaluated). */
+export interface ReliabilityCoverage {
+  totalResources: number;
+  supportedResources: number;
+  notApplicableResources: number;
+  evaluatedResources: number;
+  unevaluatedResources: number;
+  healthyResources: number;
+  degradedResources: number;
+  unavailableResources: number;
+  supportedCoveragePercent: number | null;
+}
+
+export interface ServiceHealthSummary {
+  availability: Availability;
+  message: string;
+  activeEvents: number | null;
+  resolvedEvents: number | null;
+  categories: Array<{ label: string; count: number }>;
+}
+
+export interface NetworkMetricCoverage {
+  inventoryTotal: number;
+  sampledResources: number;
+  metricCapableResources: number;
+  metricSeries: number;
+  notApplicableResources: number;
+  failedResources: number;
 }
 
 export interface SecurityRecommendation {
@@ -104,7 +146,7 @@ export interface AiInsight {
 }
 
 export interface PublicSnapshotV1 {
-  schemaVersion: "1.2.0";
+  schemaVersion: "1.3.0";
   generatedAt: string;
   mode: "DEMO" | "AZURE";
   freshness: {
@@ -146,6 +188,8 @@ export interface PublicSnapshotV1 {
     incidents: number | null;
     meanTimeToRecover: string;
     services: ReliabilityService[];
+    coverage: ReliabilityCoverage;
+    serviceHealth: ServiceHealthSummary;
   };
   security: {
     secureScore: number | null;
@@ -159,6 +203,11 @@ export interface PublicSnapshotV1 {
       byType: Array<{ label: string; count: number }>;
       byRegion: Array<{ label: string; count: number }>;
     };
+    /**
+     * Azure Monitor platform-metric probe result. Independent of `telemetry`, which describes flow
+     * telemetry only; metric coverage is still published when flow telemetry is unavailable.
+     */
+    metricCoverage: NetworkMetricCoverage | null;
     telemetry: {
       availability: Availability;
       message: string;
@@ -201,9 +250,10 @@ export interface RawSnapshot {
   normalizedCostTrend: number[];
   costCategories: Array<{ name: string; amountJpy: number; deltaPercent: number | null }>;
   resources: RawResource[];
-  reliability: PublicSnapshotV1["reliability"];
+  reliability: Omit<PublicSnapshotV1["reliability"], "coverage">;
   security: PublicSnapshotV1["security"];
   networkInventory: NetworkInventoryItem[];
+  networkMetricCoverage: NetworkMetricCoverage | null;
   networkTelemetry: {
     availability: Availability;
     message: string;

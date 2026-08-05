@@ -4,8 +4,10 @@ import type {
   PublicSnapshotV1,
   RawResource,
   RawSnapshot,
+  ResourceHealthStatus,
   SecurityRecommendation
 } from "../data/contracts";
+import { summarizeReliabilityCoverage } from "./resource-health";
 
 const GUID_PATTERN =
   /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
@@ -122,13 +124,18 @@ export function formatApproximateJpy(amount: number): string {
   return `約¥1千未満${suffix}`;
 }
 
+const RESOURCE_HEALTH_STATUSES: ReadonlySet<ResourceHealthStatus> = new Set([
+  "Healthy",
+  "Degraded",
+  "Unavailable",
+  "Unknown",
+  "NotApplicable"
+]);
+
 function sanitizeResource(resource: RawResource): PublicSnapshotV1["inventory"]["resources"][number] {
-  const status =
-    resource.status === "Healthy" ||
-    resource.status === "Degraded" ||
-    resource.status === "Unavailable"
-      ? resource.status
-      : "Unknown";
+  const status = RESOURCE_HEALTH_STATUSES.has(resource.status as ResourceHealthStatus)
+    ? (resource.status as ResourceHealthStatus)
+    : "Unknown";
   return {
     id: `res-${stableHash(resource.id)}`,
     name: maskName(resource.name, "resource"),
@@ -177,15 +184,17 @@ function deltaPercent(current: number | null, previous: number | null): number |
 
 export function sanitizeSnapshot(raw: RawSnapshot): PublicSnapshotV1 {
   const resources = raw.resources.map(sanitizeResource);
-  const resourceHealthAvailable =
-    raw.sources.find((source) => source.source === "Resource Health")?.availability === "available";
+  const reliabilityCoverage = summarizeReliabilityCoverage(resources);
+  const resourceHealthPublishable =
+    raw.sources.find((source) => source.source === "Resource Health")?.availability !==
+    "unavailable";
   const incidentsAvailable =
-    resourceHealthAvailable &&
+    resourceHealthPublishable &&
     raw.reliability.incidentAvailability === "available" &&
     raw.reliability.incidents !== null;
-  const defenderAvailable =
-    raw.sources.find((source) => source.source === "Defender for Cloud")?.availability ===
-    "available";
+  const defenderPublishable =
+    raw.sources.find((source) => source.source === "Defender for Cloud")?.availability !==
+    "unavailable";
   if (raw.costCategories.some((item) => !Number.isFinite(item.amountJpy))) {
     throw new Error("Cost categories contain a non-finite amount");
   }
@@ -228,7 +237,7 @@ export function sanitizeSnapshot(raw: RawSnapshot): PublicSnapshotV1 {
   const telemetryAvailable = raw.networkTelemetry.availability !== "unavailable";
 
   return {
-    schemaVersion: "1.2.0",
+    schemaVersion: "1.3.0",
     generatedAt: generatedAt.toISOString(),
     mode: raw.mode,
     freshness: {
@@ -245,10 +254,10 @@ export function sanitizeSnapshot(raw: RawSnapshot): PublicSnapshotV1 {
     },
     sources: raw.sources,
     overview: {
-      metrics: defenderAvailable
+      metrics: defenderPublishable
         ? raw.metrics
         : raw.metrics.filter((metric) => !DEFENDER_METRIC_LABELS.has(metric.label)),
-      postureScore: resourceHealthAvailable ? raw.postureScore : null,
+      postureScore: resourceHealthPublishable ? raw.postureScore : null,
       eventTimeline: raw.events.map((event) => ({
         ...event,
         id: `event-${stableHash(event.id)}`
@@ -300,15 +309,16 @@ export function sanitizeSnapshot(raw: RawSnapshot): PublicSnapshotV1 {
     reliability: {
       ...raw.reliability,
       incidentAvailability: incidentsAvailable ? "available" : "unavailable",
-      incidents: incidentsAvailable ? raw.reliability.incidents : null
+      incidents: incidentsAvailable ? raw.reliability.incidents : null,
+      coverage: reliabilityCoverage
     },
     security: {
-      secureScore: defenderAvailable ? raw.security.secureScore : null,
-      activeAlerts: defenderAvailable ? raw.security.activeAlerts : null,
-      recommendations: defenderAvailable
+      secureScore: defenderPublishable ? raw.security.secureScore : null,
+      activeAlerts: defenderPublishable ? raw.security.activeAlerts : null,
+      recommendations: defenderPublishable
         ? raw.security.recommendations.map(sanitizeRecommendation)
         : [],
-      compliance: defenderAvailable ? raw.security.compliance : []
+      compliance: defenderPublishable ? raw.security.compliance : []
     },
     network: {
       inventory: {
@@ -316,6 +326,7 @@ export function sanitizeSnapshot(raw: RawSnapshot): PublicSnapshotV1 {
         byType: networkByType,
         byRegion: networkByRegion
       },
+      metricCoverage: raw.networkMetricCoverage,
       telemetry: {
         availability: raw.networkTelemetry.availability,
         message: raw.networkTelemetry.message,

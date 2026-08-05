@@ -9,10 +9,20 @@ import type {
   SourceStatus
 } from "../src/data/contracts";
 import { sanitizeSnapshot } from "../src/lib/sanitize";
+import {
+  classifyResourceHealth,
+  indexAvailabilityStatuses,
+  resourceHealthReport,
+  summarizeReliabilityCoverage,
+  unlistedEvaluatedTypes,
+  type AvailabilityStatusRecord
+} from "../src/lib/resource-health";
 import { uncollectedIncidentMetric } from "./reliability-metrics";
 import {
   comparableCostPeriods,
   costCoverageLabel,
+  costPeriodMessage,
+  mergeCostPages,
   transformComparableCost,
   type CostQueryProperties
 } from "./cost-transform";
@@ -20,6 +30,18 @@ import {
   normalizeActivityOperationLabel,
   type AzureActivityEvent
 } from "./activity-normalization";
+import { summarizeServiceHealth, type ServiceHealthEventRecord } from "./service-health";
+import {
+  countMetricSeries,
+  isUnsupportedMetricNamespaceError,
+  metricNamesFromDefinitions,
+  networkMetricMessage,
+  summarizeMetricCoverage,
+  type MetricDefinition,
+  type MetricProbeOutcome,
+  type MetricValue
+} from "./azure-metrics";
+import { collectSource, countReport } from "./source-status";
 import { publicSnapshotSchema } from "./public-schema";
 
 interface GraphResponse<T> {
@@ -31,18 +53,57 @@ interface GraphResponse<T> {
   skip_token?: string;
 }
 
-function runAzJson<T>(args: string[]): T {
+class AzureCliError extends Error {
+  readonly unsupportedMetricNamespace: boolean;
+
+  constructor(operation: string, diagnostic: string) {
+    // Diagnostics are classified locally and never included in the message that can reach output.
+    super(`Azure CLI ${operation} failed; response content was intentionally suppressed`);
+    this.name = "AzureCliError";
+    this.unsupportedMetricNamespace = isUnsupportedMetricNamespaceError(diagnostic);
+  }
+}
+
+function readAzOutput(args: string[]): string {
   const operation = args.slice(0, 2).join(" ");
   try {
-    const output = execFileSync("az", [...args, "--output", "json", "--only-show-errors"], {
+    return execFileSync("az", [...args, "--output", "json", "--only-show-errors"], {
       encoding: "utf8",
       windowsHide: true,
       maxBuffer: 64 * 1024 * 1024,
       stdio: ["ignore", "pipe", "pipe"]
     });
+  } catch (error) {
+    const diagnostic =
+      error && typeof error === "object" && "stderr" in error
+        ? String((error as { stderr?: unknown }).stderr ?? "")
+        : "";
+    throw new AzureCliError(operation, diagnostic);
+  }
+}
+
+function runAzJson<T>(args: string[]): T {
+  const operation = args.slice(0, 2).join(" ");
+  const output = readAzOutput(args);
+  try {
     return JSON.parse(output) as T;
   } catch {
-    throw new Error(`Azure CLI ${operation} failed; response content was intentionally suppressed`);
+    throw new AzureCliError(operation, "response was not valid JSON");
+  }
+}
+
+/**
+ * `az rest` prints nothing for a 204 No Content response. That is a successful call that simply has
+ * no records, so it must not be reported the same way as a failed call.
+ */
+function runAzJsonAllowingEmpty<T>(args: string[]): T | null {
+  const operation = args.slice(0, 2).join(" ");
+  const output = readAzOutput(args);
+  if (!output.trim()) return null;
+  try {
+    return JSON.parse(output) as T;
+  } catch {
+    throw new AzureCliError(operation, "response was not valid JSON");
   }
 }
 
@@ -79,25 +140,6 @@ function graphQuery<T>(subscriptionId: string, query: string): T[] {
   throw new Error("Azure Resource Graph exceeded the 100-page safety limit");
 }
 
-function optionalSource<T>(
-  source: string,
-  operation: () => T,
-  availableMessage: string,
-  unavailableMessage: string
-): { value: T | null; status: SourceStatus } {
-  try {
-    return {
-      value: operation(),
-      status: { source, availability: "available", message: availableMessage }
-    };
-  } catch {
-    return {
-      value: null,
-      status: { source, availability: "unavailable", message: unavailableMessage }
-    };
-  }
-}
-
 function percent(value: unknown, fallback = 0): number {
   const number = Number(value);
   return Number.isFinite(number) ? number : fallback;
@@ -108,30 +150,76 @@ function optionalNumber(value: unknown): number | null {
   return value !== null && value !== undefined && Number.isFinite(number) ? number : null;
 }
 
+const COST_API_VERSION = "2025-03-01";
+
+/**
+ * Cost Management query results are paged through `properties.nextLink`.
+ * https://learn.microsoft.com/rest/api/cost-management/query/usage
+ */
 function queryCostPeriod(
   subscriptionId: string,
   start: Date,
   end: Date
-): CostQueryProperties {
-  const result = runAzJson<{ properties?: CostQueryProperties }>([
-    "rest",
-    "--method",
-    "post",
-    "--url",
-    `https://management.azure.com/subscriptions/${subscriptionId}/providers/Microsoft.CostManagement/query?api-version=2025-03-01`,
-    "--body",
-    JSON.stringify({
-      type: "ActualCost",
-      timeframe: "Custom",
-      timePeriod: { from: start.toISOString(), to: end.toISOString() },
-      dataset: {
-        granularity: "None",
-        aggregation: { totalCost: { name: "Cost", function: "Sum" } },
-        grouping: [{ type: "Dimension", name: "ServiceName" }]
-      }
-    })
-  ]);
-  return result.properties ?? {};
+): CostQueryProperties | null {
+  const body = JSON.stringify({
+    type: "ActualCost",
+    timeframe: "Custom",
+    timePeriod: { from: start.toISOString(), to: end.toISOString() },
+    dataset: {
+      granularity: "None",
+      aggregation: { totalCost: { name: "Cost", function: "Sum" } },
+      grouping: [{ type: "Dimension", name: "ServiceName" }]
+    }
+  });
+  const pages: CostQueryProperties[] = [];
+  let url = `https://management.azure.com/subscriptions/${subscriptionId}/providers/Microsoft.CostManagement/query?api-version=${COST_API_VERSION}`;
+  for (let page = 0; page < 50; page += 1) {
+    const result = runAzJsonAllowingEmpty<{ properties?: CostQueryProperties }>([
+      "rest",
+      "--method",
+      "post",
+      "--url",
+      url,
+      "--body",
+      body
+    ]);
+    const properties = result?.properties;
+    if (!properties) break;
+    pages.push(properties);
+    const nextLink = properties.nextLink;
+    if (!nextLink || nextLink === url) break;
+    url = nextLink;
+  }
+  return mergeCostPages(pages);
+}
+
+const RESOURCE_HEALTH_API_VERSION = "2025-05-01";
+
+/**
+ * Azure Resource Graph's `HealthResources` table only carries availability for a narrow set of
+ * compute types, so the Resource Health data plane is used instead. It covers every resource type
+ * listed at https://learn.microsoft.com/azure/service-health/resource-health-checks-resource-types
+ * https://learn.microsoft.com/rest/api/resourcehealth/availability-statuses/list-by-subscription-id
+ */
+function queryAvailabilityStatuses(subscriptionId: string): AvailabilityStatusRecord[] {
+  const records: AvailabilityStatusRecord[] = [];
+  let url = `https://management.azure.com/subscriptions/${subscriptionId}/providers/Microsoft.ResourceHealth/availabilityStatuses?api-version=${RESOURCE_HEALTH_API_VERSION}`;
+  const seen = new Set<string>();
+  for (let page = 0; page < 200; page += 1) {
+    if (seen.has(url)) {
+      throw new Error("Resource Health pagination returned a repeated link");
+    }
+    seen.add(url);
+    const response = runAzJsonAllowingEmpty<{
+      value?: AvailabilityStatusRecord[];
+      nextLink?: string | null;
+    }>(["rest", "--method", "get", "--url", url]);
+    if (!response) break;
+    records.push(...(response.value ?? []));
+    if (!response.nextLink) return records;
+    url = response.nextLink;
+  }
+  throw new Error("Resource Health exceeded the pagination safety limit");
 }
 
 const subscriptionId = process.env.AZURE_SUBSCRIPTION_ID;
@@ -160,29 +248,39 @@ if (!rawResources.length) {
   throw new Error("Azure Resource Graph returned no resources; last-known-good data was preserved");
 }
 
-const health = optionalSource(
+const health = collectSource(
   "Resource Health",
-  () =>
-    graphQuery<{ id: string; properties?: { availabilityState?: string } }>(
-      subscriptionId,
-      "HealthResources | where type =~ 'microsoft.resourcehealth/availabilitystatuses' | project id, properties"
-    ),
-  "Resource Health availability was collected.",
+  () => queryAvailabilityStatuses(subscriptionId),
+  (records) => ({
+    availability: records.length ? "available" : "unavailable",
+    message: records.length
+      ? `Resource Health returned ${records.length} availability statuses.`
+      : "Resource Health returned no availability statuses for this subscription."
+  }),
   "Resource Health is unavailable or the current role cannot read it."
 );
 
-const serviceHealth = optionalSource(
+/**
+ * Service Health events live in the `ServiceHealthResources` table, not `HealthResources`.
+ * https://learn.microsoft.com/azure/service-health/resource-graph-samples
+ */
+const serviceHealth = collectSource(
   "Service Health",
   () =>
-    graphQuery<{ properties?: { title?: string; status?: string } }>(
+    graphQuery<ServiceHealthEventRecord>(
       subscriptionId,
-      "HealthResources | where type =~ 'microsoft.resourcehealth/events' | project properties"
+      "ServiceHealthResources | where type =~ 'microsoft.resourcehealth/events' | project properties"
     ),
-  "Service Health events were collected in aggregate.",
+  (events) =>
+    countReport(events.length, {
+      collected: (count) => `Service Health returned ${count} events in aggregate.`,
+      empty: "Service Health returned 0 events for the collected window.",
+      emptyAvailability: "partial"
+    }),
   "Service Health events are unavailable or the current role cannot read them."
 );
 
-const activity = optionalSource(
+const activity = collectSource(
   "Activity Log",
   () =>
     runAzJson<AzureActivityEvent[]>([
@@ -196,11 +294,17 @@ const activity = optionalSource(
       "--max-events",
       "100"
     ]),
-  "Recent Activity Log events were collected without actor or resource detail.",
+  (events) =>
+    countReport(events.length, {
+      collected: (count) =>
+        `${count} recent Activity Log events were collected without actor or resource detail.`,
+      empty: "Activity Log returned 0 events for the last 7 days.",
+      emptyAvailability: "partial"
+    }),
   "Activity Log is unavailable or the current role cannot read it."
 );
 
-const security = optionalSource(
+const security = collectSource(
   "Defender for Cloud",
   () => {
     const assessments = graphQuery<{
@@ -216,9 +320,11 @@ const security = optionalSource(
       subscriptionId,
       "SecurityResources | where type contains 'subassessments' | summarize count_ = count()"
     )[0]?.count_;
-    const controls = graphQuery<{ percentageScore?: number }>(
+    // Secure score is published per subscription; averaging control percentages is not the score.
+    // https://learn.microsoft.com/azure/defender-for-cloud/resource-graph-samples
+    const scores = graphQuery<{ percentageRatio?: number }>(
       subscriptionId,
-      "SecurityResources | where type == 'microsoft.security/securescores/securescorecontrols' | project percentageScore=todouble(properties.score.percentage)"
+      "SecurityResources | where type =~ 'microsoft.security/securescores' | project percentageRatio=todouble(properties.score.percentage)"
     );
     const alertCount = graphQuery<{ count_: number }>(
       subscriptionId,
@@ -231,31 +337,108 @@ const security = optionalSource(
     return {
       assessments,
       subassessmentCount: optionalNumber(subassessmentCount),
-      controls,
+      scores,
       alertCount: optionalNumber(alertCount),
       regulatoryCount: optionalNumber(regulatoryCount)
     };
   },
-  "Defender assessments, subassessment counts, secure score controls, alerts, and compliance aggregates were collected.",
+  (value) => {
+    if (!value.scores.length && !value.assessments.length) {
+      return {
+        availability: "unavailable",
+        message:
+          "Defender for Cloud returned no secure score and no assessments; Defender plans are likely disabled for this subscription."
+      };
+    }
+    if (!value.scores.length) {
+      return {
+        availability: "partial",
+        message: `Defender for Cloud returned ${value.assessments.length} assessments but no secure score.`
+      };
+    }
+    if (!value.assessments.length) {
+      return {
+        availability: "partial",
+        message: "Defender for Cloud returned a secure score but no assessments."
+      };
+    }
+    return {
+      availability: "available",
+      message: `Defender for Cloud returned a secure score and ${value.assessments.length} assessments in aggregate.`
+    };
+  },
   "Defender data is unavailable; plans may be disabled or permissions may be insufficient."
 );
 
 const costPeriods = comparableCostPeriods(new Date());
 
-const currentCost = optionalSource(
+const currentCost = collectSource(
   "Cost Management",
   () => queryCostPeriod(subscriptionId, costPeriods.current.start, costPeriods.current.end),
-  "Current Cost Management period was collected.",
+  (properties) => ({
+    availability: properties ? "available" : "unavailable",
+    message: properties
+      ? "Current Cost Management period was collected."
+      : "Cost Management returned no content for the current period."
+  }),
   "Current Cost Management period is unavailable; billing scope or role access may be required."
 );
-const previousCost = optionalSource(
+const previousCost = collectSource(
   "Cost Management prior period",
   () => queryCostPeriod(subscriptionId, costPeriods.previous.start, costPeriods.previous.end),
-  "Prior comparable Cost Management period was collected.",
+  (properties) => ({
+    availability: properties ? "available" : "unavailable",
+    message: properties
+      ? "Prior comparable Cost Management period was collected."
+      : "Cost Management returned no content for the prior comparable period."
+  }),
   "Prior comparable Cost Management period is unavailable."
 );
 
-const network = optionalSource(
+/**
+ * Several resource types (Network Watcher among them) have no Azure Monitor platform metric
+ * namespace at all. Probing the metric definitions first keeps "not applicable" separate from
+ * "could not be read".
+ */
+function probeMetrics(resourceId: string): MetricProbeOutcome {
+  let definitions: MetricDefinition[];
+  try {
+    definitions = runAzJson<MetricDefinition[]>([
+      "monitor",
+      "metrics",
+      "list-definitions",
+      "--resource",
+      resourceId
+    ]);
+  } catch (error) {
+    if (error instanceof AzureCliError && error.unsupportedMetricNamespace) {
+      return { kind: "notApplicable" };
+    }
+    return { kind: "failed" };
+  }
+  const metricNames = metricNamesFromDefinitions(definitions);
+  if (!metricNames.length) return { kind: "notApplicable" };
+  try {
+    const metrics = runAzJson<{ value?: MetricValue[] }>([
+      "monitor",
+      "metrics",
+      "list",
+      "--resource",
+      resourceId,
+      "--metrics",
+      ...metricNames,
+      "--offset",
+      "24h",
+      "--interval",
+      "PT1H"
+    ]);
+    return { kind: "collected", series: countMetricSeries(metrics.value ?? []) };
+  } catch {
+    return { kind: "failed" };
+  }
+}
+
+const network = collectSource(
   "Network inventory and metrics",
   () => {
     const inventory = graphQuery<{
@@ -267,58 +450,35 @@ const network = optionalSource(
       subscriptionId,
       "Resources | where type startswith 'microsoft.network/' | project id, name, type, location"
     );
-    let metricSeries = 0;
-    let metricFailures = 0;
-    for (const resource of inventory.slice(0, 20)) {
-      try {
-        const metrics = runAzJson<{ value?: Array<{ timeseries?: unknown[] }> }>([
-          "monitor",
-          "metrics",
-          "list",
-          "--resource",
-          resource.id,
-          "--offset",
-          "24h",
-          "--interval",
-          "PT1H"
-        ]);
-        metricSeries += (metrics.value ?? []).reduce(
-          (count, metric) => count + (metric.timeseries?.length ?? 0),
-          0
-        );
-      } catch {
-        metricFailures += 1;
-      }
-    }
-    return { inventory, metricSeries, metricFailures };
+    const outcomes = inventory.slice(0, 20).map((resource) => probeMetrics(resource.id));
+    return { inventory, coverage: summarizeMetricCoverage(outcomes, inventory.length) };
   },
-  "Network inventory and supported Azure Monitor metric series were collected.",
+  (value) => ({
+    // Flow telemetry is never collected, so this source can never be fully "available".
+    availability: value.inventory.length ? "partial" : "unavailable",
+    message: value.inventory.length
+      ? networkMetricMessage(value.coverage)
+      : "No Microsoft.Network resources were found in the subscription."
+  }),
   "Network inventory and metrics are unavailable."
 );
-const networkStatus: SourceStatus =
-  network.status.availability === "available"
-    ? {
-        source: "Network inventory and metrics",
-        availability: "partial",
-        message: `Network inventory was collected with ${network.value?.metricSeries ?? 0} supported metric series; ${network.value?.metricFailures ?? 0} sampled resources had unavailable metrics. Flow telemetry was not collected.`
-      }
-    : network.status;
+const networkStatus = network.status;
 
-const healthByResource = new Map(
-  (health.value ?? []).map((item) => [
-    item.id.split("/providers/Microsoft.ResourceHealth")[0]?.toLowerCase(),
-    item.properties?.availabilityState
-  ])
+const healthByResource = indexAvailabilityStatuses(health.value ?? []);
+// A type Azure actually evaluated is supported regardless of what the static list says, so the
+// coverage denominator cannot shrink when the documented type list drifts.
+const evaluatedResourceTypes = new Set(
+  rawResources
+    .filter((resource) => healthByResource.has(resource.id.toLowerCase()))
+    .map((resource) => resource.type.trim().toLowerCase())
 );
 const resources: RawResource[] = rawResources.map((resource) => ({
   ...resource,
-  status: (() => {
-    const state = healthByResource.get(resource.id.toLowerCase())?.toLowerCase();
-    if (state === "available") return "Healthy";
-    if (state === "degraded") return "Degraded";
-    if (state === "unavailable") return "Unavailable";
-    return "Unknown";
-  })(),
+  status: classifyResourceHealth(
+    resource.type,
+    healthByResource.get(resource.id.toLowerCase())?.availabilityState,
+    evaluatedResourceTypes
+  ),
   owner:
     typeof resource.tags?.owner === "string"
       ? resource.tags.owner
@@ -328,30 +488,57 @@ const resources: RawResource[] = rawResources.map((resource) => ({
   change: "Collected from Azure Resource Graph"
 }));
 
+const reliabilityCoverage = summarizeReliabilityCoverage(resources);
+const driftedTypes = unlistedEvaluatedTypes(resources);
+if (driftedTypes.length) {
+  // Resource type names are public Azure identifiers and carry no tenant data.
+  console.warn(
+    `Resource Health evaluated types missing from the static support list: ${driftedTypes.join(", ")}`
+  );
+}
+const healthCoverageReport = resourceHealthReport(reliabilityCoverage);
+const healthStatus: SourceStatus =
+  health.status.availability === "unavailable"
+    ? health.status
+    : {
+        source: "Resource Health",
+        availability: healthCoverageReport.availability,
+        message: healthCoverageReport.message
+      };
+
+const serviceHealthSummary = summarizeServiceHealth(serviceHealth.value, serviceHealth.status);
+
 const costData = transformComparableCost(currentCost.value, previousCost.value);
-const costStatus: SourceStatus =
-  currentCost.status.availability === "unavailable" || !costData.currentCurrencyVerifiedJpy
+// The source status must track the value that is actually published, not merely whether the query
+// returned rows. A period whose columns or currency could not be interpreted has no total to show.
+const currentCostUsable =
+  currentCost.status.availability !== "unavailable" && costData.currentTotalJpy !== null;
+const previousCostUsable =
+  previousCost.status.availability !== "unavailable" && costData.previousTotalJpy !== null;
+const costStatus: SourceStatus = !currentCostUsable
+  ? {
+      source: "Cost Management",
+      availability: "unavailable",
+      message:
+        currentCost.status.availability === "unavailable"
+          ? currentCost.status.message
+          : costPeriodMessage(costData.currentOutcome, costData.currentRowCount)
+    }
+  : !previousCostUsable
     ? {
         source: "Cost Management",
-        availability: "unavailable",
-        message:
-          currentCost.status.availability === "unavailable"
-            ? currentCost.status.message
-            : "Billing currency is not verified as JPY; no unverified conversion was published."
+        availability: "partial",
+        message: `Current rounded JPY cost was collected from ${costData.currentRowCount} records; ${
+          previousCost.status.availability === "unavailable"
+            ? previousCost.status.message
+            : costPeriodMessage(costData.previousOutcome, costData.previousRowCount)
+        }`
       }
-    : previousCost.status.availability === "unavailable" ||
-        !costData.previousCurrencyVerifiedJpy
-      ? {
-          source: "Cost Management",
-          availability: "partial",
-          message:
-            "Current rounded JPY cost was collected; the prior comparable period is unavailable."
-        }
-      : {
-          source: "Cost Management",
-          availability: "available",
-          message: "Current and prior comparable rounded JPY periods were collected."
-        };
+    : {
+        source: "Cost Management",
+        availability: "available",
+        message: `Current and prior comparable rounded JPY periods were collected from ${costData.currentRowCount} and ${costData.previousRowCount} records.`
+      };
 
 const recommendationCounts = new Map<string, SecurityRecommendation>();
 for (const item of security.value?.assessments ?? []) {
@@ -383,36 +570,24 @@ for (const item of security.value?.assessments ?? []) {
   });
 }
 const recommendations = [...recommendationCounts.values()].slice(0, 12);
-const secureScoreValues = (security.value?.controls ?? [])
-  .map((item) => percent(item.percentageScore, Number.NaN))
-  .filter(Number.isFinite);
-const secureScore: number | null = secureScoreValues.length
-  ? Math.max(
-      0,
-      Math.min(
-        100,
-        Math.round(
-          secureScoreValues.reduce((sum, value) => sum + value, 0) / secureScoreValues.length
-        )
-      )
-    )
-  : null;
+// `properties.score.percentage` is a 0-1 ratio, not a 0-100 percentage.
+// https://learn.microsoft.com/rest/api/defenderforcloud/secure-scores/list
+const secureScoreRatio = security.value?.scores?.[0]?.percentageRatio;
+const secureScore: number | null =
+  secureScoreRatio === undefined || !Number.isFinite(Number(secureScoreRatio))
+    ? null
+    : Math.max(0, Math.min(100, Math.round(percent(secureScoreRatio) * 100)));
 
 const unavailableCount = [
-  health.status,
+  healthStatus,
   serviceHealth.status,
   activity.status,
   security.status,
   costStatus,
   networkStatus
 ].filter((item) => item.availability === "unavailable").length;
-const healthyCount = resources.filter((resource) => resource.status === "Healthy").length;
-const evaluatedResources = resources.filter((resource) => resource.status !== "Unknown");
-const healthCoveragePercent = resources.length
-  ? Math.round((evaluatedResources.length / resources.length) * 100)
-  : 0;
-const healthPercent = evaluatedResources.length
-  ? Math.round((healthyCount / evaluatedResources.length) * 100)
+const healthPercent = reliabilityCoverage.evaluatedResources
+  ? Math.round((reliabilityCoverage.healthyResources / reliabilityCoverage.evaluatedResources) * 100)
   : null;
 const insights: AiInsight[] = [];
 
@@ -429,7 +604,7 @@ const raw: RawSnapshot = {
       message: "Read-only inventory collection completed."
     },
     costStatus,
-    health.status,
+    healthStatus,
     serviceHealth.status,
     activity.status,
     security.status,
@@ -438,11 +613,17 @@ const raw: RawSnapshot = {
   metrics: [
     {
       label: "Resource Health coverage",
-      value: `${healthCoveragePercent}%`,
-      change: `${evaluatedResources.length} of ${resources.length} evaluated`,
+      value:
+        reliabilityCoverage.supportedCoveragePercent === null
+          ? "Unavailable"
+          : `${reliabilityCoverage.supportedCoveragePercent}%`,
+      change: `${reliabilityCoverage.evaluatedResources} of ${reliabilityCoverage.supportedResources} supported resources evaluated (${reliabilityCoverage.notApplicableResources} out of scope)`,
       direction: "flat",
-      severity: healthCoveragePercent === 100 ? "healthy" : "info",
-      points: [healthCoveragePercent, healthCoveragePercent]
+      severity: reliabilityCoverage.supportedCoveragePercent === 100 ? "healthy" : "info",
+      points: [
+        reliabilityCoverage.supportedCoveragePercent ?? 0,
+        reliabilityCoverage.supportedCoveragePercent ?? 0
+      ]
     },
     {
       label: "Cost coverage",
@@ -452,7 +633,7 @@ const raw: RawSnapshot = {
       severity: costStatus.availability === "available" ? "healthy" : "warning",
       points: [1, 1]
     },
-    ...(security.status.availability === "available"
+    ...(security.status.availability !== "unavailable"
       ? [
           {
             label: "Defender recommendations",
@@ -488,7 +669,12 @@ const raw: RawSnapshot = {
     ...(activity.value ?? []).slice(0, 4).map((event, eventIndex) => ({
       id: `activity-${eventIndex}`,
       timestamp: event.eventTimestamp ?? "Recent",
-      severity: event.level === "Error" ? ("warning" as const) : ("info" as const),
+      severity:
+        event.level === "Critical"
+          ? ("critical" as const)
+          : event.level === "Error"
+            ? ("warning" as const)
+            : ("info" as const),
       title: `${normalizeActivityOperationLabel(event)}を検出`,
       detail: "公開前に実行者と対象リソースの詳細を削除しています。",
       route: "/overview"
@@ -496,7 +682,10 @@ const raw: RawSnapshot = {
     ...(serviceHealth.value ?? []).slice(0, 2).map((event, eventIndex) => ({
       id: `service-health-${eventIndex}`,
       timestamp: "Current collection window",
-      severity: event.properties?.status === "Active" ? ("warning" as const) : ("info" as const),
+      severity:
+        (event.properties?.Status ?? event.properties?.status ?? "").toLowerCase() === "active"
+          ? ("warning" as const)
+          : ("info" as const),
       title: "Service Health イベントを検出",
       detail:
         "影響を受けたサブスクリプションやリソースの詳細を除き、サービス単位の状態のみを表示します。",
@@ -507,9 +696,9 @@ const raw: RawSnapshot = {
     resources.reduce<
       Record<string, { evaluated: number; healthy: number; degraded: number; unavailable: number }>
     >((regions, resource) => {
+      if (resource.status === "Unknown" || resource.status === "NotApplicable") return regions;
       const region = resource.location ?? "Unknown";
       regions[region] ??= { evaluated: 0, healthy: 0, degraded: 0, unavailable: 0 };
-      if (resource.status === "Unknown") return regions;
       regions[region].evaluated += 1;
       if (resource.status === "Healthy") regions[region].healthy += 1;
       if (resource.status === "Degraded") regions[region].degraded += 1;
@@ -543,7 +732,8 @@ const raw: RawSnapshot = {
         : `${healthPercent}% of evaluated resources available`,
     ...uncollectedIncidentMetric(),
     meanTimeToRecover: "Unavailable from public snapshot",
-    services: []
+    services: [],
+    serviceHealth: serviceHealthSummary
   },
   security: {
     secureScore,
@@ -562,6 +752,7 @@ const raw: RawSnapshot = {
     type: item.type,
     location: item.location
   })),
+  networkMetricCoverage: network.value?.coverage ?? null,
   networkTelemetry: {
     availability: "unavailable",
     message:

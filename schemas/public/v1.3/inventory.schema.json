@@ -1,0 +1,35 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://aktsmm.github.io/azure-ops-pulse-demo/schemas/public/v1.3/inventory.schema.json",
+  "title": "Azure Ops Pulse sanitized inventory v1.3",
+  "type": "object",
+  "required": ["total", "resources", "byType", "byRegion"],
+  "properties": {
+    "total": { "type": "integer", "minimum": 0 },
+    "resources": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["id", "name", "resourceGroup", "type", "region", "status", "owner", "tags", "change"],
+        "properties": {
+          "id": { "type": "string", "pattern": "^res-[0-9a-f]{8}$" },
+          "name": { "type": "string" },
+          "resourceGroup": { "type": "string" },
+          "type": { "type": "string" },
+          "region": { "type": "string" },
+          "status": {
+            "description": "NotApplicable means Azure Resource Health does not evaluate this resource type at all; Unknown means it is in scope but no availability state was published.",
+            "enum": ["Healthy", "Degraded", "Unavailable", "Unknown", "NotApplicable"]
+          },
+          "owner": { "type": "string", "pattern": "^identity-[0-9a-f]{8}$" },
+          "tags": { "type": "object", "additionalProperties": { "type": "string" } },
+          "change": { "type": "string" }
+        },
+        "additionalProperties": false
+      }
+    },
+    "byType": { "type": "array" },
+    "byRegion": { "type": "array" }
+  },
+  "additionalProperties": false
+}
