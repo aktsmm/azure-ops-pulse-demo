@@ -711,20 +711,11 @@ describe("published snapshot masking contract", () => {
 
     const published = sanitizeSnapshot(raw).inventory.resources;
 
+    // Hashing anything per-resource — the resource id, say — would still satisfy the alias format
+    // while quietly erasing every grouping the inventory is supposed to preserve. Asserting this on
+    // the published file instead would make the test depend on the live subscription still having
+    // two resources in one group, which no collection guarantees.
     expect(published[0]!.resourceGroup).toBe(published[1]!.resourceGroup);
     expect(published[2]!.resourceGroup).not.toBe(published[0]!.resourceGroup);
-  });
-
-  it("keeps resource group membership visible in the published inventory", () => {
-    const counts = new Map<string, number>();
-    for (const resource of resources) {
-      counts.set(resource.resourceGroup, (counts.get(resource.resourceGroup) ?? 0) + 1);
-    }
-
-    const total = [...counts.values()].reduce((sum, count) => sum + count, 0);
-    expect(total).toBe(resources.length);
-    // Hashing anything per-resource — the resource id, say — would still satisfy the alias format
-    // while quietly erasing every grouping the inventory is supposed to preserve.
-    expect(Math.max(...counts.values())).toBeGreaterThan(1);
   });
 });
