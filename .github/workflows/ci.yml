@@ -33,6 +33,10 @@ jobs:
         run: npm test
       - name: Validate public data
         run: npm run validate:data
+      - name: Generate and validate the DEMO snapshot
+        run: |
+          OUTPUT_PATH="$RUNNER_TEMP/demo-snapshot.json" npm run generate:demo
+          npx tsx scripts/validate-public-data.ts "$RUNNER_TEMP/demo-snapshot.json"
       - name: Build and privacy gate
         run: npm run build
 

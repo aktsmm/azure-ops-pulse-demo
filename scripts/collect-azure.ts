@@ -478,7 +478,7 @@ const resources: RawResource[] = rawResources.map((resource) => ({
       : typeof resource.tags?.team === "string"
         ? resource.tags.team
         : "unassigned",
-  change: "Collected from Azure Resource Graph"
+  change: "Azure Resource Graph から収集"
 }));
 
 const reliabilityCoverage = summarizeReliabilityCoverage(resources);
@@ -576,12 +576,12 @@ const raw: RawSnapshot = {
   ],
   metrics: [
     {
-      label: "Resource Health coverage",
+      label: "Resource Health の評価範囲",
       value:
         reliabilityCoverage.supportedCoveragePercent === null
-          ? "Unavailable"
+          ? "利用不可"
           : `${reliabilityCoverage.supportedCoveragePercent}%`,
-      change: `${reliabilityCoverage.evaluatedResources} of ${reliabilityCoverage.supportedResources} supported resources evaluated (${reliabilityCoverage.notApplicableResources} out of scope)`,
+      change: `対応 ${reliabilityCoverage.supportedResources} 件中 ${reliabilityCoverage.evaluatedResources} 件を評価済み（対象外 ${reliabilityCoverage.notApplicableResources} 件）`,
       direction: "flat",
       severity: reliabilityCoverage.supportedCoveragePercent === 100 ? "healthy" : "info",
       points: [
@@ -590,9 +590,9 @@ const raw: RawSnapshot = {
       ]
     },
     {
-      label: "Cost coverage",
+      label: "コストの収集範囲",
       value: costCoverageLabel(costStatus.availability),
-      change: "Rounded public view",
+      change: "公開用に丸めた値",
       direction: "flat",
       severity: costStatus.availability === "available" ? "healthy" : "warning",
       points: [1, 1]
@@ -602,7 +602,7 @@ const raw: RawSnapshot = {
           {
             label: "Defender recommendations",
             value: String(recommendations.filter((item) => item.status === "Open").length),
-            change: "Aggregate titles only",
+            change: "集計タイトルのみ",
             direction: "flat" as const,
             severity: recommendations.some((item) => item.severity === "critical")
               ? ("warning" as const)
@@ -612,9 +612,9 @@ const raw: RawSnapshot = {
         ]
       : []),
     {
-      label: "Unavailable sources",
+      label: "利用不可のソース",
       value: String(unavailableCount),
-      change: "Explicitly surfaced",
+      change: "未収集を明示",
       direction: "flat",
       severity: unavailableCount ? "warning" : "healthy",
       points: [unavailableCount, unavailableCount]
@@ -624,7 +624,7 @@ const raw: RawSnapshot = {
   events: [
     {
       id: "collection-complete",
-      timestamp: "Current snapshot",
+      timestamp: "現在のスナップショット",
       severity: unavailableCount ? "warning" : "healthy",
       title: "Azure データ収集が完了",
       detail: `${resources.length} 件のリソースをサニタイズし、利用不可の任意ソースは ${unavailableCount} 件でした。`,
@@ -632,7 +632,7 @@ const raw: RawSnapshot = {
     },
     ...(activity.value ?? []).slice(0, 4).map((event, eventIndex) => ({
       id: `activity-${eventIndex}`,
-      timestamp: event.eventTimestamp ?? "Recent",
+      timestamp: event.eventTimestamp ?? "収集時刻不明",
       severity:
         event.level === "Critical"
           ? ("critical" as const)
@@ -645,7 +645,7 @@ const raw: RawSnapshot = {
     })),
     ...(serviceHealth.value ?? []).slice(0, 2).map((event, eventIndex) => ({
       id: `service-health-${eventIndex}`,
-      timestamp: "Current collection window",
+      timestamp: "現在の収集期間",
       severity:
         (event.properties?.Status ?? event.properties?.status ?? "").toLowerCase() === "active"
           ? ("warning" as const)
@@ -708,7 +708,7 @@ const raw: RawSnapshot = {
       security.value.regulatoryCount !== null &&
       security.value.regulatoryCount > 0 &&
       secureScore !== null
-        ? [{ framework: "Regulatory compliance aggregate", score: secureScore }]
+        ? [{ framework: "規制コンプライアンスの集計", score: secureScore }]
         : []
   },
   networkInventory: (network.value?.inventory ?? []).map((item) => ({

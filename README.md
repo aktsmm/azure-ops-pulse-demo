@@ -164,11 +164,14 @@ npm run dev
 開発用の合成データが必要な場合だけ次を実行します。
 
 ```bash
-npm run generate:demo
+npm run generate:demo    # .candidate/demo-snapshot.json に出力（公開ファイルは触りません）
+npm run preview:demo     # 公開ファイルを DEMO で上書きし、ローカル画面で確認する場合のみ
 ```
 
 現在commitされているsnapshotは `mode: AZURE` です。synthetic generatorはAzure未接続時の
 UI開発・schema検証用fallbackであり、現在データの出所を表すものではありません。
+`preview:demo` で上書きしたまま commit しても、`npm test` の公開snapshot契約チェックが
+PRとPagesデプロイの両方で止めます。
 
 ## 品質Gate
 

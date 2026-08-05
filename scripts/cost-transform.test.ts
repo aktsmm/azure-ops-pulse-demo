@@ -51,9 +51,9 @@ describe("Cost Management transform", () => {
   });
 
   it("keeps current cost visibly available when comparison coverage is partial", () => {
-    expect(costCoverageLabel("available")).toBe("Available");
-    expect(costCoverageLabel("partial")).toBe("Partial");
-    expect(costCoverageLabel("unavailable")).toBe("Unavailable");
+    expect(costCoverageLabel("available")).toBe("収集済み");
+    expect(costCoverageLabel("partial")).toBe("一部収集");
+    expect(costCoverageLabel("unavailable")).toBe("利用不可");
   });
 
   it("preserves signed credits in the all-row total and ranks by contribution magnitude", () => {

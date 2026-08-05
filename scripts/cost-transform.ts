@@ -61,10 +61,10 @@ export function comparableCostPeriods(currentEnd: Date, days = 30) {
 
 export function costCoverageLabel(
   availability: "available" | "partial" | "unavailable"
-): "Available" | "Partial" | "Unavailable" {
-  if (availability === "available") return "Available";
-  if (availability === "partial") return "Partial";
-  return "Unavailable";
+): "収集済み" | "一部収集" | "利用不可" {
+  if (availability === "available") return "収集済み";
+  if (availability === "partial") return "一部収集";
+  return "利用不可";
 }
 
 /**
