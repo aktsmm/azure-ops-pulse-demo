@@ -117,7 +117,9 @@ scenario() {
       "$(grep 'run view' <<<"$calls" | grep -qv 'run view 4242 ' && echo no || echo ok)"
   fi
 
-  echo "$out" | sed 's/^/        /'
+  # The workflow command prefix is stripped before echoing: these are expected failures from a stub,
+  # and leaving them intact makes a passing CI run display red error annotations.
+  echo "$out" | sed -e 's/::error::/(expected error) /g' -e 's/^/        /'
   echo
 }
 
