@@ -1,6 +1,6 @@
 import { readdir, readFile, stat } from "node:fs/promises";
 import { extname, resolve } from "node:path";
-import { scanContent } from "./privacy-rules";
+import { scanContent, scanJson } from "./privacy-rules";
 
 const roots = process.argv.slice(2).length ? process.argv.slice(2) : ["public"];
 const textExtensions = new Set([".html", ".js", ".css", ".json", ".txt", ".xml", ".svg"]);
@@ -16,9 +16,11 @@ async function filesUnder(path: string): Promise<string[]> {
 const findings: string[] = [];
 for (const root of roots) {
   for (const file of await filesUnder(resolve(root))) {
-    if (!textExtensions.has(extname(file).toLowerCase())) continue;
+    const extension = extname(file).toLowerCase();
+    if (!textExtensions.has(extension)) continue;
     const content = await readFile(file, "utf8");
-    for (const finding of scanContent(content)) {
+    const scanned = extension === ".json" ? scanJson(content) : scanContent(content);
+    for (const finding of scanned) {
       findings.push(`${finding.label}: ${file}`);
     }
   }

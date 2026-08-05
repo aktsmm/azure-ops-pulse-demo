@@ -146,7 +146,7 @@ export interface AiInsight {
 }
 
 export interface PublicSnapshotV1 {
-  schemaVersion: "1.3.0";
+  schemaVersion: "1.4.0";
   generatedAt: string;
   mode: "DEMO" | "AZURE";
   freshness: {

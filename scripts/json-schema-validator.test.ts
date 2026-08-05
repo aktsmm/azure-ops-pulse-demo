@@ -124,16 +124,16 @@ function legacyV1Fixture(): object {
 }
 
 describe("public JSON Schema contract", () => {
-  it("validates the current snapshot against the authoritative v1.3 schema", () => {
+  it("validates the current snapshot against the authoritative v1.4 schema", () => {
     const snapshot = currentSnapshot();
 
-    expect(PUBLIC_SCHEMA_VERSION).toBe("1.3.0");
-    expect(PUBLIC_SCHEMA_DIRECTORY.replaceAll("\\", "/")).toMatch(/schemas\/public\/v1\.3$/);
+    expect(PUBLIC_SCHEMA_VERSION).toBe("1.4.0");
+    expect(PUBLIC_SCHEMA_DIRECTORY.replaceAll("\\", "/")).toMatch(/schemas\/public\/v1\.4$/);
     expect(() => validatePublicJsonSchema(snapshot)).not.toThrow();
     expect(() => publicSnapshotSchema.parse(snapshot)).not.toThrow();
   });
 
-  it("keeps all v1.3 unavailable metrics nullable in both contracts", () => {
+  it("keeps all v1.4 unavailable metrics nullable in both contracts", () => {
     const snapshot = currentSnapshot();
     snapshot.overview.postureScore = null;
     snapshot.security.secureScore = null;
@@ -149,13 +149,13 @@ describe("public JSON Schema contract", () => {
     const unavailableWithZero = currentSnapshot();
     unavailableWithZero.reliability.incidentAvailability = "unavailable";
     unavailableWithZero.reliability.incidents = 0;
-    expect(() => validatePublicJsonSchema(unavailableWithZero)).toThrow(/1\.3\.0/);
+    expect(() => validatePublicJsonSchema(unavailableWithZero)).toThrow(/1\.4\.0/);
     expect(() => publicSnapshotSchema.parse(unavailableWithZero)).toThrow();
 
     const availableWithoutValue = currentSnapshot();
     availableWithoutValue.reliability.incidentAvailability = "available";
     availableWithoutValue.reliability.incidents = null;
-    expect(() => validatePublicJsonSchema(availableWithoutValue)).toThrow(/1\.3\.0/);
+    expect(() => validatePublicJsonSchema(availableWithoutValue)).toThrow(/1\.4\.0/);
     expect(() => publicSnapshotSchema.parse(availableWithoutValue)).toThrow();
   });
 
@@ -176,19 +176,19 @@ describe("public JSON Schema contract", () => {
     // Each endpoint gets its own rule, so each has to be provably enforced on its own.
     const publishedAgainstWithheldPrior = structuredClone(priorWithheld);
     publishedAgainstWithheldPrior.cost.deltaPercent = 13_913.9;
-    expect(() => validatePublicJsonSchema(publishedAgainstWithheldPrior)).toThrow(/1\.3\.0/);
+    expect(() => validatePublicJsonSchema(publishedAgainstWithheldPrior)).toThrow(/1\.4\.0/);
     expect(() => publicSnapshotSchema.parse(publishedAgainstWithheldPrior)).toThrow();
 
     const publishedAgainstWithheldCurrent = structuredClone(bothWithheld);
     publishedAgainstWithheldCurrent.cost.deltaPercent = 38_537.8;
-    expect(() => validatePublicJsonSchema(publishedAgainstWithheldCurrent)).toThrow(/1\.3\.0/);
+    expect(() => validatePublicJsonSchema(publishedAgainstWithheldCurrent)).toThrow(/1\.4\.0/);
     expect(() => publicSnapshotSchema.parse(publishedAgainstWithheldCurrent)).toThrow();
 
     const publishedAgainstWithheldService = structuredClone(bothWithheld);
     const [service] = publishedAgainstWithheldService.cost.categories;
     if (!service) throw new Error("Fixture must publish at least one cost category");
     service.deltaPercent = 38_537.8;
-    expect(() => validatePublicJsonSchema(publishedAgainstWithheldService)).toThrow(/1\.3\.0/);
+    expect(() => validatePublicJsonSchema(publishedAgainstWithheldService)).toThrow(/1\.4\.0/);
     expect(() => publicSnapshotSchema.parse(publishedAgainstWithheldService)).toThrow();
   });
 
@@ -214,13 +214,13 @@ describe("public JSON Schema contract", () => {
     expect(() => publicSnapshotSchema.parse(lyingAvailability)).toThrow(
       /Resource Health cannot report available/
     );
-    expect(() => validatePublicJsonSchema(lyingAvailability)).toThrow(/1\.3\.0/);
+    expect(() => validatePublicJsonSchema(lyingAvailability)).toThrow(/1\.4\.0/);
   });
 
   it("preserves the published v1 path and validates its legacy 1.1 contract", () => {
     const legacyPath = "schemas/public/v1/snapshot.schema.json";
     const explicitLegacyPath = "schemas/public/v1.1/snapshot.schema.json";
-    const currentPath = "schemas/public/v1.3/snapshot.schema.json";
+    const currentPath = "schemas/public/v1.4/snapshot.schema.json";
     expect(existsSync(legacyPath)).toBe(true);
     expect(existsSync(explicitLegacyPath)).toBe(true);
     expect(existsSync(currentPath)).toBe(true);
@@ -246,20 +246,20 @@ describe("public JSON Schema contract", () => {
 
     expect(legacySchema.$id).toContain("/schemas/public/v1/");
     expect(legacySchema.properties.schemaVersion.const).toBe("1.1.0");
-    expect(currentSchema.properties.schemaVersion.const).toBe("1.3.0");
+    expect(currentSchema.properties.schemaVersion.const).toBe("1.4.0");
     expect(() => validateLegacyV1Snapshot(legacyV1Fixture())).not.toThrow();
   });
 
   it("rejects stale versions, wrong types, and missing reliability availability fields", () => {
     const stale = currentSnapshot();
     stale.schemaVersion = "1.1.0";
-    expect(() => validatePublicJsonSchema(stale)).toThrow(/1\.3\.0/);
+    expect(() => validatePublicJsonSchema(stale)).toThrow(/1\.4\.0/);
 
     const wrongType = currentSnapshot() as unknown as {
       reliability: { incidents: unknown };
     };
     wrongType.reliability.incidents = "0";
-    expect(() => validatePublicJsonSchema(wrongType)).toThrow(/1\.3\.0/);
+    expect(() => validatePublicJsonSchema(wrongType)).toThrow(/1\.4\.0/);
 
     const missingIncidents = currentSnapshot();
     delete missingIncidents.reliability.incidents;

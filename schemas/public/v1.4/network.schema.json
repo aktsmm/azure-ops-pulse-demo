@@ -1,0 +1,81 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://aktsmm.github.io/azure-ops-pulse-demo/schemas/public/v1.4/network.schema.json",
+  "title": "Azure Ops Pulse network inventory and masked telemetry v1.4",
+  "type": "object",
+  "required": ["inventory", "metricCoverage", "telemetry"],
+  "properties": {
+    "inventory": {
+      "type": "object",
+      "required": ["total", "byType", "byRegion"],
+      "properties": {
+        "total": { "type": "integer", "minimum": 0 },
+        "byType": { "type": "array" },
+        "byRegion": { "type": "array" }
+      },
+      "additionalProperties": false
+    },
+    "metricCoverage": {
+      "description": "Azure Monitor platform-metric probe result. notApplicableResources counts resource types that expose no platform metric namespace at all, which is not a collection failure.",
+      "type": ["object", "null"],
+      "required": [
+        "inventoryTotal",
+        "sampledResources",
+        "metricCapableResources",
+        "metricSeries",
+        "notApplicableResources",
+        "failedResources"
+      ],
+      "properties": {
+        "inventoryTotal": { "type": "integer", "minimum": 0 },
+        "sampledResources": { "type": "integer", "minimum": 0 },
+        "metricCapableResources": { "type": "integer", "minimum": 0 },
+        "metricSeries": { "type": "integer", "minimum": 0 },
+        "notApplicableResources": { "type": "integer", "minimum": 0 },
+        "failedResources": { "type": "integer", "minimum": 0 }
+      },
+      "additionalProperties": false
+    },
+    "telemetry": {
+      "type": "object",
+      "required": [
+        "availability",
+        "message",
+        "healthyConnections",
+        "degradedConnections",
+        "blockedFlows",
+        "flows"
+      ],
+      "properties": {
+        "availability": { "enum": ["available", "partial", "unavailable"] },
+        "message": { "type": "string" },
+        "healthyConnections": { "type": ["integer", "null"], "minimum": 0 },
+        "degradedConnections": { "type": ["integer", "null"], "minimum": 0 },
+        "blockedFlows": { "type": ["integer", "null"], "minimum": 0 },
+        "flows": { "type": "array" }
+      },
+      "allOf": [
+        {
+          "if": { "properties": { "availability": { "const": "unavailable" } } },
+          "then": {
+            "properties": {
+              "healthyConnections": { "type": "null" },
+              "degradedConnections": { "type": "null" },
+              "blockedFlows": { "type": "null" },
+              "flows": { "type": "array", "maxItems": 0 }
+            }
+          },
+          "else": {
+            "properties": {
+              "healthyConnections": { "type": "integer", "minimum": 0 },
+              "degradedConnections": { "type": "integer", "minimum": 0 },
+              "blockedFlows": { "type": "integer", "minimum": 0 }
+            }
+          }
+        }
+      ],
+      "additionalProperties": false
+    }
+  },
+  "additionalProperties": false
+}

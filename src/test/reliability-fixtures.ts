@@ -10,6 +10,7 @@ import {
   summarizeReliabilityCoverage,
   supportsResourceHealth
 } from "../lib/resource-health";
+import { resourceAliasLabel } from "../lib/sanitize";
 
 /**
  * The published snapshot is rewritten by every scheduled collection, so its numbers are evidence of
@@ -58,8 +59,8 @@ function resourceItem(
 ): ResourceItem {
   return {
     id: `res-${hex8(index)}`,
-    name: `fixture-${index}`,
-    resourceGroup: "rg-fixture",
+    name: `${resourceAliasLabel(type)}-${hex8(index)}`,
+    resourceGroup: `rg-${hex8(0)}`,
     type,
     region,
     status,

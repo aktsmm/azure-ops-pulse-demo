@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { WITHHELD_JPY_AMOUNT_LABEL, isWithheldJpyAmount } from "../src/lib/jpy-disclosure";
+import { resourceAliasLabel } from "../src/lib/sanitize";
 
 const severity = z.enum(["critical", "warning", "healthy", "info"]);
 const statusBadge = z.enum([
@@ -174,7 +175,7 @@ export const insightSchema = z
 
 export const publicSnapshotSchema = z
   .object({
-    schemaVersion: z.literal("1.3.0"),
+    schemaVersion: z.literal("1.4.0"),
     generatedAt: z.string().datetime(),
     mode: z.enum(["DEMO", "AZURE"]),
     freshness: z
@@ -288,8 +289,8 @@ export const publicSnapshotSchema = z
           z
             .object({
               id: z.string().regex(/^res-[0-9a-f]{8}$/),
-              name: z.string(),
-              resourceGroup: z.string(),
+              name: z.string().regex(/^[A-Za-z0-9]+-[0-9a-f]{8}$/),
+              resourceGroup: z.string().regex(/^rg-[0-9a-f]{8}$/),
               type: z.string(),
               region: z.string(),
               status: statusBadge,
@@ -298,6 +299,19 @@ export const publicSnapshotSchema = z
               change: z.string()
             })
             .strict()
+            .superRefine((resource, ctx) => {
+              // The alias prefix is only safe because it is copied from the published type. A
+              // prefix that does not match means it came from somewhere else — the Azure name being
+              // the obvious candidate — so the candidate is rejected rather than published.
+              const expected = resourceAliasLabel(resource.type);
+              if (!resource.name.startsWith(`${expected}-`)) {
+                ctx.addIssue({
+                  code: z.ZodIssueCode.custom,
+                  path: ["name"],
+                  message: `Resource alias "${resource.name}" is not derived from the published type "${resource.type}"`
+                });
+              }
+            })
         ),
         byType: z.array(z.object({ label: z.string(), count: z.number().nonnegative() }).strict()),
         byRegion: z.array(z.object({ label: z.string(), count: z.number().nonnegative() }).strict())
