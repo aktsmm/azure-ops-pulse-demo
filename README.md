@@ -202,10 +202,16 @@ CI、Pages、Azure候補、AI候補のすべてでprivacy gateを実行します
 | Cost | 前期間比と丸めた概算JPY labelだけ |
 | Network | inventoryとflow telemetryを分離し、inventoryからhealthを推定しない |
 
-現在の正本は [`schemas/public/v1.2`](schemas/public/v1.2) と
-`schemaVersion: 1.2.0` です。`schemas/public/v1` はimmutableな1.1 compatibility alias、
-`schemas/public/v1.1` はその明示version pathです。nullable値は「未収集 / 未評価」を表し、
-根拠のある数値 `0` と区別します。
+現在の正本は [`schemas/public/v1.3`](schemas/public/v1.3) と
+`schemaVersion: 1.3.0` です。`schemas/public/v1` はimmutableな1.1 compatibility alias、
+`schemas/public/v1.1` / `schemas/public/v1.2` はその明示version pathです。nullable値は
+「未収集 / 未評価」を表し、根拠のある数値 `0` と区別します。
+
+1.3.0 では Resource Health の適用範囲を明示するため、resource statusに `NotApplicable`
+（Resource Healthがそもそも評価しない種別＝対象外）を追加し、`Unknown`（対応種別だが状態を
+取得できなかった＝未評価）と区別します。あわせて `reliability.coverage`、
+`reliability.serviceHealth`、`network.metricCoverage` を追加し、source availabilityが
+`available` なのに評価件数が `0` といった矛盾はschema違反として拒否します。
 
 raw Azure response、完全なID、名前、address、正確なcost、token、secretはcommit、
 artifact、log、AI入力に含めません。

@@ -1,11 +1,16 @@
 export interface CostQueryProperties {
   rows?: unknown[][];
   columns?: Array<{ name?: string }>;
+  nextLink?: string | null;
 }
+
+export type CostPeriodOutcome = "empty" | "unsupported-columns" | "currency-mismatch" | "ok";
 
 interface ParsedCostPeriod {
   currencyVerifiedJpy: boolean;
   totalJpy: number | null;
+  rowCount: number;
+  outcome: CostPeriodOutcome;
   categories: Array<{ name: string; amountJpy: number }>;
 }
 
@@ -15,6 +20,25 @@ export interface ComparableCostResult {
   categories: Array<{ name: string; amountJpy: number; deltaPercent: number | null }>;
   currentCurrencyVerifiedJpy: boolean;
   previousCurrencyVerifiedJpy: boolean;
+  currentOutcome: CostPeriodOutcome;
+  previousOutcome: CostPeriodOutcome;
+  currentRowCount: number;
+  previousRowCount: number;
+}
+
+/**
+ * The Cost Management query API pages results through `properties.nextLink`. Reading only the first
+ * page silently under-reports the period total, so every page is merged before parsing.
+ */
+export function mergeCostPages(
+  pages: ReadonlyArray<CostQueryProperties | null>
+): CostQueryProperties | null {
+  const present = pages.filter((page): page is CostQueryProperties => page !== null);
+  if (!present.length) return null;
+  return {
+    columns: present.find((page) => (page.columns ?? []).length > 0)?.columns ?? [],
+    rows: present.flatMap((page) => page.rows ?? [])
+  };
 }
 
 export function comparableCostPeriods(currentEnd: Date, days = 30) {
@@ -50,7 +74,13 @@ function percentageChange(current: number, previous: number | undefined): number
 
 export function parseCostPeriod(properties: CostQueryProperties | null): ParsedCostPeriod {
   if (!properties) {
-    return { currencyVerifiedJpy: false, totalJpy: null, categories: [] };
+    return {
+      currencyVerifiedJpy: false,
+      totalJpy: null,
+      rowCount: 0,
+      outcome: "empty",
+      categories: []
+    };
   }
 
   const rows = properties.rows ?? [];
@@ -67,8 +97,32 @@ export function parseCostPeriod(properties: CostQueryProperties | null): ParsedC
   );
   const currencyVerifiedJpy = currencies.size === 1 && currencies.has("JPY");
 
-  if (costIndex === undefined || !currencyVerifiedJpy) {
-    return { currencyVerifiedJpy, totalJpy: null, categories: [] };
+  if (rows.length === 0) {
+    return {
+      currencyVerifiedJpy: false,
+      totalJpy: null,
+      rowCount: 0,
+      outcome: "empty",
+      categories: []
+    };
+  }
+  if (costIndex === undefined) {
+    return {
+      currencyVerifiedJpy,
+      totalJpy: null,
+      rowCount: rows.length,
+      outcome: "unsupported-columns",
+      categories: []
+    };
+  }
+  if (!currencyVerifiedJpy) {
+    return {
+      currencyVerifiedJpy,
+      totalJpy: null,
+      rowCount: rows.length,
+      outcome: "currency-mismatch",
+      categories: []
+    };
   }
 
   const categoryTotals = new Map<string, number>();
@@ -84,6 +138,8 @@ export function parseCostPeriod(properties: CostQueryProperties | null): ParsedC
   return {
     currencyVerifiedJpy,
     totalJpy,
+    rowCount: rows.length,
+    outcome: "ok",
     categories: [...categoryTotals].map(([name, amountJpy]) => ({ name, amountJpy }))
   };
 }
@@ -104,6 +160,10 @@ export function transformComparableCost(
     previousTotalJpy: previous.totalJpy,
     currentCurrencyVerifiedJpy: current.currencyVerifiedJpy,
     previousCurrencyVerifiedJpy: previous.currencyVerifiedJpy,
+    currentOutcome: current.outcome,
+    previousOutcome: previous.outcome,
+    currentRowCount: current.rowCount,
+    previousRowCount: previous.rowCount,
     categories: current.categories
       .sort((left, right) => Math.abs(right.amountJpy) - Math.abs(left.amountJpy))
       .slice(0, categoryLimit)
@@ -112,4 +172,15 @@ export function transformComparableCost(
         deltaPercent: percentageChange(category.amountJpy, previousByCategory.get(category.name))
       }))
   };
+}
+
+export function costPeriodMessage(outcome: CostPeriodOutcome, rowCount: number): string {
+  if (outcome === "empty") return "Cost Management returned no usage records for the period.";
+  if (outcome === "unsupported-columns") {
+    return `Cost Management returned ${rowCount} records without a recognizable cost column.`;
+  }
+  if (outcome === "currency-mismatch") {
+    return `Cost Management returned ${rowCount} records in a currency other than JPY; no unverified conversion was published.`;
+  }
+  return `Cost Management returned ${rowCount} rounded JPY records.`;
 }

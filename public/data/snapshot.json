@@ -1,5 +1,5 @@
 {
-  "schemaVersion": "1.2.0",
+  "schemaVersion": "1.3.0",
   "generatedAt": "2026-08-03T22:05:55.594Z",
   "mode": "AZURE",
   "freshness": {
@@ -26,28 +26,28 @@
     },
     {
       "source": "Resource Health",
-      "availability": "available",
-      "message": "Resource Health availability was collected."
+      "availability": "unavailable",
+      "message": "Resource Health returned no availability state for any of the 14 supported resources."
     },
     {
       "source": "Service Health",
-      "availability": "available",
-      "message": "Service Health events were collected in aggregate."
+      "availability": "unavailable",
+      "message": "Service Health events are unavailable or the current role cannot read them."
     },
     {
       "source": "Activity Log",
       "availability": "available",
-      "message": "Recent Activity Log events were collected without actor or resource detail."
+      "message": "4 recent Activity Log events were collected without actor or resource detail."
     },
     {
       "source": "Defender for Cloud",
-      "availability": "available",
-      "message": "Defender assessments, subassessment counts, secure score controls, alerts, and compliance aggregates were collected."
+      "availability": "unavailable",
+      "message": "Defender for Cloud returned no secure score and no assessments; Defender plans are likely disabled for this subscription."
     },
     {
       "source": "Network inventory and metrics",
       "availability": "partial",
-      "message": "Network inventory was collected with 0 supported metric series; 7 sampled resources had unavailable metrics. Flow telemetry was not collected."
+      "message": "Network inventory covers 7 resources; 7 were sampled for Azure Monitor metrics; metric coverage was not recorded by the previous collection. Flow telemetry was not collected."
     }
   ],
   "overview": {
@@ -55,7 +55,7 @@
       {
         "label": "Resource Health coverage",
         "value": "0%",
-        "change": "0 of 62 evaluated",
+        "change": "0 of 14 supported resources evaluated (48 out of scope)",
         "direction": "flat",
         "severity": "info",
         "points": [
@@ -75,25 +75,14 @@
         ]
       },
       {
-        "label": "Defender recommendations",
-        "value": "0",
-        "change": "Aggregate titles only",
-        "direction": "flat",
-        "severity": "info",
-        "points": [
-          0,
-          0
-        ]
-      },
-      {
         "label": "Unavailable sources",
-        "value": "0",
+        "value": "3",
         "change": "Explicitly surfaced",
         "direction": "flat",
-        "severity": "healthy",
+        "severity": "warning",
         "points": [
-          0,
-          0
+          3,
+          3
         ]
       }
     ],
@@ -102,9 +91,9 @@
       {
         "id": "event-55b8dadb",
         "timestamp": "Current snapshot",
-        "severity": "healthy",
+        "severity": "warning",
         "title": "Azure データ収集が完了",
-        "detail": "62 件のリソースをサニタイズし、利用不可の任意ソースは 0 件でした。",
+        "detail": "62 件のリソースをサニタイズし、利用不可の任意ソースは 3 件でした。",
         "route": "/overview"
       },
       {
@@ -221,7 +210,7 @@
         "resourceGroup": "rg-hoj…aneast-d9a6959d",
         "type": "microsoft.alertsmanagement/smartdetectoralertrules",
         "region": "global",
-        "status": "Unknown",
+        "status": "NotApplicable",
         "owner": "identity-caac8562",
         "tags": {},
         "change": "Collected from Azure Resource Graph"
@@ -232,7 +221,7 @@
         "resourceGroup": "rg-hoj…aneast-d9a6959d",
         "type": "microsoft.app/containerapps",
         "region": "japaneast",
-        "status": "Unknown",
+        "status": "NotApplicable",
         "owner": "identity-caac8562",
         "tags": {},
         "change": "Collected from Azure Resource Graph"
@@ -243,7 +232,7 @@
         "resourceGroup": "rg-q…line-8c2924db",
         "type": "microsoft.app/containerapps",
         "region": "japaneast",
-        "status": "Unknown",
+        "status": "NotApplicable",
         "owner": "identity-caac8562",
         "tags": {},
         "change": "Collected from Azure Resource Graph"
@@ -254,7 +243,7 @@
         "resourceGroup": "rg-hoj…aneast-d9a6959d",
         "type": "microsoft.app/jobs",
         "region": "japaneast",
-        "status": "Unknown",
+        "status": "NotApplicable",
         "owner": "identity-caac8562",
         "tags": {},
         "change": "Collected from Azure Resource Graph"
@@ -265,7 +254,7 @@
         "resourceGroup": "rg-hoj…aneast-d9a6959d",
         "type": "microsoft.app/managedenvironments",
         "region": "japaneast",
-        "status": "Unknown",
+        "status": "NotApplicable",
         "owner": "identity-caac8562",
         "tags": {},
         "change": "Collected from Azure Resource Graph"
@@ -276,7 +265,7 @@
         "resourceGroup": "rg-q…line-8c2924db",
         "type": "microsoft.app/managedenvironments",
         "region": "japaneast",
-        "status": "Unknown",
+        "status": "NotApplicable",
         "owner": "identity-caac8562",
         "tags": {},
         "change": "Collected from Azure Resource Graph"
@@ -331,7 +320,7 @@
         "resourceGroup": "rg-hoj…aneast-d9a6959d",
         "type": "microsoft.containerregistry/registries",
         "region": "japaneast",
-        "status": "Unknown",
+        "status": "NotApplicable",
         "owner": "identity-caac8562",
         "tags": {},
         "change": "Collected from Azure Resource Graph"
@@ -353,7 +342,7 @@
         "resourceGroup": "rg-hoj…aneast-d9a6959d",
         "type": "microsoft.insights/actiongroups",
         "region": "global",
-        "status": "Unknown",
+        "status": "NotApplicable",
         "owner": "identity-caac8562",
         "tags": {},
         "change": "Collected from Azure Resource Graph"
@@ -364,7 +353,7 @@
         "resourceGroup": "rg-hoj…aneast-d9a6959d",
         "type": "microsoft.insights/components",
         "region": "japaneast",
-        "status": "Unknown",
+        "status": "NotApplicable",
         "owner": "identity-caac8562",
         "tags": {},
         "change": "Collected from Azure Resource Graph"
@@ -375,7 +364,7 @@
         "resourceGroup": "rg-5806f191",
         "type": "microsoft.logic/workflows",
         "region": "japaneast",
-        "status": "Unknown",
+        "status": "NotApplicable",
         "owner": "identity-caac8562",
         "tags": {},
         "change": "Collected from Azure Resource Graph"
@@ -386,7 +375,7 @@
         "resourceGroup": "rg-5806f191",
         "type": "microsoft.logic/workflows",
         "region": "japaneast",
-        "status": "Unknown",
+        "status": "NotApplicable",
         "owner": "identity-caac8562",
         "tags": {},
         "change": "Collected from Azure Resource Graph"
@@ -397,7 +386,7 @@
         "resourceGroup": "rg-5806f191",
         "type": "microsoft.logic/workflows",
         "region": "japaneast",
-        "status": "Unknown",
+        "status": "NotApplicable",
         "owner": "identity-caac8562",
         "tags": {},
         "change": "Collected from Azure Resource Graph"
@@ -408,7 +397,7 @@
         "resourceGroup": "rg-5806f191",
         "type": "microsoft.logic/workflows",
         "region": "japaneast",
-        "status": "Unknown",
+        "status": "NotApplicable",
         "owner": "identity-caac8562",
         "tags": {},
         "change": "Collected from Azure Resource Graph"
@@ -419,7 +408,7 @@
         "resourceGroup": "rg-5806f191",
         "type": "microsoft.logic/workflows",
         "region": "japaneast",
-        "status": "Unknown",
+        "status": "NotApplicable",
         "owner": "identity-caac8562",
         "tags": {},
         "change": "Collected from Azure Resource Graph"
@@ -430,7 +419,7 @@
         "resourceGroup": "rg-5806f191",
         "type": "microsoft.logic/workflows",
         "region": "japaneast",
-        "status": "Unknown",
+        "status": "NotApplicable",
         "owner": "identity-caac8562",
         "tags": {},
         "change": "Collected from Azure Resource Graph"
@@ -441,7 +430,7 @@
         "resourceGroup": "rg-5806f191",
         "type": "microsoft.logic/workflows",
         "region": "japaneast",
-        "status": "Unknown",
+        "status": "NotApplicable",
         "owner": "identity-caac8562",
         "tags": {},
         "change": "Collected from Azure Resource Graph"
@@ -452,7 +441,7 @@
         "resourceGroup": "rg-5806f191",
         "type": "microsoft.logic/workflows",
         "region": "japaneast",
-        "status": "Unknown",
+        "status": "NotApplicable",
         "owner": "identity-caac8562",
         "tags": {},
         "change": "Collected from Azure Resource Graph"
@@ -463,7 +452,7 @@
         "resourceGroup": "rg-5806f191",
         "type": "microsoft.logic/workflows",
         "region": "japaneast",
-        "status": "Unknown",
+        "status": "NotApplicable",
         "owner": "identity-caac8562",
         "tags": {},
         "change": "Collected from Azure Resource Graph"
@@ -474,7 +463,7 @@
         "resourceGroup": "rg-5806f191",
         "type": "microsoft.logic/workflows",
         "region": "japaneast",
-        "status": "Unknown",
+        "status": "NotApplicable",
         "owner": "identity-caac8562",
         "tags": {},
         "change": "Collected from Azure Resource Graph"
@@ -485,7 +474,7 @@
         "resourceGroup": "rg-5806f191",
         "type": "microsoft.logic/workflows",
         "region": "japaneast",
-        "status": "Unknown",
+        "status": "NotApplicable",
         "owner": "identity-caac8562",
         "tags": {},
         "change": "Collected from Azure Resource Graph"
@@ -496,7 +485,7 @@
         "resourceGroup": "rg-5806f191",
         "type": "microsoft.logic/workflows",
         "region": "japaneast",
-        "status": "Unknown",
+        "status": "NotApplicable",
         "owner": "identity-caac8562",
         "tags": {},
         "change": "Collected from Azure Resource Graph"
@@ -507,7 +496,7 @@
         "resourceGroup": "rg-5806f191",
         "type": "microsoft.logic/workflows",
         "region": "japaneast",
-        "status": "Unknown",
+        "status": "NotApplicable",
         "owner": "identity-caac8562",
         "tags": {},
         "change": "Collected from Azure Resource Graph"
@@ -518,7 +507,7 @@
         "resourceGroup": "rg-5806f191",
         "type": "microsoft.logic/workflows",
         "region": "japaneast",
-        "status": "Unknown",
+        "status": "NotApplicable",
         "owner": "identity-caac8562",
         "tags": {},
         "change": "Collected from Azure Resource Graph"
@@ -529,7 +518,7 @@
         "resourceGroup": "rg-5806f191",
         "type": "microsoft.logic/workflows",
         "region": "japaneast",
-        "status": "Unknown",
+        "status": "NotApplicable",
         "owner": "identity-caac8562",
         "tags": {},
         "change": "Collected from Azure Resource Graph"
@@ -540,7 +529,7 @@
         "resourceGroup": "rg-5806f191",
         "type": "microsoft.logic/workflows",
         "region": "japaneast",
-        "status": "Unknown",
+        "status": "NotApplicable",
         "owner": "identity-caac8562",
         "tags": {},
         "change": "Collected from Azure Resource Graph"
@@ -551,7 +540,7 @@
         "resourceGroup": "rg-5806f191",
         "type": "microsoft.logic/workflows",
         "region": "japaneast",
-        "status": "Unknown",
+        "status": "NotApplicable",
         "owner": "identity-caac8562",
         "tags": {},
         "change": "Collected from Azure Resource Graph"
@@ -562,7 +551,7 @@
         "resourceGroup": "rg-7be2e8a6",
         "type": "microsoft.logic/workflows",
         "region": "eastasia",
-        "status": "Unknown",
+        "status": "NotApplicable",
         "owner": "identity-caac8562",
         "tags": {},
         "change": "Collected from Azure Resource Graph"
@@ -573,7 +562,7 @@
         "resourceGroup": "rg-7be2e8a6",
         "type": "microsoft.logic/workflows",
         "region": "eastasia",
-        "status": "Unknown",
+        "status": "NotApplicable",
         "owner": "identity-caac8562",
         "tags": {},
         "change": "Collected from Azure Resource Graph"
@@ -584,7 +573,7 @@
         "resourceGroup": "rg-7be2e8a6",
         "type": "microsoft.logic/workflows",
         "region": "eastasia",
-        "status": "Unknown",
+        "status": "NotApplicable",
         "owner": "identity-caac8562",
         "tags": {},
         "change": "Collected from Azure Resource Graph"
@@ -595,7 +584,7 @@
         "resourceGroup": "rg-7be2e8a6",
         "type": "microsoft.logic/workflows",
         "region": "eastasia",
-        "status": "Unknown",
+        "status": "NotApplicable",
         "owner": "identity-caac8562",
         "tags": {},
         "change": "Collected from Azure Resource Graph"
@@ -606,7 +595,7 @@
         "resourceGroup": "rg-7be2e8a6",
         "type": "microsoft.logic/workflows",
         "region": "eastasia",
-        "status": "Unknown",
+        "status": "NotApplicable",
         "owner": "identity-caac8562",
         "tags": {},
         "change": "Collected from Azure Resource Graph"
@@ -617,7 +606,7 @@
         "resourceGroup": "rg-hoj…aneast-d9a6959d",
         "type": "microsoft.managedidentity/userassignedidentities",
         "region": "japaneast",
-        "status": "Unknown",
+        "status": "NotApplicable",
         "owner": "identity-caac8562",
         "tags": {},
         "change": "Collected from Azure Resource Graph"
@@ -628,7 +617,7 @@
         "resourceGroup": "rg-qu…strap-1a5d33ae",
         "type": "microsoft.managedidentity/userassignedidentities",
         "region": "japaneast",
-        "status": "Unknown",
+        "status": "NotApplicable",
         "owner": "identity-caac8562",
         "tags": {},
         "change": "Collected from Azure Resource Graph"
@@ -639,7 +628,7 @@
         "resourceGroup": "netw…errg-adc33e8d",
         "type": "microsoft.network/networkwatchers",
         "region": "eastus",
-        "status": "Unknown",
+        "status": "NotApplicable",
         "owner": "identity-caac8562",
         "tags": {},
         "change": "Collected from Azure Resource Graph"
@@ -650,7 +639,7 @@
         "resourceGroup": "netw…errg-adc33e8d",
         "type": "microsoft.network/networkwatchers",
         "region": "germanywestcentral",
-        "status": "Unknown",
+        "status": "NotApplicable",
         "owner": "identity-caac8562",
         "tags": {},
         "change": "Collected from Azure Resource Graph"
@@ -661,7 +650,7 @@
         "resourceGroup": "netw…errg-adc33e8d",
         "type": "microsoft.network/networkwatchers",
         "region": "japaneast",
-        "status": "Unknown",
+        "status": "NotApplicable",
         "owner": "identity-caac8562",
         "tags": {},
         "change": "Collected from Azure Resource Graph"
@@ -672,7 +661,7 @@
         "resourceGroup": "netw…errg-adc33e8d",
         "type": "microsoft.network/networkwatchers",
         "region": "japanwest",
-        "status": "Unknown",
+        "status": "NotApplicable",
         "owner": "identity-caac8562",
         "tags": {},
         "change": "Collected from Azure Resource Graph"
@@ -683,7 +672,7 @@
         "resourceGroup": "netw…errg-adc33e8d",
         "type": "microsoft.network/networkwatchers",
         "region": "southcentralus",
-        "status": "Unknown",
+        "status": "NotApplicable",
         "owner": "identity-caac8562",
         "tags": {},
         "change": "Collected from Azure Resource Graph"
@@ -694,7 +683,7 @@
         "resourceGroup": "netw…errg-adc33e8d",
         "type": "microsoft.network/networkwatchers",
         "region": "southeastasia",
-        "status": "Unknown",
+        "status": "NotApplicable",
         "owner": "identity-caac8562",
         "tags": {},
         "change": "Collected from Azure Resource Graph"
@@ -705,7 +694,7 @@
         "resourceGroup": "netw…errg-adc33e8d",
         "type": "microsoft.network/networkwatchers",
         "region": "westus2",
-        "status": "Unknown",
+        "status": "NotApplicable",
         "owner": "identity-caac8562",
         "tags": {},
         "change": "Collected from Azure Resource Graph"
@@ -771,7 +760,7 @@
         "resourceGroup": "defau…up-ea-69f0d835",
         "type": "microsoft.operationsmanagement/solutions",
         "region": "eastasia",
-        "status": "Unknown",
+        "status": "NotApplicable",
         "owner": "identity-caac8562",
         "tags": {},
         "change": "Collected from Azure Resource Graph"
@@ -782,7 +771,7 @@
         "resourceGroup": "defaul…up-ejp-09313d6c",
         "type": "microsoft.operationsmanagement/solutions",
         "region": "japaneast",
-        "status": "Unknown",
+        "status": "NotApplicable",
         "owner": "identity-caac8562",
         "tags": {},
         "change": "Collected from Azure Resource Graph"
@@ -793,7 +782,7 @@
         "resourceGroup": "defaul…up-eus-13f2e5fe",
         "type": "microsoft.operationsmanagement/solutions",
         "region": "eastus",
-        "status": "Unknown",
+        "status": "NotApplicable",
         "owner": "identity-caac8562",
         "tags": {},
         "change": "Collected from Azure Resource Graph"
@@ -848,7 +837,7 @@
         "resourceGroup": "rg-5806f191",
         "type": "microsoft.web/connections",
         "region": "japaneast",
-        "status": "Unknown",
+        "status": "NotApplicable",
         "owner": "identity-caac8562",
         "tags": {},
         "change": "Collected from Azure Resource Graph"
@@ -859,7 +848,7 @@
         "resourceGroup": "rg-5806f191",
         "type": "microsoft.web/connections",
         "region": "japaneast",
-        "status": "Unknown",
+        "status": "NotApplicable",
         "owner": "identity-caac8562",
         "tags": {},
         "change": "Collected from Azure Resource Graph"
@@ -870,7 +859,7 @@
         "resourceGroup": "rg-7be2e8a6",
         "type": "microsoft.web/connections",
         "region": "eastasia",
-        "status": "Unknown",
+        "status": "NotApplicable",
         "owner": "identity-caac8562",
         "tags": {},
         "change": "Collected from Azure Resource Graph"
@@ -881,7 +870,7 @@
         "resourceGroup": "rg-6c1c5f55",
         "type": "microsoft.web/staticsites",
         "region": "eastasia",
-        "status": "Unknown",
+        "status": "NotApplicable",
         "owner": "identity-caac8562",
         "tags": {},
         "change": "Collected from Azure Resource Graph"
@@ -892,7 +881,7 @@
         "resourceGroup": "rg-q…line-8c2924db",
         "type": "microsoft.web/staticsites",
         "region": "eastasia",
-        "status": "Unknown",
+        "status": "NotApplicable",
         "owner": "identity-caac8562",
         "tags": {},
         "change": "Collected from Azure Resource Graph"
@@ -1016,11 +1005,29 @@
     "incidentAvailability": "unavailable",
     "incidents": null,
     "meanTimeToRecover": "Unavailable from public snapshot",
-    "services": []
+    "services": [],
+    "coverage": {
+      "totalResources": 62,
+      "supportedResources": 14,
+      "notApplicableResources": 48,
+      "evaluatedResources": 0,
+      "unevaluatedResources": 14,
+      "healthyResources": 0,
+      "degradedResources": 0,
+      "unavailableResources": 0,
+      "supportedCoveragePercent": 0
+    },
+    "serviceHealth": {
+      "availability": "unavailable",
+      "message": "Service Health events are unavailable or the current role cannot read them.",
+      "activeEvents": null,
+      "resolvedEvents": null,
+      "categories": []
+    }
   },
   "security": {
     "secureScore": null,
-    "activeAlerts": 0,
+    "activeAlerts": null,
     "recommendations": [],
     "compliance": []
   },
@@ -1071,7 +1078,8 @@
       "degradedConnections": null,
       "blockedFlows": null,
       "flows": []
-    }
+    },
+    "metricCoverage": null
   },
   "aiInsights": []
 }

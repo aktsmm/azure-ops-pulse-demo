@@ -32,17 +32,22 @@ export function availabilitySeverity(availability: Availability): Severity {
   return "info";
 }
 
-export function metricWhenSourceAvailable<T>(
+/**
+ * Shows a value only when its source actually published data. `partial` counts as published, since
+ * it means some records were collected; only `unavailable` (or a missing source) blanks the value.
+ */
+export function metricWhenSourcePublished<T>(
   source: SourceStatus | undefined,
   value: T | null
 ): T | null {
-  return source?.availability === "available" ? value : null;
+  return source !== undefined && source.availability !== "unavailable" ? value : null;
 }
 
 export function resourceStatusLabel(status: ResourceItem["status"]): string {
   if (status === "Healthy") return "正常";
   if (status === "Degraded") return "低下";
   if (status === "Unavailable") return "利用不可";
+  if (status === "NotApplicable") return "対象外";
   return "未評価";
 }
 
@@ -128,6 +133,10 @@ export function formatCostDelta(deltaPercent: number | null): string {
   return `前期間比 ${deltaPercent > 0 ? "+" : ""}${numberFormatter.format(deltaPercent)}%`;
 }
 
+/**
+ * Resources whose type Azure Resource Health never evaluates are counted separately and excluded
+ * from the coverage denominator, so 0% coverage always means a genuine collection gap.
+ */
 export function summarizeResourceHealth(resources: ResourceItem[]) {
   const summary = {
     total: resources.length,
@@ -135,6 +144,8 @@ export function summarizeResourceHealth(resources: ResourceItem[]) {
     degraded: 0,
     unavailable: 0,
     unknown: 0,
+    notApplicable: 0,
+    supported: 0,
     evaluated: 0,
     coveragePercent: 0
   };
@@ -142,11 +153,13 @@ export function summarizeResourceHealth(resources: ResourceItem[]) {
     if (resource.status === "Healthy") summary.healthy += 1;
     else if (resource.status === "Degraded") summary.degraded += 1;
     else if (resource.status === "Unavailable") summary.unavailable += 1;
+    else if (resource.status === "NotApplicable") summary.notApplicable += 1;
     else summary.unknown += 1;
   }
+  summary.supported = summary.total - summary.notApplicable;
   summary.evaluated = summary.healthy + summary.degraded + summary.unavailable;
-  summary.coveragePercent = summary.total
-    ? Math.round((summary.evaluated / summary.total) * 100)
+  summary.coveragePercent = summary.supported
+    ? Math.round((summary.evaluated / summary.supported) * 100)
     : 0;
   return summary;
 }
@@ -204,16 +217,24 @@ export function formatSourceMessage(source: SourceStatus): string {
     },
     "Resource Health": {
       available:
-        "Resource Health を収集しました。状態が未評価のリソースは正常・異常のどちらにも数えません。",
+        "Resource Health が対応リソースをすべて評価しました。対象外の種別は正常・異常のどちらにも数えません。",
+      partial:
+        "Resource Health は対応リソースの一部のみ評価できました。対象外と未評価は区別して表示します。",
       unavailable: "Resource Health を収集できないため、リソース状態は評価していません。"
     },
     "Service Health": {
       available: "Service Health イベントを集計形式で収集しました。",
+      partial: "Service Health は収集できましたが、対象期間のイベントは 0 件でした。",
       unavailable: "Service Health イベントを収集できませんでした。"
     },
     "Activity Log": {
       available: "実行者と対象リソースの詳細を除外して Activity Log を収集しました。",
+      partial: "Activity Log は収集できましたが、直近 7 日間のイベントは 0 件でした。",
       unavailable: "Activity Log を収集できませんでした。"
+    },
+    "Cost Management prior period": {
+      available: "比較可能な前期間の概算 JPY データを収集しました。",
+      unavailable: "比較可能な前期間の Cost Management データを収集できませんでした。"
     },
     "Defender for Cloud": {
       available: "Defender for Cloud の集計シグナルを収集しました。",

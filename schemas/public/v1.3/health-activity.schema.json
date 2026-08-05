@@ -1,0 +1,127 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://aktsmm.github.io/azure-ops-pulse-demo/schemas/public/v1.3/health-activity.schema.json",
+  "title": "Azure Ops Pulse health and activity v1.3",
+  "type": "object",
+  "required": [
+    "availability",
+    "incidentAvailability",
+    "incidents",
+    "meanTimeToRecover",
+    "services",
+    "coverage",
+    "serviceHealth"
+  ],
+  "properties": {
+    "availability": { "type": "string" },
+    "incidentAvailability": { "enum": ["available", "unavailable"] },
+    "incidents": { "type": ["integer", "null"], "minimum": 0 },
+    "meanTimeToRecover": { "type": "string" },
+    "services": { "type": "array" },
+    "coverage": {
+      "type": "object",
+      "description": "Separates resources Azure Resource Health never evaluates (notApplicableResources) from supported resources that returned no state (unevaluatedResources).",
+      "required": [
+        "totalResources",
+        "supportedResources",
+        "notApplicableResources",
+        "evaluatedResources",
+        "unevaluatedResources",
+        "healthyResources",
+        "degradedResources",
+        "unavailableResources",
+        "supportedCoveragePercent"
+      ],
+      "properties": {
+        "totalResources": { "type": "integer", "minimum": 0 },
+        "supportedResources": { "type": "integer", "minimum": 0 },
+        "notApplicableResources": { "type": "integer", "minimum": 0 },
+        "evaluatedResources": { "type": "integer", "minimum": 0 },
+        "unevaluatedResources": { "type": "integer", "minimum": 0 },
+        "healthyResources": { "type": "integer", "minimum": 0 },
+        "degradedResources": { "type": "integer", "minimum": 0 },
+        "unavailableResources": { "type": "integer", "minimum": 0 },
+        "supportedCoveragePercent": {
+          "type": ["integer", "null"],
+          "minimum": 0,
+          "maximum": 100
+        }
+      },
+      "additionalProperties": false
+    },
+    "serviceHealth": {
+      "type": "object",
+      "required": ["availability", "message", "activeEvents", "resolvedEvents", "categories"],
+      "properties": {
+        "availability": { "enum": ["available", "partial", "unavailable"] },
+        "message": { "type": "string" },
+        "activeEvents": { "type": ["integer", "null"], "minimum": 0 },
+        "resolvedEvents": { "type": ["integer", "null"], "minimum": 0 },
+        "categories": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["label", "count"],
+            "properties": {
+              "label": { "type": "string" },
+              "count": { "type": "integer", "minimum": 0 }
+            },
+            "additionalProperties": false
+          }
+        }
+      },
+      "allOf": [
+        {
+          "if": {
+            "type": "object",
+            "properties": { "availability": { "const": "unavailable" } },
+            "required": ["availability"]
+          },
+          "then": {
+            "properties": {
+              "activeEvents": { "type": "null" },
+              "resolvedEvents": { "type": "null" },
+              "categories": { "type": "array", "maxItems": 0 }
+            }
+          },
+          "else": {
+            "properties": {
+              "activeEvents": { "type": "integer", "minimum": 0 },
+              "resolvedEvents": { "type": "integer", "minimum": 0 }
+            }
+          }
+        }
+      ],
+      "additionalProperties": false
+    }
+  },
+  "allOf": [
+    {
+      "if": {
+        "properties": { "incidentAvailability": { "const": "available" } },
+        "required": ["incidentAvailability"]
+      },
+      "then": { "properties": { "incidents": { "type": "integer", "minimum": 0 } } },
+      "else": { "properties": { "incidents": { "type": "null" } } }
+    },
+    {
+      "properties": {
+        "coverage": {
+          "type": "object",
+          "if": {
+            "type": "object",
+            "properties": { "supportedResources": { "const": 0 } },
+            "required": ["supportedResources"]
+          },
+          "then": { "properties": { "supportedCoveragePercent": { "type": "null" } } },
+          "else": {
+            "properties": {
+              "supportedCoveragePercent": { "type": "integer", "minimum": 0, "maximum": 100 }
+            }
+          }
+        }
+      }
+    }
+  ],
+  "additionalProperties": false
+}

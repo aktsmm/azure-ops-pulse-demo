@@ -2,6 +2,9 @@ import { describe, expect, it } from "vitest";
 import {
   comparableCostPeriods,
   costCoverageLabel,
+  costPeriodMessage,
+  mergeCostPages,
+  parseCostPeriod,
   transformComparableCost,
   type CostQueryProperties
 } from "./cost-transform";
@@ -58,5 +61,61 @@ describe("Cost Management transform", () => {
     expect(result.currentTotalJpy).toBe(-10);
     expect(result.categories.map(({ amountJpy }) => amountJpy)).toEqual([-150, 100, 40]);
     expect(result.categories[0]?.deltaPercent).toBe(50);
+  });
+
+  it("merges every paged response so the total is not silently truncated", () => {
+    const first: CostQueryProperties = {
+      ...costResponse([100]),
+      nextLink: "https://management.azure.com/next"
+    };
+    const second: CostQueryProperties = { columns: [], rows: [[50, "Service 2", "JPY"]] };
+
+    const merged = mergeCostPages([first, second]);
+
+    expect(merged?.rows).toHaveLength(2);
+    expect(merged?.columns).toEqual(first.columns);
+    expect(parseCostPeriod(merged).totalJpy).toBe(150);
+  });
+
+  it("returns null when no page carried any content", () => {
+    expect(mergeCostPages([])).toBeNull();
+    expect(mergeCostPages([null, null])).toBeNull();
+  });
+
+  it("distinguishes an empty answer from a broken response and a foreign currency", () => {
+    expect(parseCostPeriod(null).outcome).toBe("empty");
+    expect(parseCostPeriod({ columns: [{ name: "Cost" }], rows: [] }).outcome).toBe("empty");
+    expect(
+      parseCostPeriod({ columns: [{ name: "Quantity" }], rows: [[1]] }).outcome
+    ).toBe("unsupported-columns");
+    expect(
+      parseCostPeriod({
+        columns: [{ name: "Cost" }, { name: "ServiceName" }, { name: "Currency" }],
+        rows: [[10, "Service 1", "USD"]]
+      }).outcome
+    ).toBe("currency-mismatch");
+    expect(parseCostPeriod(costResponse([10])).outcome).toBe("ok");
+  });
+
+  it("reports the record count so a zero-record period is not described as collected", () => {
+    expect(costPeriodMessage("empty", 0)).toContain("no usage records");
+    expect(costPeriodMessage("unsupported-columns", 3)).toContain("3 records");
+    expect(costPeriodMessage("currency-mismatch", 2)).toContain("other than JPY");
+    expect(costPeriodMessage("ok", 5)).toContain("5 rounded JPY records");
+  });
+});
+
+
+describe("Cost Management source honesty", () => {
+  it("reports a JPY-verified period with unreadable columns as having no total", () => {
+    const result = parseCostPeriod({
+      columns: [{ name: "UnexpectedAggregate" }, { name: "Currency" }],
+      rows: [[1234, "JPY"]]
+    });
+
+    expect(result.currencyVerifiedJpy).toBe(true);
+    expect(result.totalJpy).toBeNull();
+    expect(result.outcome).toBe("unsupported-columns");
+    expect(costPeriodMessage(result.outcome, result.rowCount)).toMatch(/1 records/);
   });
 });

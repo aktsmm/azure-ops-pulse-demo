@@ -1,7 +1,110 @@
 import { z } from "zod";
 
 const severity = z.enum(["critical", "warning", "healthy", "info"]);
-const statusBadge = z.enum(["Healthy", "Degraded", "Unavailable", "Unknown"]);
+const statusBadge = z.enum([
+  "Healthy",
+  "Degraded",
+  "Unavailable",
+  "Unknown",
+  "NotApplicable"
+]);
+const availability = z.enum(["available", "partial", "unavailable"]);
+const publishableAvailability = new Set(["available", "partial"]);
+const reliabilityCoverageSchema = z
+  .object({
+    totalResources: z.number().nonnegative(),
+    supportedResources: z.number().nonnegative(),
+    notApplicableResources: z.number().nonnegative(),
+    evaluatedResources: z.number().nonnegative(),
+    unevaluatedResources: z.number().nonnegative(),
+    healthyResources: z.number().nonnegative(),
+    degradedResources: z.number().nonnegative(),
+    unavailableResources: z.number().nonnegative(),
+    supportedCoveragePercent: z.number().min(0).max(100).nullable()
+  })
+  .strict()
+  .superRefine((value, context) => {
+    if (value.supportedResources + value.notApplicableResources !== value.totalResources) {
+      context.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: "Supported and not-applicable resources must add up to the total"
+      });
+    }
+    if (
+      value.healthyResources + value.degradedResources + value.unavailableResources !==
+      value.evaluatedResources
+    ) {
+      context.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: "Evaluated resources must equal healthy plus degraded plus unavailable"
+      });
+    }
+    if (value.evaluatedResources + value.unevaluatedResources !== value.supportedResources) {
+      context.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: "Evaluated and unevaluated resources must add up to the supported resources"
+      });
+    }
+    if ((value.supportedResources === 0) !== (value.supportedCoveragePercent === null)) {
+      context.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: "Coverage percent must be null exactly when no resource type is supported"
+      });
+    }
+  });
+const serviceHealthSummarySchema = z
+  .object({
+    availability,
+    message: z.string(),
+    activeEvents: z.number().nonnegative().nullable(),
+    resolvedEvents: z.number().nonnegative().nullable(),
+    categories: z.array(
+      z.object({ label: z.string(), count: z.number().nonnegative() }).strict()
+    )
+  })
+  .strict()
+  .superRefine((value, context) => {
+    const unavailable = value.availability === "unavailable";
+    if (unavailable && (value.activeEvents !== null || value.resolvedEvents !== null)) {
+      context.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: "Unavailable Service Health must not publish event counts"
+      });
+    }
+    if (!unavailable && (value.activeEvents === null || value.resolvedEvents === null)) {
+      context.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: "Collected Service Health requires explicit event counts"
+      });
+    }
+  });
+const networkMetricCoverageSchema = z
+  .object({
+    inventoryTotal: z.number().nonnegative(),
+    sampledResources: z.number().nonnegative(),
+    metricCapableResources: z.number().nonnegative(),
+    metricSeries: z.number().nonnegative(),
+    notApplicableResources: z.number().nonnegative(),
+    failedResources: z.number().nonnegative()
+  })
+  .strict()
+  .superRefine((value, context) => {
+    if (
+      value.metricCapableResources + value.notApplicableResources + value.failedResources !==
+      value.sampledResources
+    ) {
+      context.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: "Metric probe outcomes must add up to the sampled resources"
+      });
+    }
+    if (value.sampledResources > value.inventoryTotal) {
+      context.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: "Sampled resources cannot exceed the network inventory total"
+      });
+    }
+  });
 const defenderMetricLabels = new Set(["Defender recommendations", "Open alerts"]);
 const costAmountSchema = z
   .object({
@@ -70,7 +173,7 @@ export const insightSchema = z
 
 export const publicSnapshotSchema = z
   .object({
-    schemaVersion: z.literal("1.2.0"),
+    schemaVersion: z.literal("1.3.0"),
     generatedAt: z.string().datetime(),
     mode: z.enum(["DEMO", "AZURE"]),
     freshness: z
@@ -188,7 +291,9 @@ export const publicSnapshotSchema = z
               budgetRemainingPercent: z.number().min(0).max(100)
             })
             .strict()
-        )
+        ),
+        coverage: reliabilityCoverageSchema,
+        serviceHealth: serviceHealthSummarySchema
       })
       .strict()
       .superRefine((value, context) => {
@@ -230,9 +335,10 @@ export const publicSnapshotSchema = z
             )
           })
           .strict(),
+        metricCoverage: networkMetricCoverageSchema.nullable(),
         telemetry: z
           .object({
-            availability: z.enum(["available", "partial", "unavailable"]),
+            availability,
             message: z.string(),
             healthyConnections: z.number().nonnegative().nullable(),
             degradedConnections: z.number().nonnegative().nullable(),
@@ -279,28 +385,93 @@ export const publicSnapshotSchema = z
   .strict()
   .superRefine((snapshot, context) => {
     const resourceHealth = snapshot.sources.find((source) => source.source === "Resource Health");
-    if (resourceHealth?.availability !== "available" && snapshot.overview.postureScore !== null) {
+    // `partial` is a real collection outcome (some supported resources evaluated), so it may
+    // publish aggregates; only `unavailable` and a missing source must stay empty.
+    const resourceHealthPublishable = publishableAvailability.has(
+      resourceHealth?.availability ?? "unavailable"
+    );
+    if (!resourceHealthPublishable && snapshot.overview.postureScore !== null) {
       context.addIssue({
         code: z.ZodIssueCode.custom,
         path: ["overview", "postureScore"],
-        message: "Resource Health posture must be null unless the source is available"
+        message: "Resource Health posture must be null unless the source published data"
       });
     }
     if (
-      resourceHealth?.availability !== "available" &&
+      !resourceHealthPublishable &&
       (snapshot.reliability.incidentAvailability !== "unavailable" ||
         snapshot.reliability.incidents !== null)
     ) {
       context.addIssue({
         code: z.ZodIssueCode.custom,
         path: ["reliability", "incidents"],
-        message: "Reliability incidents must be unavailable unless Resource Health is available"
+        message: "Reliability incidents must be unavailable unless Resource Health published data"
+      });
+    }
+    if (
+      snapshot.reliability.coverage.evaluatedResources > 0 &&
+      resourceHealth?.availability === "unavailable"
+    ) {
+      context.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ["reliability", "coverage"],
+        message: "Evaluated resources cannot exist while Resource Health reports unavailable"
+      });
+    }
+    if (
+      snapshot.reliability.coverage.evaluatedResources === 0 &&
+      resourceHealth?.availability === "available"
+    ) {
+      context.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ["reliability", "coverage"],
+        message: "Resource Health cannot report available while nothing was evaluated"
+      });
+    }
+    if (snapshot.reliability.coverage.totalResources !== snapshot.inventory.total) {
+      context.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ["reliability", "coverage", "totalResources"],
+        message: "Reliability coverage must count every inventoried resource"
+      });
+    }
+
+    const serviceHealthSource = snapshot.sources.find((source) => source.source === "Service Health");
+    if (
+      serviceHealthSource &&
+      serviceHealthSource.availability !== snapshot.reliability.serviceHealth.availability
+    ) {
+      context.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ["reliability", "serviceHealth", "availability"],
+        message: "Service Health summary must agree with the reported source availability"
+      });
+    }
+    if (!serviceHealthSource && snapshot.reliability.serviceHealth.availability !== "unavailable") {
+      context.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ["reliability", "serviceHealth"],
+        message: "A published Service Health summary requires a Service Health source entry"
+      });
+    }
+
+    const costSource = snapshot.sources.find((source) => source.source === "Cost Management");
+    if (
+      costSource &&
+      publishableAvailability.has(costSource.availability) &&
+      snapshot.cost.current.availability !== "available"
+    ) {
+      context.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ["cost", "current"],
+        message: "Cost Management cannot report collected data without a published current amount"
       });
     }
 
     const defender = snapshot.sources.find((source) => source.source === "Defender for Cloud");
+    const defenderPublishable = publishableAvailability.has(defender?.availability ?? "unavailable");
     if (
-      defender?.availability !== "available" &&
+      !defenderPublishable &&
       (snapshot.security.secureScore !== null ||
         snapshot.security.activeAlerts !== null ||
         snapshot.security.recommendations.length > 0 ||
@@ -310,7 +481,7 @@ export const publicSnapshotSchema = z
       context.addIssue({
         code: z.ZodIssueCode.custom,
         path: ["security"],
-        message: "Unavailable or partial Defender data must not expose aggregate values"
+        message: "Unavailable Defender data must not expose aggregate values"
       });
     }
   });

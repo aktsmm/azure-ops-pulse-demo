@@ -20,6 +20,11 @@ type MutableSnapshot = {
   reliability: {
     incidentAvailability: "available" | "unavailable";
     incidents?: number | null;
+    coverage: {
+      totalResources: number;
+      supportedResources: number;
+      evaluatedResources: number;
+    };
   };
   security: {
     secureScore: number | null;
@@ -112,16 +117,16 @@ function legacyV1Fixture(): object {
 }
 
 describe("public JSON Schema contract", () => {
-  it("validates the current snapshot against the authoritative v1.2 schema", () => {
+  it("validates the current snapshot against the authoritative v1.3 schema", () => {
     const snapshot = currentSnapshot();
 
-    expect(PUBLIC_SCHEMA_VERSION).toBe("1.2.0");
-    expect(PUBLIC_SCHEMA_DIRECTORY.replaceAll("\\", "/")).toMatch(/schemas\/public\/v1\.2$/);
+    expect(PUBLIC_SCHEMA_VERSION).toBe("1.3.0");
+    expect(PUBLIC_SCHEMA_DIRECTORY.replaceAll("\\", "/")).toMatch(/schemas\/public\/v1\.3$/);
     expect(() => validatePublicJsonSchema(snapshot)).not.toThrow();
     expect(() => publicSnapshotSchema.parse(snapshot)).not.toThrow();
   });
 
-  it("keeps all v1.2 unavailable metrics nullable in both contracts", () => {
+  it("keeps all v1.3 unavailable metrics nullable in both contracts", () => {
     const snapshot = currentSnapshot();
     snapshot.overview.postureScore = null;
     snapshot.security.secureScore = null;
@@ -137,20 +142,36 @@ describe("public JSON Schema contract", () => {
     const unavailableWithZero = currentSnapshot();
     unavailableWithZero.reliability.incidentAvailability = "unavailable";
     unavailableWithZero.reliability.incidents = 0;
-    expect(() => validatePublicJsonSchema(unavailableWithZero)).toThrow(/1\.2\.0/);
+    expect(() => validatePublicJsonSchema(unavailableWithZero)).toThrow(/1\.3\.0/);
     expect(() => publicSnapshotSchema.parse(unavailableWithZero)).toThrow();
 
     const availableWithoutValue = currentSnapshot();
     availableWithoutValue.reliability.incidentAvailability = "available";
     availableWithoutValue.reliability.incidents = null;
-    expect(() => validatePublicJsonSchema(availableWithoutValue)).toThrow(/1\.2\.0/);
+    expect(() => validatePublicJsonSchema(availableWithoutValue)).toThrow(/1\.3\.0/);
     expect(() => publicSnapshotSchema.parse(availableWithoutValue)).toThrow();
+  });
+
+  it("rejects reliability coverage that contradicts the inventory or the Resource Health source", () => {
+    const inconsistentTotal = currentSnapshot();
+    inconsistentTotal.reliability.coverage.totalResources += 1;
+    expect(() => publicSnapshotSchema.parse(inconsistentTotal)).toThrow(
+      /Reliability coverage must count every inventoried resource/
+    );
+
+    const lyingAvailability = currentSnapshot();
+    lyingAvailability.sources.find((source) => source.source === "Resource Health")!.availability =
+      "available";
+    expect(() => publicSnapshotSchema.parse(lyingAvailability)).toThrow(
+      /Resource Health cannot report available/
+    );
+    expect(() => validatePublicJsonSchema(lyingAvailability)).toThrow(/1\.3\.0/);
   });
 
   it("preserves the published v1 path and validates its legacy 1.1 contract", () => {
     const legacyPath = "schemas/public/v1/snapshot.schema.json";
     const explicitLegacyPath = "schemas/public/v1.1/snapshot.schema.json";
-    const currentPath = "schemas/public/v1.2/snapshot.schema.json";
+    const currentPath = "schemas/public/v1.3/snapshot.schema.json";
     expect(existsSync(legacyPath)).toBe(true);
     expect(existsSync(explicitLegacyPath)).toBe(true);
     expect(existsSync(currentPath)).toBe(true);
@@ -176,20 +197,20 @@ describe("public JSON Schema contract", () => {
 
     expect(legacySchema.$id).toContain("/schemas/public/v1/");
     expect(legacySchema.properties.schemaVersion.const).toBe("1.1.0");
-    expect(currentSchema.properties.schemaVersion.const).toBe("1.2.0");
+    expect(currentSchema.properties.schemaVersion.const).toBe("1.3.0");
     expect(() => validateLegacyV1Snapshot(legacyV1Fixture())).not.toThrow();
   });
 
   it("rejects stale versions, wrong types, and missing reliability availability fields", () => {
     const stale = currentSnapshot();
     stale.schemaVersion = "1.1.0";
-    expect(() => validatePublicJsonSchema(stale)).toThrow(/1\.2\.0/);
+    expect(() => validatePublicJsonSchema(stale)).toThrow(/1\.3\.0/);
 
     const wrongType = currentSnapshot() as unknown as {
       reliability: { incidents: unknown };
     };
     wrongType.reliability.incidents = "0";
-    expect(() => validatePublicJsonSchema(wrongType)).toThrow(/1\.2\.0/);
+    expect(() => validatePublicJsonSchema(wrongType)).toThrow(/1\.3\.0/);
 
     const missingIncidents = currentSnapshot();
     delete missingIncidents.reliability.incidents;

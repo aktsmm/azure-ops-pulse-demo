@@ -161,26 +161,37 @@ describe("public sanitization boundary", () => {
     expect(() => publicSnapshotSchema.parse(snapshot)).not.toThrow();
   });
 
-  it.each(["partial", "unavailable"] as const)(
-    "removes Defender aggregates when the source is %s",
-    (availability) => {
-      const raw = createDemoRawSnapshot();
-      const defender = raw.sources.find((source) => source.source === "Defender for Cloud")!;
-      defender.availability = availability;
-      raw.security.secureScore = 0;
-      raw.security.activeAlerts = 0;
+  it("removes Defender aggregates when the source is unavailable", () => {
+    const raw = createDemoRawSnapshot();
+    const defender = raw.sources.find((source) => source.source === "Defender for Cloud")!;
+    defender.availability = "unavailable";
+    raw.security.secureScore = 0;
+    raw.security.activeAlerts = 0;
 
-      const snapshot = sanitizeSnapshot(raw);
+    const snapshot = sanitizeSnapshot(raw);
 
-      expect(snapshot.security).toEqual({
-        secureScore: null,
-        activeAlerts: null,
-        recommendations: [],
-        compliance: []
-      });
-      expect(() => publicSnapshotSchema.parse(snapshot)).not.toThrow();
-    }
-  );
+    expect(snapshot.security).toEqual({
+      secureScore: null,
+      activeAlerts: null,
+      recommendations: [],
+      compliance: []
+    });
+    expect(() => publicSnapshotSchema.parse(snapshot)).not.toThrow();
+  });
+
+  it("keeps partially collected Defender aggregates because partial data is still real", () => {
+    const raw = createDemoRawSnapshot();
+    const defender = raw.sources.find((source) => source.source === "Defender for Cloud")!;
+    defender.availability = "partial";
+    raw.security.secureScore = 0;
+    raw.security.activeAlerts = 0;
+
+    const snapshot = sanitizeSnapshot(raw);
+
+    expect(snapshot.security.secureScore).toBe(0);
+    expect(snapshot.security.activeAlerts).toBe(0);
+    expect(() => publicSnapshotSchema.parse(snapshot)).not.toThrow();
+  });
 
   it("preserves actual Defender zero values when the source is available", () => {
     const raw = createDemoRawSnapshot();
@@ -210,9 +221,7 @@ describe("public sanitization boundary", () => {
       points: [0, 0]
     });
 
-    expect(() => publicSnapshotSchema.parse(snapshot)).toThrow(
-      /Unavailable or partial Defender data/
-    );
+    expect(() => publicSnapshotSchema.parse(snapshot)).toThrow(/Unavailable Defender data/);
   });
 
   it("rejects a numeric posture when Resource Health is unavailable", () => {
@@ -233,10 +242,47 @@ describe("public sanitization boundary", () => {
     resourceHealth.availability = "unavailable";
     raw.reliability.incidentAvailability = "available";
     raw.reliability.incidents = 0;
+    for (const resource of raw.resources) {
+      if (resource.status !== "NotApplicable") {
+        resource.status = "Unknown";
+      }
+    }
 
     const snapshot = sanitizeSnapshot(raw);
 
     expect(snapshot.reliability.incidents).toBeNull();
+    expect(snapshot.reliability.coverage.evaluatedResources).toBe(0);
+    expect(() => publicSnapshotSchema.parse(snapshot)).not.toThrow();
+  });
+
+  it("rejects evaluated resources while Resource Health reports unavailable", () => {
+    const raw = createDemoRawSnapshot();
+    const resourceHealth = raw.sources.find((source) => source.source === "Resource Health")!;
+    resourceHealth.availability = "unavailable";
+
+    const snapshot = sanitizeSnapshot(raw);
+
+    expect(snapshot.reliability.coverage.evaluatedResources).toBeGreaterThan(0);
+    expect(() => publicSnapshotSchema.parse(snapshot)).toThrow(
+      /Evaluated resources cannot exist while Resource Health reports unavailable/
+    );
+  });
+
+  it("separates unsupported resource types from supported but unevaluated resources", () => {
+    const raw = createDemoRawSnapshot();
+
+    const snapshot = sanitizeSnapshot(raw);
+    const coverage = snapshot.reliability.coverage;
+
+    expect(coverage.totalResources).toBe(snapshot.inventory.resources.length);
+    expect(coverage.notApplicableResources).toBeGreaterThan(0);
+    expect(coverage.unevaluatedResources).toBeGreaterThan(0);
+    expect(
+      coverage.notApplicableResources + coverage.supportedResources
+    ).toBe(coverage.totalResources);
+    expect(coverage.evaluatedResources + coverage.unevaluatedResources).toBe(
+      coverage.supportedResources
+    );
     expect(() => publicSnapshotSchema.parse(snapshot)).not.toThrow();
   });
 

@@ -3,8 +3,8 @@ import { resolve } from "node:path";
 import Ajv2020 from "ajv/dist/2020.js";
 import addFormats from "ajv-formats";
 
-export const PUBLIC_SCHEMA_VERSION = "1.2.0";
-export const PUBLIC_SCHEMA_DIRECTORY = resolve("schemas/public/v1.2");
+export const PUBLIC_SCHEMA_VERSION = "1.3.0";
+export const PUBLIC_SCHEMA_DIRECTORY = resolve("schemas/public/v1.3");
 
 const schemaFiles = [
   "overview.schema.json",
