@@ -15,9 +15,7 @@ max-ai-credits: 1000
 
 tools:
   bash:
-    - "npm run normalize:insights"
-    - "npm run validate:insights"
-    - "npm run scan:privacy -- public"
+    - "npm run check:insights"
 
 steps:
   - name: Install deterministic validation dependencies
@@ -109,11 +107,12 @@ Each insight must contain:
 - `route`: one of `/overview`, `/cost`, `/resources`, `/reliability`, `/security`, `/network`,
   `/ai-insights`
 
-Do not write `period`. You read one snapshot collected at `generatedAt` and no history, so the
-analysis window is the same for every insight and the pipeline derives it from `generatedAt`. Leave
-the field out, or leave the existing value alone; a deterministic step overwrites it either way and
-a later gate rejects any candidate whose `period` did not come from `generatedAt`. Do not describe a
-window such as "直近 30 日" anywhere else either: the snapshot does not contain one.
+Do not write `period`. It records when the snapshot was collected, not a window you chose: each
+source in the snapshot covers its own collection window, so no single window describes an insight and
+the pipeline derives the field from `generatedAt`. Leave it out, or leave the existing value alone; a
+deterministic step overwrites it either way and a later gate rejects any candidate whose `period` did
+not come from `generatedAt`. Elsewhere, never state a window the source you cited does not itself
+state.
 
 ## Guardrails
 
@@ -126,10 +125,11 @@ window such as "直近 30 日" anywhere else either: the snapshot does not conta
 6. Do not add exact JPY amounts. Use only existing approximate labels and percentages.
 7. Do not alter identifiers, resource rows, source status, freshness, or any field outside
    `aiInsights`.
-8. Run `npm run normalize:insights`, then `npm run validate:insights` and
-   `npm run scan:privacy -- public`. The normalization is deterministic and idempotent: it fills in
-   the fields this pipeline derives rather than writes, and the same command runs again after you
-   finish, so running it changes nothing you are responsible for.
+8. Check your work with `npm run check:insights`. It is the only command you can run: it normalizes
+   the fields this pipeline derives rather than writes, then validates schema, prose, evidence and
+   privacy. Validation is not separately available, because validating before normalizing would fail
+   on a field you are not responsible for. The normalization is deterministic and idempotent and the
+   same steps run again after you finish, so running it changes nothing you are responsible for.
 9. If validation fails or the evidence is insufficient, leave the existing insights unchanged.
 10. Do not request or emit a safe output. gh-aw requires a non-builtin safe output to avoid
    auto-injecting `create_issue`, so the only configured capability is a staged, non-publishing

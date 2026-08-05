@@ -375,16 +375,29 @@ describe("AI insight publication gate", () => {
     expect(normalize).toContain("scripts/normalize-ai-insight-period.ts public/data/snapshot.json");
     expect(normalize).toContain("scripts/normalize-ai-insight-labels.ts public/data/snapshot.json");
 
-    // The agent may run it, a post-step runs it again, and validation only runs afterwards.
-    expect(source).toMatch(/bash:(?:.*\r?\n)+?\s+- "npm run normalize:insights"/);
+    // The agent's one command normalizes before it validates. Granting the two separately would let
+    // it validate first, fail on a field it was told not to write, and then honour the guardrail
+    // that says to leave insights unchanged on a failed validation - publishing nothing while the
+    // run stays green, which is the silent no-op this repository refuses to ship.
+    const check = packageJson.scripts["check:insights"];
+    expect(check).toBe(
+      "npm run normalize:insights && npm run validate:insights && npm run scan:privacy -- public"
+    );
+    const allowlist = /bash:(?:\r?\n\s+- .*)+/.exec(source)?.[0] ?? "";
+    expect(allowlist).toContain('- "npm run check:insights"');
+    expect(allowlist).not.toContain('- "npm run validate:insights"');
+    expect(allowlist).not.toContain('- "npm run normalize:insights"');
+
+    // A post-step runs the normalization again on the trusted side, and validation only afterwards.
     const normalization = source.indexOf("run: npm run normalize:insights");
     const validation = source.indexOf("run: npm run validate:insights && npm run scan:privacy");
     expect(normalization).toBeGreaterThan(-1);
     expect(validation).toBeGreaterThan(normalization);
 
     // A prompt change that never reached the compiled workflow would leave the agent free to write
-    // the field again, so the generated lock has to carry the same command.
+    // the field again, so the generated lock has to carry the same commands.
     expect(lock).toContain("run: npm run normalize:insights");
+    expect(lock).toContain("npm run check:insights");
 
     // The prompt no longer lists `period` among the fields the analysis writes.
     expect(source).toContain("Do not write `period`");

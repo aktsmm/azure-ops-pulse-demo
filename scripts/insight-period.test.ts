@@ -10,6 +10,7 @@ import {
   validateInsightPeriods
 } from "./insight-period";
 import { validateJapaneseInsights } from "./japanese-insights-validator";
+import { formatDateTimeJa } from "../src/lib/display-formatters";
 import { findUiLanguageLeaks } from "./ui-language-audit";
 import { insightSchema } from "./public-schema";
 import { buildDemoSnapshot } from "./build-demo-snapshot";
@@ -57,13 +58,32 @@ const MODEL_AUTHORED_PERIODS = [
 describe("deterministic AI insight period", () => {
   it("is decided by the collection time alone, not by the insight", () => {
     const morning = snapshotInsightPeriod("2026-08-05T00:00:00.000Z");
-    const evening = snapshotInsightPeriod("2026-08-05T23:59:59.000Z");
-    const nextDay = snapshotInsightPeriod("2026-08-06T00:00:00.000Z");
+    const lateEvening = snapshotInsightPeriod("2026-08-05T14:59:59.000Z");
+    const nextDay = snapshotInsightPeriod("2026-08-05T15:00:00.000Z");
 
-    expect(evening).toBe(morning);
+    expect(lateEvening).toBe(morning);
     expect(nextDay).not.toBe(morning);
     expect(morning).toContain("2026-08-05");
     expect(nextDay).toContain("2026-08-06");
+  });
+
+  /**
+   * The dashboard renders every timestamp in `Asia/Tokyo`, and collection is scheduled at 21:00 UTC,
+   * which is 06:00 the next day in Japan. Deriving the date in UTC would therefore print a period one
+   * day behind the collection time shown beside it on the same screen.
+   */
+  it("names the calendar date the dashboard shows beside it", () => {
+    for (const generatedAt of [
+      COLLECTED_AT,
+      "2026-08-05T21:00:00.000Z", // the scheduled collection time
+      "2026-12-31T15:00:00.000Z", // JST new year, still the previous year in UTC
+      "2027-03-01T02:00:00.000Z" // same calendar date in both zones
+    ]) {
+      const [date] = snapshotInsightPeriod(generatedAt).split(" ");
+      const rendered = formatDateTimeJa(generatedAt);
+
+      expect(rendered.slice(0, date!.length)).toBe(date!.replaceAll("-", "/"));
+    }
   });
 
   it("refuses to invent a period when the collection time is unreadable", () => {

@@ -2,24 +2,33 @@ import type { AiInsight } from "../src/data/contracts";
 
 /**
  * `period` is the window an insight claims to describe, and unlike `title`, `observation`, `impact`
- * and `recommendedAction` it carries no analysis. The agent is given exactly one artifact — the
- * published snapshot as collected at `generatedAt` — and no history, so the window is the same for
- * every insight in a run and is fully determined by the snapshot itself. Nothing about which metric
- * an insight chose can change it.
+ * and `recommendedAction` it carries no analysis. It cannot: the snapshot is a point-in-time
+ * artifact whose sources were each collected over their own window — 30-day cost totals, 7-day
+ * Activity Log counts, 24-hour network metrics — so there is no single window the analysis measured,
+ * and nothing in the snapshot lets the publisher check a per-insight one. What the snapshot does fix,
+ * exactly and identically for every insight in a run, is when it was collected. So this field is the
+ * snapshot's as-of marker, and it is derived from `generatedAt` rather than written by the model.
  *
- * Letting the model write it therefore bought variance without buying meaning, in both directions:
+ * Letting the model write it bought variance without buying meaning, in both directions:
  *
  * - It broke publication. Run 31037073625 emitted `"period": "2026-08-05"`, failed the Japanese
  *   audit, retried with `"2026年8月5日 収集分"` — still no kana, because a natural Japanese date
  *   label has none — and the whole analysis was discarded. Zero insights reached the site.
- * - It published claims the data never supported. Earlier runs shipped `Last 30 days`,
- *   `Rolling 30 days` and `Last 24 hours` beside insights computed from a single point-in-time
- *   snapshot: exactly the "display lies about state" class of bug this repository keeps closing.
+ * - It published windows nothing could verify. Earlier runs shipped `Last 30 days`,
+ *   `Rolling 30 days` and `Last 24 hours` on insights drawn from the same snapshot, so at most one of
+ *   them could match the source an insight actually cited, and no gate could tell which.
  *
- * So the pipeline derives it. The model is told not to write it, a post-step overwrites whatever it
- * wrote anyway, and {@link validateInsightPeriods} re-derives it on the trusted side so a candidate
- * that skipped the overwrite is rejected loudly instead of published.
+ * The date is the one the dashboard shows. Every timestamp on the page is rendered in `Asia/Tokyo`
+ * (`formatDateTimeJa`), and collection runs at 21:00 UTC — 06:00 the next day in Japan — so slicing
+ * the UTC date would print a period one day behind the collection time shown beside it.
  */
+const collectionDateFormatter = new Intl.DateTimeFormat("en-CA", {
+  timeZone: "Asia/Tokyo",
+  year: "numeric",
+  month: "2-digit",
+  day: "2-digit"
+});
+
 export function snapshotInsightPeriod(generatedAt: string): string {
   const collectedAt = new Date(generatedAt);
   if (Number.isNaN(collectedAt.getTime())) {
@@ -27,7 +36,10 @@ export function snapshotInsightPeriod(generatedAt: string): string {
       `Cannot derive an insight period from an unreadable collection time: ${generatedAt}`
     );
   }
-  return `${collectedAt.toISOString().slice(0, 10)} スナップショット収集時点`;
+  const parts = collectionDateFormatter.formatToParts(collectedAt);
+  const part = (type: Intl.DateTimeFormatPartTypes) =>
+    parts.find((candidate) => candidate.type === type)?.value ?? "";
+  return `${part("year")}-${part("month")}-${part("day")} スナップショット収集時点`;
 }
 
 type JsonRecord = Record<string, unknown>;
@@ -76,7 +88,7 @@ export function validateInsightPeriods(snapshot: {
   for (const insight of snapshot.aiInsights) {
     if (insight.period !== expected) {
       throw new Error(
-        `Insight "${insight.id}" field period is "${insight.period}", but the analysis reads one snapshot collected at ${snapshot.generatedAt}, so period must be "${expected}". period is derived from the snapshot, not written by the analysis.`
+        `Insight "${insight.id}" field period is "${insight.period}", but the snapshot it analyzed was collected at ${snapshot.generatedAt}, so period must be "${expected}". period marks the collection time and is derived from the snapshot, not written by the analysis.`
       );
     }
   }
