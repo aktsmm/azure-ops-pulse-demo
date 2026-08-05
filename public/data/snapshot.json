@@ -1,11 +1,11 @@
 {
   "schemaVersion": "1.3.0",
-  "generatedAt": "2026-08-05T07:01:59.233Z",
+  "generatedAt": "2026-08-05T09:51:57.096Z",
   "mode": "AZURE",
   "freshness": {
     "state": "fresh",
     "ageMinutes": 0,
-    "lastSuccessfulCollection": "2026-08-05T07:01:59.233Z",
+    "lastSuccessfulCollection": "2026-08-05T09:51:57.096Z",
     "nextScheduledCollection": "Tuesday / Friday 06:00 JST"
   },
   "scope": {
@@ -21,8 +21,8 @@
     },
     {
       "source": "Cost Management",
-      "availability": "available",
-      "message": "Current and prior comparable rounded JPY periods were collected from 14 and 9 records."
+      "availability": "unavailable",
+      "message": "Current Cost Management period is unavailable; billing scope or role access may be required."
     },
     {
       "source": "Resource Health",
@@ -65,10 +65,10 @@
       },
       {
         "label": "Cost coverage",
-        "value": "Available",
+        "value": "Unavailable",
         "change": "Rounded public view",
         "direction": "flat",
-        "severity": "healthy",
+        "severity": "warning",
         "points": [
           1,
           1
@@ -76,13 +76,13 @@
       },
       {
         "label": "Unavailable sources",
-        "value": "1",
+        "value": "2",
         "change": "Explicitly surfaced",
         "direction": "flat",
         "severity": "warning",
         "points": [
-          1,
-          1
+          2,
+          2
         ]
       }
     ],
@@ -93,7 +93,7 @@
         "timestamp": "Current snapshot",
         "severity": "warning",
         "title": "Azure データ収集が完了",
-        "detail": "82 件のリソースをサニタイズし、利用不可の任意ソースは 1 件でした。",
+        "detail": "82 件のリソースをサニタイズし、利用不可の任意ソースは 2 件でした。",
         "route": "/overview"
       },
       {
@@ -131,7 +131,7 @@
       {
         "id": "event-ff907070",
         "timestamp": "Current collection window",
-        "severity": "warning",
+        "severity": "info",
         "title": "Service Health イベントを検出",
         "detail": "影響を受けたサブスクリプションやリソースの詳細を除き、サービス単位の状態のみを表示します。",
         "route": "/reliability"
@@ -139,7 +139,7 @@
       {
         "id": "event-00907203",
         "timestamp": "Current collection window",
-        "severity": "info",
+        "severity": "warning",
         "title": "Service Health イベントを検出",
         "detail": "影響を受けたサブスクリプションやリソースの詳細を除き、サービス単位の状態のみを表示します。",
         "route": "/reliability"
@@ -165,14 +165,14 @@
   },
   "cost": {
     "current": {
-      "availability": "available",
-      "approximateAmount": "約¥2.1万"
+      "availability": "unavailable",
+      "approximateAmount": null
     },
     "previous": {
-      "availability": "available",
-      "approximateAmount": "約¥1.2万"
+      "availability": "unavailable",
+      "approximateAmount": null
     },
-    "deltaPercent": 74.1,
+    "deltaPercent": null,
     "forecast": {
       "availability": "unavailable",
       "approximateAmount": null
@@ -182,56 +182,7 @@
       "usedPercent": null
     },
     "normalizedTrend": [],
-    "categories": [
-      {
-        "name": "Azure Cognitive Search",
-        "approximateAmount": "約¥1.4万",
-        "sharePercent": 67.4,
-        "deltaPercent": 88.1
-      },
-      {
-        "name": "Foundry Tools",
-        "approximateAmount": "約¥5千",
-        "sharePercent": 25.1,
-        "deltaPercent": 55.6
-      },
-      {
-        "name": "Container Registry",
-        "approximateAmount": "約¥1千未満",
-        "sharePercent": 3.6,
-        "deltaPercent": null
-      },
-      {
-        "name": "Logic Apps",
-        "approximateAmount": "約¥1千未満",
-        "sharePercent": 2.1,
-        "deltaPercent": null
-      },
-      {
-        "name": "Log Analytics",
-        "approximateAmount": "約¥1千未満",
-        "sharePercent": 1.3,
-        "deltaPercent": null
-      },
-      {
-        "name": "Load Balancer",
-        "approximateAmount": "約¥1千未満",
-        "sharePercent": 0.3,
-        "deltaPercent": null
-      },
-      {
-        "name": "Virtual Machines",
-        "approximateAmount": "約¥1千未満",
-        "sharePercent": 0.2,
-        "deltaPercent": null
-      },
-      {
-        "name": "Storage",
-        "approximateAmount": "約¥1千未満",
-        "sharePercent": 0.1,
-        "deltaPercent": null
-      }
-    ]
+    "categories": []
   },
   "inventory": {
     "total": 82,
