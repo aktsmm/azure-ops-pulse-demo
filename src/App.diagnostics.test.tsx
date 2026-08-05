@@ -4,6 +4,7 @@ import { HashRouter } from "react-router-dom";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import type { PublicSnapshotV1 } from "./data/contracts";
 import { publicSnapshotSchema } from "../scripts/public-schema";
+import { buildDemoSnapshot } from "../scripts/build-demo-snapshot";
 import { publishedSnapshot } from "./test/reliability-fixtures";
 import App from "./App";
 
@@ -104,10 +105,19 @@ describe("Operator diagnostics stay out of the rendered page", () => {
   });
 
   it("names every message the contract carries", () => {
-    // `toHaveLength(3)` would restate the literal above and could never fail. Deriving the set from
-    // the snapshot means a new diagnostic field is a red test until someone adds it here, and the
-    // sentinel sweep above then has to prove that field stays off the page too.
-    expect([...new Set(messagePaths(publishedSnapshot))].sort()).toEqual([...DIAGNOSTIC_FIELDS]);
+    // `toHaveLength(3)` would restate the literal above and could never fail. Deriving the set means
+    // a new diagnostic field is a red test until someone adds it here, and the sentinel sweep above
+    // then has to prove that field stays off the page too. The demo snapshot is unioned in because
+    // the published one only shows fields its last collection happened to populate: a `message` added
+    // inside a collection that is empty in production would otherwise stay invisible here.
+    const paths = [
+      ...new Set([
+        ...messagePaths(publishedSnapshot),
+        ...messagePaths(buildDemoSnapshot("2026-08-05T13:00:00.000Z"))
+      ])
+    ].sort();
+
+    expect(paths).toEqual([...DIAGNOSTIC_FIELDS]);
   });
 
   /**

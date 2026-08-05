@@ -345,24 +345,17 @@ export function findUiLanguageLeaks(snapshot: PublicSnapshotV1): UiLanguageLeak[
 }
 
 /**
- * Reports the fields that read as English, optionally narrowed to a subset of paths.
+ * Reports the fields that read as English.
  *
- * `auditOnly` exists for the one snapshot published before the collector emitted Japanese.
- * `scripts/published-language-exemption.ts` pins that file by a hash taken with `aiInsights`
- * removed, because the AI workflow rewrites `aiInsights` in place and would otherwise break the
- * pin on its first refresh. Excusing the whole audit on a hash match would therefore excuse the
- * one part of the file the hash never covered: an insight published tomorrow could carry English
- * evidence and nothing here would say so. Narrowing to `aiInsights` keeps the excused set equal
- * to the frozen set.
+ * This used to take an `auditOnly` regexp so the one snapshot published before the collector
+ * emitted Japanese could be excused down to `aiInsights`. The 2026-08-05 collection replaced that
+ * file and the audit now finds no leak in it, so the narrowing has no caller. The parameter is gone
+ * rather than left unused: a subset filter is exactly the shape a future "just skip this one field"
+ * change would reach for, and every path it excuses is a path that reaches a Japanese page in
+ * English.
  */
-export function validateUiLanguage(
-  snapshot: PublicSnapshotV1,
-  options: { auditOnly?: RegExp } = {}
-): void {
-  const { auditOnly } = options;
-  const found = findUiLanguageLeaks(snapshot).filter(
-    (leak) => auditOnly === undefined || auditOnly.test(leak.path)
-  );
+export function validateUiLanguage(snapshot: PublicSnapshotV1): void {
+  const found = findUiLanguageLeaks(snapshot);
   const [first] = found;
   if (!first) return;
   const value = first.origin === "stored" ? first.stored : first.rendered;
