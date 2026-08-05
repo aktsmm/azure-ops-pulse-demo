@@ -392,10 +392,12 @@ describe("AI insight publication gate", () => {
     expect(source).not.toContain("`recommendedAction`, and `period`");
 
     // And the trusted publisher re-derives it, so a candidate that skipped the overwrite is
-    // rejected rather than published with whatever wording the analysis chose.
+    // rejected rather than published with whatever wording the analysis chose. That the call is
+    // reached, rather than merely present, is proved by spawning the validator in
+    // `insight-period.test.ts`.
+    expect(deterministicValidation).toMatch(/^validateInsightPeriods\(parsed\);$/m);
     const periodGate = deterministicValidation.indexOf("validateInsightPeriods(parsed)");
     const proseGate = deterministicValidation.indexOf("validateJapaneseInsights(parsed.aiInsights)");
-    expect(periodGate).toBeGreaterThan(-1);
     expect(proseGate).toBeGreaterThan(periodGate);
     expect(
       readFileSync(".github/workflows/publish-ai-insights.yml", "utf8")

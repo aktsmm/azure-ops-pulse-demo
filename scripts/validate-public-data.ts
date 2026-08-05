@@ -57,5 +57,5 @@ if (insightsOnly) {
 }
 
 console.log(
-  `Validated ${insightsOnly ? "AI insights" : "public snapshot"} JSON Schema, runtime schema, Japanese prose, rendered UI language, and numeric evidence: ${file}`
+  `Validated ${insightsOnly ? "AI insights" : "public snapshot"} JSON Schema, runtime schema, Japanese prose, insight period derivation, rendered UI language, and numeric evidence: ${file}`
 );

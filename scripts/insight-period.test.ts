@@ -1,3 +1,7 @@
+import { spawnSync } from "node:child_process";
+import { mkdtempSync, writeFileSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 import type { AiInsight } from "../src/data/contracts";
 import {
@@ -171,5 +175,46 @@ describe("the DEMO snapshot uses the same derivation as the published one", () =
       );
       expect(() => validateInsightPeriods(snapshot)).not.toThrow();
     }
+  });
+});
+
+function runDeterministicValidation(file: string): { ok: boolean; output: string } {
+  const result = spawnSync("npx", ["tsx", "scripts/validate-public-data.ts", file], {
+    encoding: "utf8",
+    shell: process.platform === "win32"
+  });
+  return { ok: result.status === 0, output: `${result.stdout ?? ""}${result.stderr ?? ""}` };
+}
+
+describe("the period gate inside deterministic validation", () => {
+  // Spawning the real validator costs a TypeScript startup, which exceeds the default per-test
+  // budget when the whole suite competes for the machine.
+  it("rejects a window the snapshot never contained", { timeout: 120_000 }, () => {
+    const snapshot = buildDemoSnapshot(COLLECTED_AT);
+    const [first, ...rest] = snapshot.aiInsights;
+    if (!first) throw new Error("demo fixture must publish at least one insight");
+
+    const directory = mkdtempSync(join(tmpdir(), "ops-pulse-period-"));
+    const derived = join(directory, "derived.json");
+    const authored = join(directory, "authored.json");
+    writeFileSync(derived, JSON.stringify(snapshot), "utf8");
+    // Japanese, inside the length limits, and a plausible thing for the analysis to write: the only
+    // thing wrong with it is that a single point-in-time snapshot contains no such window.
+    writeFileSync(
+      authored,
+      JSON.stringify({
+        ...snapshot,
+        aiInsights: [{ ...first, period: "直近 30 日間のスナップショット" }, ...rest]
+      }),
+      "utf8"
+    );
+
+    // Asserting that the script merely mentions the gate would pass on a commented-out call, so this
+    // runs the command CI and the publishing workflow run and requires it to reject the snapshot.
+    expect(runDeterministicValidation(derived).ok).toBe(true);
+
+    const rejected = runDeterministicValidation(authored);
+    expect(rejected.ok).toBe(false);
+    expect(rejected.output).toContain("field period is");
   });
 });
