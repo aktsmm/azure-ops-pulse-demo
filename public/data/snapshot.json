@@ -199,19 +199,19 @@
         "name": "Container Registry",
         "approximateAmount": "約¥1千未満",
         "sharePercent": 3.6,
-        "deltaPercent": 58.5
+        "deltaPercent": null
       },
       {
         "name": "Logic Apps",
         "approximateAmount": "約¥1千未満",
         "sharePercent": 2.1,
-        "deltaPercent": -4.6
+        "deltaPercent": null
       },
       {
         "name": "Log Analytics",
         "approximateAmount": "約¥1千未満",
         "sharePercent": 1.3,
-        "deltaPercent": 3676.4
+        "deltaPercent": null
       },
       {
         "name": "Load Balancer",
@@ -229,7 +229,7 @@
         "name": "Storage",
         "approximateAmount": "約¥1千未満",
         "sharePercent": 0.1,
-        "deltaPercent": 38537.8
+        "deltaPercent": null
       }
     ]
   },

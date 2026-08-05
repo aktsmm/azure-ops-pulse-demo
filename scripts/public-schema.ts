@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { WITHHELD_JPY_AMOUNT_LABEL, isWithheldJpyAmount } from "../src/lib/jpy-disclosure";
 
 const severity = z.enum(["critical", "warning", "healthy", "info"]);
 const statusBadge = z.enum([
@@ -251,7 +252,35 @@ export const publicSnapshotSchema = z
             .strict()
         )
       })
-      .strict(),
+      .strict()
+      .superRefine((value, context) => {
+        // Amounts below the publication rounding unit are withheld, so a percentage measured against
+        // them cannot be grounded in anything the reader can see. Real collections produced
+        // "+38,537.8%" for a service reported as 約¥1千未満 in both periods.
+        if (isWithheldJpyAmount(value.current.approximateAmount) && value.deltaPercent !== null) {
+          context.addIssue({
+            code: z.ZodIssueCode.custom,
+            path: ["deltaPercent"],
+            message: `A change cannot be published while the current amount is ${WITHHELD_JPY_AMOUNT_LABEL}`
+          });
+        }
+        if (isWithheldJpyAmount(value.previous.approximateAmount) && value.deltaPercent !== null) {
+          context.addIssue({
+            code: z.ZodIssueCode.custom,
+            path: ["deltaPercent"],
+            message: `A change cannot be published while the previous amount is ${WITHHELD_JPY_AMOUNT_LABEL}`
+          });
+        }
+        value.categories.forEach((category, index) => {
+          if (isWithheldJpyAmount(category.approximateAmount) && category.deltaPercent !== null) {
+            context.addIssue({
+              code: z.ZodIssueCode.custom,
+              path: ["categories", index, "deltaPercent"],
+              message: `A change cannot be published while the service amount is ${WITHHELD_JPY_AMOUNT_LABEL}`
+            });
+          }
+        });
+      }),
     inventory: z
       .object({
         total: z.number().nonnegative(),

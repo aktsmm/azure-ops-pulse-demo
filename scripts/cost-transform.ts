@@ -1,3 +1,5 @@
+import { isComparableJpyChange } from "../src/lib/jpy-disclosure";
+
 export interface CostQueryProperties {
   rows?: unknown[][];
   columns?: Array<{ name?: string }>;
@@ -65,11 +67,16 @@ export function costCoverageLabel(
   return "Unavailable";
 }
 
+/**
+ * A period-over-period change is only published while both amounts reach the yen disclosure floor.
+ * Below it the public snapshot withholds the figure itself, so the percentage divides by something
+ * the reader cannot see: a real collection reported `+38,537.8%` for a service published as
+ * 約¥1千未満 in both periods, which reads as an incident rather than a few hundred yen of new spend.
+ */
 function percentageChange(current: number, previous: number | undefined): number | null {
-  if (previous === undefined || previous === 0 || Math.sign(current) !== Math.sign(previous)) {
-    return null;
-  }
-  return Number((((Math.abs(current) - Math.abs(previous)) / Math.abs(previous)) * 100).toFixed(1));
+  if (!isComparableJpyChange(current, previous)) return null;
+  if (Math.sign(current) !== Math.sign(previous as number)) return null;
+  return Number((((Math.abs(current) - Math.abs(previous as number)) / Math.abs(previous as number)) * 100).toFixed(1));
 }
 
 export function parseCostPeriod(properties: CostQueryProperties | null): ParsedCostPeriod {

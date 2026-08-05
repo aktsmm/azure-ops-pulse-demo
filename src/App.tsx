@@ -57,12 +57,14 @@ import {
   formatTrendMetricValue,
   metricWhenSourcePublished,
   modeLabel,
+  publishedCostDeltaPercent,
   recommendationStatusLabel,
   resourceStatusLabel,
   resourceStatusSeverity,
   routeLabel,
   severityLabel
 } from "./lib/display-formatters";
+import { WITHHELD_JPY_AMOUNT_LABEL, isWithheldJpyAmount } from "./lib/jpy-disclosure";
 import {
   blindSpotSummary,
   confirmedFailures,
@@ -573,7 +575,7 @@ function OverviewPage({ data }: { data: PublicSnapshotV1 }) {
         <MetricCard
           label="現在期間の概算コスト"
           value={data.cost.current.approximateAmount ?? "利用不可"}
-          note={formatCostDelta(data.cost.deltaPercent)}
+          note={formatCostDelta(publishedCostDeltaPercent(data.cost))}
         />
         <MetricCard
           label="Defender 推奨事項"
@@ -691,7 +693,7 @@ function OverviewPage({ data }: { data: PublicSnapshotV1 }) {
             </div>
             <div>
               <dt>期間差</dt>
-              <dd>{formatCostDelta(data.cost.deltaPercent)}</dd>
+              <dd>{formatCostDelta(publishedCostDeltaPercent(data.cost))}</dd>
             </div>
             <div>
               <dt>予測 / 予算</dt>
@@ -803,9 +805,33 @@ function OverviewPage({ data }: { data: PublicSnapshotV1 }) {
 }
 
 function CostPage({ data }: { data: PublicSnapshotV1 }) {
-  const categoriesWithDelta = data.cost.categories.filter(
-    (category) => category.deltaPercent !== null
+  // The browser never revalidates snapshot.json, so a change is only rendered when the amount it was
+  // measured against is itself published. The other two buckets are named in a footnote rather than
+  // dropped silently, so a missing percentage reads as a stated rule instead of a gap.
+  const comparableCategories = data.cost.categories.filter(
+    (category) =>
+      category.deltaPercent !== null && !isWithheldJpyAmount(category.approximateAmount)
   );
+  const belowFloorCategories = data.cost.categories.filter((category) =>
+    isWithheldJpyAmount(category.approximateAmount)
+  );
+  const noBaselineCategories = data.cost.categories.filter(
+    (category) =>
+      category.deltaPercent === null && !isWithheldJpyAmount(category.approximateAmount)
+  );
+  // The snapshot carries no prior-period amount per service, so a missing percentage can mean "no
+  // prior record", "the prior amount was below the publication floor", or "the periods sat on
+  // opposite sides of zero". The copy below therefore states only the comparability gap itself,
+  // never a claim about what the prior period contained.
+  const totalDeltaPercent = publishedCostDeltaPercent(data.cost);
+  const changeNotes = [
+    belowFloorCategories.length
+      ? `金額が ${WITHHELD_JPY_AMOUNT_LABEL}の ${belowFloorCategories.length} サービスは変化率を出していません。公開する金額に満たないため、比率の根拠を示せないからです。`
+      : null,
+    noBaselineCategories.length
+      ? `${noBaselineCategories.map((category) => category.name).join("・")}は前期間と比較できる公開値がそろわないため、変化率を出していません。`
+      : null
+  ].filter((note): note is string => note !== null);
   const canShowTrend = data.mode === "AZURE" && data.cost.normalizedTrend.length > 1;
   const uncollected = [
     data.cost.forecast.availability === "available" ? null : "予測",
@@ -824,7 +850,7 @@ function CostPage({ data }: { data: PublicSnapshotV1 }) {
         <MetricCard
           label="現在期間"
           value={data.cost.current.approximateAmount ?? "未収集"}
-          note={formatCostDelta(data.cost.deltaPercent)}
+          note={formatCostDelta(totalDeltaPercent)}
         />
         <MetricCard
           label="前期間"
@@ -834,18 +860,16 @@ function CostPage({ data }: { data: PublicSnapshotV1 }) {
         <MetricCard
           label="期間差"
           value={
-            data.cost.deltaPercent === null
+            totalDeltaPercent === null
               ? "比較不可"
-              : `${data.cost.deltaPercent > 0 ? "+" : ""}${numberFormatter.format(data.cost.deltaPercent)}%`
+              : `${totalDeltaPercent > 0 ? "+" : ""}${numberFormatter.format(totalDeltaPercent)}%`
           }
           note={
-            data.cost.deltaPercent === null
+            totalDeltaPercent === null
               ? "比較できる前期間のデータがありません"
               : "同じ日数の前期間との比較"
           }
-          severity={
-            data.cost.deltaPercent !== null && data.cost.deltaPercent > 0 ? "warning" : "info"
-          }
+          severity={totalDeltaPercent !== null && totalDeltaPercent > 0 ? "warning" : "info"}
         />
         <MetricCard
           label="対象サービス"
@@ -883,12 +907,12 @@ function CostPage({ data }: { data: PublicSnapshotV1 }) {
         </Panel>
         <Panel
           title="前期間からの変化"
-          description="比較できるサービスだけを、変化の大きい順に表示します。"
+          description="当期・前期とも金額を公開できたサービスだけを、変化の大きい順に並べています。"
           className="span-5"
         >
-          {categoriesWithDelta.length ? (
+          {comparableCategories.length ? (
             <div className="delta-list">
-              {categoriesWithDelta
+              {comparableCategories
                 .slice()
                 .sort(
                   (a, b) =>
@@ -907,8 +931,14 @@ function CostPage({ data }: { data: PublicSnapshotV1 }) {
           ) : (
             <EmptyState
               title="比較できるサービスがありません"
-              detail="比較できる前期間がないため、サービス別の変化は表示していません。"
+              detail={`金額が ${WITHHELD_JPY_AMOUNT_LABEL}のサービスと、前期間と比較できる公開値がそろわないサービスは変化率を出しません。`}
             />
+          )}
+          {changeNotes.length > 0 && (
+            <p className="source-footnote">
+              <Info size={14} aria-hidden="true" />
+              <span>{changeNotes.join(" ")}</span>
+            </p>
           )}
         </Panel>
         {canShowTrend && (

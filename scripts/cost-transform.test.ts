@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import { JPY_DISCLOSURE_FLOOR } from "../src/lib/jpy-disclosure";
 import {
   comparableCostPeriods,
   costCoverageLabel,
@@ -28,23 +29,23 @@ describe("Cost Management transform", () => {
 
   it("sums every row before limiting display categories", () => {
     const result = transformComparableCost(
-      costResponse([100, 90, 80, 70, 60, 50, 40, 30, 20, 10]),
-      costResponse([50, 90, 80, 70, 60, 50, 40, 30, 20, 10])
+      costResponse([100_000, 90_000, 80_000, 70_000, 60_000, 50_000, 40_000, 30_000, 20_000, 10_000]),
+      costResponse([50_000, 90_000, 80_000, 70_000, 60_000, 50_000, 40_000, 30_000, 20_000, 10_000])
     );
 
-    expect(result.currentTotalJpy).toBe(550);
+    expect(result.currentTotalJpy).toBe(550_000);
     expect(result.categories).toHaveLength(8);
     expect(result.categories[0]).toEqual({
       name: "Service 1",
-      amountJpy: 100,
+      amountJpy: 100_000,
       deltaPercent: 100
     });
   });
 
   it("marks prior values unavailable instead of copying the current total", () => {
-    const result = transformComparableCost(costResponse([125]), null);
+    const result = transformComparableCost(costResponse([125_000]), null);
 
-    expect(result.currentTotalJpy).toBe(125);
+    expect(result.currentTotalJpy).toBe(125_000);
     expect(result.previousTotalJpy).toBeNull();
     expect(result.categories[0]?.deltaPercent).toBeNull();
   });
@@ -56,11 +57,54 @@ describe("Cost Management transform", () => {
   });
 
   it("preserves signed credits in the all-row total and ranks by contribution magnitude", () => {
-    const result = transformComparableCost(costResponse([100, -150, 40]), costResponse([80, -100, 20]));
+    const result = transformComparableCost(
+      costResponse([100_000, -150_000, 40_000]),
+      costResponse([80_000, -100_000, 20_000])
+    );
 
-    expect(result.currentTotalJpy).toBe(-10);
-    expect(result.categories.map(({ amountJpy }) => amountJpy)).toEqual([-150, 100, 40]);
+    expect(result.currentTotalJpy).toBe(-10_000);
+    expect(result.categories.map(({ amountJpy }) => amountJpy)).toEqual([
+      -150_000, 100_000, 40_000
+    ]);
     expect(result.categories[0]?.deltaPercent).toBe(50);
+  });
+
+  it("withholds the change when the prior amount is below the yen disclosure floor", () => {
+    // The shape that produced "+38,537.8%" in production: a service billed a rounding error last
+    // period and a still-withheld amount this period.
+    const result = transformComparableCost(costResponse([386]), costResponse([1]));
+
+    expect(result.categories[0]?.amountJpy).toBe(386);
+    expect(result.categories[0]?.deltaPercent).toBeNull();
+  });
+
+  it("withholds the change when the current amount is below the yen disclosure floor", () => {
+    const result = transformComparableCost(
+      costResponse([JPY_DISCLOSURE_FLOOR - 1]),
+      costResponse([50_000])
+    );
+
+    expect(result.categories[0]?.deltaPercent).toBeNull();
+  });
+
+  it("publishes the change as soon as both amounts reach the disclosure floor", () => {
+    const belowFloor = transformComparableCost(
+      costResponse([2 * JPY_DISCLOSURE_FLOOR]),
+      costResponse([JPY_DISCLOSURE_FLOOR - 1])
+    );
+    const atFloor = transformComparableCost(
+      costResponse([2 * JPY_DISCLOSURE_FLOOR]),
+      costResponse([JPY_DISCLOSURE_FLOOR])
+    );
+
+    expect(belowFloor.categories[0]?.deltaPercent).toBeNull();
+    expect(atFloor.categories[0]?.deltaPercent).toBe(100);
+  });
+
+  it("still refuses to compare a credit against a charge", () => {
+    const result = transformComparableCost(costResponse([-50_000]), costResponse([50_000]));
+
+    expect(result.categories[0]?.deltaPercent).toBeNull();
   });
 
   it("merges every paged response so the total is not silently truncated", () => {

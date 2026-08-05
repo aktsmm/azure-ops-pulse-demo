@@ -7,6 +7,11 @@ import type {
   ResourceHealthStatus,
   SecurityRecommendation
 } from "../data/contracts";
+import {
+  JPY_DISCLOSURE_FLOOR,
+  WITHHELD_JPY_AMOUNT_LABEL,
+  isComparableJpyChange
+} from "./jpy-disclosure";
 import { summarizeReliabilityCoverage } from "./resource-health";
 
 const GUID_PATTERN =
@@ -120,8 +125,10 @@ export function formatApproximateJpy(amount: number): string {
     return `約¥${(magnitude / 100_000_000).toFixed(1)}億${suffix}`;
   }
   if (magnitude >= 10_000) return `約¥${(magnitude / 10_000).toFixed(1)}万${suffix}`;
-  if (magnitude >= 1_000) return `約¥${Math.round(magnitude / 1_000)}千${suffix}`;
-  return `約¥1千未満${suffix}`;
+  if (magnitude >= JPY_DISCLOSURE_FLOOR) {
+    return `約¥${Math.round(magnitude / JPY_DISCLOSURE_FLOOR)}千${suffix}`;
+  }
+  return `${WITHHELD_JPY_AMOUNT_LABEL}${suffix}`;
 }
 
 const RESOURCE_HEALTH_STATUSES: ReadonlySet<ResourceHealthStatus> = new Set([
@@ -177,9 +184,21 @@ function sanitizeRecommendation(
   };
 }
 
+/**
+ * Publishes a period-over-period change only while both totals reach the disclosure floor and stay
+ * on the same side of zero. Below the floor the amounts themselves are withheld, so the reader has
+ * no visible endpoint to check the ratio against; across a sign flip the ratio stops describing a
+ * trend at all. Mirrors the per-category rule in `scripts/cost-transform.ts` so the portfolio card
+ * and the service list cannot disagree about what is comparable.
+ */
 function deltaPercent(current: number | null, previous: number | null): number | null {
-  if (current === null || previous === null || previous === 0) return null;
-  return Number((((current - previous) / previous) * 100).toFixed(1));
+  if (!isComparableJpyChange(current, previous)) return null;
+  const currentJpy = current as number;
+  const previousJpy = previous as number;
+  if (Math.sign(currentJpy) !== Math.sign(previousJpy)) return null;
+  return Number(
+    (((Math.abs(currentJpy) - Math.abs(previousJpy)) / Math.abs(previousJpy)) * 100).toFixed(1)
+  );
 }
 
 export function sanitizeSnapshot(raw: RawSnapshot): PublicSnapshotV1 {
@@ -287,7 +306,13 @@ export function sanitizeSnapshot(raw: RawSnapshot): PublicSnapshotV1 {
         name: item.amountJpy < 0 ? `${item.name} credit` : item.name,
         approximateAmount: formatApproximateJpy(item.amountJpy),
         sharePercent: Number(((Math.abs(item.amountJpy) / categoryMagnitude) * 100).toFixed(1)),
-        deltaPercent: item.deltaPercent
+        // The published amount is withheld below the disclosure floor, so a change measured against
+        // it has nothing visible to anchor to. Enforced here as well as in the collector so any
+        // future cost source inherits the rule at the publication boundary. Note the prior-period
+        // per-service amount is never published, so only the collector can enforce the floor on the
+        // other side of the ratio — the schema cannot backstop that half.
+        deltaPercent:
+          Math.abs(item.amountJpy) >= JPY_DISCLOSURE_FLOOR ? item.deltaPercent : null
       }))
     },
     inventory: {
