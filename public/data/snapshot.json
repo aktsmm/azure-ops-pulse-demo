@@ -1,11 +1,11 @@
 {
   "schemaVersion": "1.3.0",
-  "generatedAt": "2026-08-05T09:51:57.096Z",
+  "generatedAt": "2026-08-05T11:02:02.479Z",
   "mode": "AZURE",
   "freshness": {
     "state": "fresh",
     "ageMinutes": 0,
-    "lastSuccessfulCollection": "2026-08-05T09:51:57.096Z",
+    "lastSuccessfulCollection": "2026-08-05T11:02:02.479Z",
     "nextScheduledCollection": "Tuesday / Friday 06:00 JST"
   },
   "scope": {
@@ -139,7 +139,7 @@
       {
         "id": "event-00907203",
         "timestamp": "Current collection window",
-        "severity": "warning",
+        "severity": "info",
         "title": "Service Health イベントを検出",
         "detail": "影響を受けたサブスクリプションやリソースの詳細を除き、サービス単位の状態のみを表示します。",
         "route": "/reliability"
