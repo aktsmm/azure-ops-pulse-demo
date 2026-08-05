@@ -3,6 +3,7 @@ import { resolve } from "node:path";
 import Ajv2020 from "ajv/dist/2020.js";
 import addFormats from "ajv-formats";
 import { describe, expect, it } from "vitest";
+import type { ReliabilityCoverage } from "../src/data/contracts";
 import { publicSnapshotSchema } from "./public-schema";
 import {
   PUBLIC_SCHEMA_DIRECTORY,
@@ -20,11 +21,7 @@ type MutableSnapshot = {
   reliability: {
     incidentAvailability: "available" | "unavailable";
     incidents?: number | null;
-    coverage: {
-      totalResources: number;
-      supportedResources: number;
-      evaluatedResources: number;
-    };
+    coverage: ReliabilityCoverage;
   };
   security: {
     secureScore: number | null;
@@ -159,7 +156,16 @@ describe("public JSON Schema contract", () => {
       /Reliability coverage must count every inventoried resource/
     );
 
+    // The lie the guard exists for: a source claiming success while nothing was evaluated. The
+    // published snapshot may legitimately carry evaluated resources, so the state is forced here.
     const lyingAvailability = currentSnapshot();
+    const lyingCoverage = lyingAvailability.reliability.coverage;
+    lyingCoverage.evaluatedResources = 0;
+    lyingCoverage.unevaluatedResources = lyingCoverage.supportedResources;
+    lyingCoverage.healthyResources = 0;
+    lyingCoverage.degradedResources = 0;
+    lyingCoverage.unavailableResources = 0;
+    lyingCoverage.supportedCoveragePercent = lyingCoverage.supportedResources ? 0 : null;
     lyingAvailability.sources.find((source) => source.source === "Resource Health")!.availability =
       "available";
     expect(() => publicSnapshotSchema.parse(lyingAvailability)).toThrow(
