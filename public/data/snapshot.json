@@ -1001,10 +1001,10 @@
     ]
   },
   "reliability": {
-    "availability": "Unavailable from public snapshot",
+    "availability": "公開スナップショットでは未取得",
     "incidentAvailability": "unavailable",
     "incidents": null,
-    "meanTimeToRecover": "Unavailable from public snapshot",
+    "meanTimeToRecover": "公開スナップショットでは未算出",
     "services": [],
     "coverage": {
       "totalResources": 62,

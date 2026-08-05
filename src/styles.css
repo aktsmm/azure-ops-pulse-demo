@@ -762,6 +762,7 @@ main {
 .overview-grid,
 .content-grid {
   display: grid;
+  align-items: start;
   grid-template-columns: repeat(12, minmax(0, 1fr));
   gap: 16px;
 }
@@ -1155,6 +1156,14 @@ main {
 .notice svg {
   flex: 0 0 auto;
   color: var(--cp-accent);
+}
+
+.notice.muted {
+  background: var(--cp-surface-soft);
+}
+
+.notice.muted svg {
+  color: var(--cp-text-muted);
 }
 
 .cost-category-row {
@@ -1761,6 +1770,279 @@ td small {
   color: var(--cp-text-muted);
 }
 
+.metric-grid.two {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.metric-grid.three {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.coverage-hero {
+  display: grid;
+  align-items: center;
+  padding: 26px;
+  border: 1px solid var(--cp-border);
+  border-radius: 20px;
+  background: var(--cp-panel);
+  box-shadow: var(--cp-shadow);
+  gap: 28px;
+  grid-template-columns: minmax(0, 1.15fr) minmax(0, 1fr);
+}
+
+.coverage-hero h2 {
+  margin: 6px 0 10px;
+  font-size: 23px;
+  line-height: 1.4;
+  letter-spacing: -0.01em;
+}
+
+.coverage-hero p:not(.eyebrow) {
+  margin: 0 0 12px;
+  color: var(--cp-text-muted);
+  font-size: 13px;
+  line-height: 1.75;
+}
+
+.coverage-bar-wrap {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.coverage-bar {
+  display: flex;
+  overflow: hidden;
+  width: 100%;
+  height: 18px;
+  border-radius: 10px;
+  background: var(--cp-surface-soft);
+  gap: 2px;
+}
+
+.coverage-segment {
+  min-width: 3px;
+  height: 100%;
+  border-radius: 3px;
+  background: var(--cp-text-muted);
+}
+
+.coverage-segment.severity-healthy {
+  background: var(--cp-success);
+}
+
+.coverage-segment.severity-warning {
+  background: var(--cp-warning);
+}
+
+.coverage-segment.severity-critical {
+  background: var(--cp-danger);
+}
+
+.coverage-segment.severity-info {
+  background: var(--cp-border-strong);
+}
+
+.coverage-legend {
+  display: flex;
+  margin: 0;
+  padding: 0;
+  flex-wrap: wrap;
+  gap: 8px 18px;
+  list-style: none;
+}
+
+.coverage-legend li {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+}
+
+.coverage-legend strong {
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.coverage-legend span:last-child {
+  color: var(--cp-text-muted);
+}
+
+.coverage-subhead {
+  display: flex;
+  margin: 16px 0 6px;
+  align-items: center;
+  gap: 7px;
+  color: var(--cp-text-muted);
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  text-transform: none;
+}
+
+.coverage-subhead:first-child {
+  margin-top: 0;
+}
+
+.coverage-type-list {
+  display: flex;
+  flex-direction: column;
+}
+
+.coverage-type-row,
+.coverage-region-row {
+  display: grid;
+  align-items: center;
+  padding: 10px 0;
+  border-bottom: 1px solid var(--cp-border);
+  gap: 10px;
+  grid-template-columns: minmax(0, 1fr) auto auto;
+}
+
+.coverage-region-row {
+  grid-template-columns: auto minmax(0, 1fr) auto;
+}
+
+.coverage-type-row:last-child,
+.coverage-region-row:last-child {
+  border-bottom: 0;
+}
+
+.coverage-type-row strong,
+.coverage-region-row strong {
+  display: block;
+  overflow-wrap: anywhere;
+  font-size: 13px;
+}
+
+.coverage-type-row small,
+.coverage-region-row small {
+  display: block;
+  margin-top: 2px;
+  color: var(--cp-text-muted);
+  font-size: 11px;
+}
+
+.coverage-type-count {
+  color: var(--cp-text-muted);
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.region-icon {
+  display: grid;
+  width: 26px;
+  height: 26px;
+  flex: 0 0 auto;
+  place-items: center;
+  border-radius: 9px;
+  background: var(--cp-surface-soft);
+  color: var(--cp-text-muted);
+}
+
+.coverage-type-list + .coverage-subhead {
+  border-top: 1px solid var(--cp-border);
+  padding-top: 14px;
+}
+
+.learn-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  color: var(--cp-link);
+  font-size: 12px;
+  text-decoration: none;
+}
+
+.learn-link:hover {
+  text-decoration: underline;
+}
+
+.source-footnote {
+  display: flex;
+  margin: 4px 0 0;
+  align-items: flex-start;
+  gap: 7px;
+  color: var(--cp-text-muted);
+  font-size: 12px;
+  line-height: 1.7;
+}
+
+.source-footnote svg {
+  margin-top: 3px;
+  flex: 0 0 auto;
+}
+
+.published-metric-list {
+  display: grid;
+  gap: 12px;
+  grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+}
+
+.published-metric-list article {
+  padding: 14px;
+  border: 1px solid var(--cp-border);
+  border-radius: 14px;
+  background: var(--cp-surface);
+}
+
+.published-metric-list p {
+  margin: 0 0 6px;
+  color: var(--cp-text-muted);
+  font-size: 12px;
+}
+
+.published-metric-list strong {
+  display: block;
+  margin-bottom: 5px;
+  font-size: 20px;
+  letter-spacing: -0.01em;
+}
+
+.published-metric-list span {
+  font-size: 11px;
+}
+
+.pending-metric-grid {
+  display: grid;
+  gap: 12px;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+}
+
+.pending-metric-grid article {
+  padding: 14px;
+  border: 1px dashed var(--cp-border-strong);
+  border-radius: 14px;
+  background: var(--cp-surface-soft);
+}
+
+.pending-metric-grid p {
+  margin: 0 0 6px;
+  color: var(--cp-text-muted);
+  font-size: 12px;
+}
+
+.pending-metric-grid strong {
+  display: block;
+  margin-bottom: 5px;
+  color: var(--cp-text-muted);
+  font-size: 17px;
+}
+
+.pending-metric-grid span {
+  color: var(--cp-text-soft);
+  font-size: 11px;
+}
+
+.timeline-item.static {
+  cursor: default;
+}
+
+.timeline-item.static:hover {
+  background: none;
+}
+
 @media (max-width: 1200px) {
   .sidebar {
     transform: translateX(-100%);
@@ -1796,6 +2078,19 @@ td small {
   .metric-grid.four,
   .status-strip {
     grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .metric-grid.three {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .coverage-hero {
+    grid-template-columns: 1fr;
+    gap: 20px;
+  }
+
+  .coverage-hero h2 {
+    font-size: 21px;
   }
 
   .status-strip > div:nth-child(2) {
@@ -1892,6 +2187,20 @@ td small {
 
   .metric-grid.four {
     grid-template-columns: 1fr;
+  }
+
+  .metric-grid.two,
+  .metric-grid.three {
+    grid-template-columns: 1fr;
+  }
+
+  .coverage-type-row {
+    grid-template-columns: minmax(0, 1fr) auto;
+  }
+
+  .coverage-type-row > span.coverage-type-count {
+    grid-row: 2;
+    grid-column: 1 / -1;
   }
 
   .mission-hero {

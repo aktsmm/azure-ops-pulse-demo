@@ -728,10 +728,10 @@ const raw: RawSnapshot = {
   reliability: {
     availability:
       healthPercent === null
-        ? "Unavailable from public snapshot"
-        : `${healthPercent}% of evaluated resources available`,
+        ? "公開スナップショットでは未取得"
+        : `評価済みリソースの ${healthPercent}% が正常`,
     ...uncollectedIncidentMetric(),
-    meanTimeToRecover: "Unavailable from public snapshot",
+    meanTimeToRecover: "公開スナップショットでは未算出",
     services: [],
     serviceHealth: serviceHealthSummary
   },

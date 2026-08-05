@@ -2,6 +2,11 @@ import { describe, expect, it } from "vitest";
 import {
   formatDateTimeJa,
   formatEventTimestamp,
+  formatSourceMessage,
+  formatSourceName,
+  formatTrendMetricChange,
+  formatTrendMetricLabel,
+  formatTrendMetricValue,
   metricWhenSourcePublished,
   resourceStatusLabel,
   resourceStatusSeverity,
@@ -66,5 +71,61 @@ describe("Japanese display formatters", () => {
       )
     ).toBeNull();
     expect(metricWhenSourcePublished(undefined, 0)).toBeNull();
+  });
+});
+
+describe("source presentation", () => {
+  it("translates descriptive source identifiers but keeps Azure product names", () => {
+    expect(formatSourceName("Network inventory and metrics")).toBe(
+      "ネットワーク インベントリとメトリック"
+    );
+    expect(formatSourceName("Defender for Cloud")).toBe("Defender for Cloud");
+    expect(formatSourceName("Resource Health")).toBe("Resource Health");
+  });
+
+  it("never claims flow telemetry is missing from a partial network collection", () => {
+    const message = formatSourceMessage({
+      source: "Network inventory and metrics",
+      availability: "partial",
+      message: "Endpoints are masked or reduced to service classification."
+    });
+
+    expect(message).not.toContain("フロー テレメトリは未収集");
+    expect(message).toContain("インベントリは収集済み");
+  });
+});
+
+describe("trend metric translation", () => {  it("translates the published metric labels used by overview.metrics", () => {
+    expect(formatTrendMetricLabel("Resource Health coverage")).toBe("Resource Health の評価範囲");
+    expect(formatTrendMetricLabel("Unavailable sources")).toBe("利用不可のソース");
+  });
+
+  it("passes unknown labels and values through instead of hiding them", () => {
+    expect(formatTrendMetricLabel("Brand new metric")).toBe("Brand new metric");
+    expect(formatTrendMetricValue("42%")).toBe("42%");
+    expect(formatTrendMetricChange("Something new")).toBe("Something new");
+  });
+
+  it("translates the coverage change sentence without changing the numbers", () => {
+    expect(
+      formatTrendMetricChange("0 of 14 supported resources evaluated (48 out of scope)")
+    ).toBe("対応 14 件中 0 件を評価済み（対象外 48 件）");
+    expect(
+      formatTrendMetricChange("9 of 14 supported resources evaluated (48 out of scope)")
+    ).toBe("対応 14 件中 9 件を評価済み（対象外 48 件）");
+  });
+
+  it("translates availability words used as metric values", () => {
+    expect(formatTrendMetricValue("Available")).toBe("収集済み");
+    expect(formatTrendMetricValue("Partial")).toBe("一部収集");
+    expect(formatTrendMetricValue("Unavailable")).toBe("利用不可");
+  });
+
+  it("translates the DEMO fixture labels and change sentences", () => {
+    expect(formatTrendMetricLabel("Resources healthy")).toBe("正常なリソース");
+    expect(formatTrendMetricChange("vs prior period")).toBe("前期間との比較");
+    expect(formatTrendMetricChange("3 resolved")).toBe("解決済み 3 件");
+    expect(formatTrendMetricChange("+1.8 pts")).toBe("+1.8 pt");
+    expect(formatTrendMetricChange("-0.03 pts")).toBe("-0.03 pt");
   });
 });
