@@ -5,15 +5,16 @@ import { spawnSync } from "node:child_process";
  * rather than writes, then checks schema, Japanese prose, evidence, baseline and privacy, in that
  * order and always in that order.
  *
- * The order matters, and it is not the analysis agent's to choose. `period` and the evidence labels
- * are derived here, so validating before normalizing fails on fields the analysis was told not to
- * write. Rather than grant the agent commands and depend on it running them in the right order, the
- * agent is given no commands at all: this runs after it finishes, and the run fails visibly if it
- * fails. Arguments are rejected so that the sequence is the only thing this entry point can do.
+ * The order is not the analysis agent's to choose. `period` and the evidence labels are derived
+ * here, so validating before normalizing fails on fields the analysis was told not to write. Giving
+ * the agent the commands and depending on it to run them in the right order does not work: a shell
+ * allowlist matches a command prefix, so any granted command can be followed by another one. So the
+ * agent is granted no command that touches its own output, and this runs afterwards instead.
  *
- * The publication boundary is elsewhere and stays there: `publish-ai-insights.yml` repeats these
- * gates from a fresh checkout of the default branch, so nothing that ran in the agent's workspace
- * decides what reaches the site.
+ * Running afterwards in the same job is fast feedback, not authority — the agent can write to that
+ * workspace, including to this file. The authority is `publish-ai-insights.yml`, which derives
+ * `period` and repeats every gate on trusted code from a fresh checkout of the default branch
+ * before anything reaches the site.
  */
 const steps: ReadonlyArray<readonly [string, readonly string[]]> = [
   ["scripts/normalize-ai-insight-period.ts", ["public/data/snapshot.json"]],

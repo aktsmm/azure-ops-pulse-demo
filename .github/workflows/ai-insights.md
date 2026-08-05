@@ -136,9 +136,10 @@ overwrites it either way and a later gate rejects any candidate whose `period` d
 6. Do not add exact JPY amounts. Use only existing approximate labels and percentages.
 7. Do not alter identifiers, resource rows, source status, freshness, or any field outside
    `aiInsights`.
-8. You cannot run commands. After you finish, a deterministic step fills in the fields this pipeline
-   derives rather than writes, then checks schema, Japanese prose, evidence, and privacy. Nothing is
-   published unless that step passes, and if it fails the run fails visibly.
+8. `period` is not yours to write, and neither are the evidence labels: a deterministic step derives
+   them from the snapshot after you finish, then checks schema, Japanese prose, evidence, and
+   privacy. Nothing reaches the site unless the trusted publisher repeats those checks from a fresh
+   checkout, and a failure there fails the run visibly.
 9. Publish only what the snapshot supports. If the evidence for an insight is insufficient, leave
    that insight out; if no insight is supportable, write an empty array. Do not pad the array to
    reach a count.

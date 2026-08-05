@@ -11,15 +11,16 @@ import type { AiInsight } from "../src/data/contracts";
  * Letting the model write it bought variance without buying meaning, in both directions:
  *
  * - It broke publication. Run 31037073625 emitted `"period": "2026-08-05"`, failed the Japanese
- *   audit, retried with `"2026年8月5日 収集分"` — still no kana, because a natural Japanese date
- *   label has none — and the whole analysis was discarded. Zero insights reached the site.
+ *   audit, retried with `"2026年8月5日 収集分"` — a date-only label carrying no kana either — and the
+ *   whole analysis was discarded. Zero insights reached the site.
  * - It published windows nothing checked. Earlier runs shipped `Last 30 days`, `Rolling 30 days` and
  *   `Last 24 hours`, and no gate compared any of them against the window of the source the insight
  *   actually cited.
  *
  * The date is the one the dashboard shows. Every timestamp on the page is rendered in `Asia/Tokyo`
- * (`formatDateTimeJa`), and collection runs at 21:00 UTC — 06:00 the next day in Japan — so slicing
- * the UTC date would print a period one day behind the collection time shown beside it.
+ * (`formatDateTimeJa`), and the scheduled collection starts at 21:00 UTC — 06:00 the next day in
+ * Japan — so slicing the UTC date would print a period one day behind the collection time shown
+ * beside it.
  */
 const collectionDateFormatter = new Intl.DateTimeFormat("en-CA", {
   timeZone: "Asia/Tokyo",

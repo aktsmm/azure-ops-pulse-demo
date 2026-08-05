@@ -375,38 +375,52 @@ describe("AI insight publication gate", () => {
     expect(normalize).toContain("scripts/normalize-ai-insight-period.ts public/data/snapshot.json");
     expect(normalize).toContain("scripts/normalize-ai-insight-labels.ts public/data/snapshot.json");
 
-    // The analysis agent is given no commands at all. Granting it the normalization and the
-    // validation let it validate first, fail on a field it was told not to write, and then honour a
-    // guardrail that said to leave the insights alone - a green run that published nothing. Granting
-    // one combined command did not fix it either: a shell allowlist matches a command prefix, so
-    // `<granted command> || <validator>` still reaches the validator directly. The order is only
-    // guaranteed where the agent cannot reach it, in the deterministic step that runs afterwards.
+    // The analysis agent is granted no command that touches its own output. Granting it the
+    // normalization and the validation let it validate first, fail on a field it was told not to
+    // write, and then honour a guardrail that said to leave the insights alone - a green run that
+    // published nothing. Granting one combined command did not fix it either: a shell allowlist
+    // matches a command prefix, so `<granted command> || <validator>` still reaches the validator.
+    // Listing the grants exactly, rather than forbidding `npm`, is what keeps `sh`, `node` or `tsx`
+    // from being added later and reopening it.
     expect(packageJson.scripts["check:insights"]).toBe("tsx scripts/check-insights.ts");
-    const allowlist = /bash:(?:\r?\n\s+(?:- .*|#.*))+/.exec(source)?.[0] ?? "";
-    expect(allowlist).not.toContain("npm");
-    expect(allowlist).not.toContain("npx");
-    expect(lock).not.toContain("--allow-tool '\\''shell(npm");
-    expect(lock).not.toContain("--allow-tool '\\''shell(npx");
-    // Dropping the block instead of emptying it compiles to `--allow-all-tools`, which is the
+    const allowlist = [...source.matchAll(/^ {4}- "(.+)"$/gm)].map((match) => match[1]);
+    expect(allowlist).toEqual([
+      "cat",
+      "date",
+      "echo",
+      "grep",
+      "head",
+      "ls",
+      "printf",
+      "pwd",
+      "sort",
+      "tail",
+      "uniq",
+      "wc"
+    ]);
+    // Dropping the block instead of trimming it compiles to `--allow-all-tools`, which is the
     // opposite of the intent.
     expect(lock).not.toContain("--allow-all-tools");
+    for (const granted of [...lock.matchAll(/--allow-tool '\\''shell\((.+?)\)'\\''/g)]) {
+      expect([...allowlist, "github:*", "safeoutputs:*", "yq"]).toContain(granted[1]);
+    }
 
+    // The whole sequence is pinned, not just that validation follows one normalization: dropping
+    // the label pass or moving the privacy scan ahead of validation has to fail here too.
     const check = readFileSync("scripts/check-insights.ts", "utf8");
-    expect(check).toContain("scripts/normalize-ai-insight-period.ts");
-    expect(check).toContain("scripts/normalize-ai-insight-labels.ts");
-    expect(check).toContain("scripts/validate-public-data.ts");
-    expect(check).toContain("scripts/privacy-scan.ts");
-    expect(check.indexOf("scripts/validate-public-data.ts")).toBeGreaterThan(
-      check.indexOf("scripts/normalize-ai-insight-period.ts")
+    const sequence = [...check.matchAll(/\["(scripts\/[\w-]+\.ts)", \[(.*?)\]\]/g)].map(
+      (match) => `${match[1]} ${match[2]}`
     );
+    expect(sequence).toEqual([
+      'scripts/normalize-ai-insight-period.ts "public/data/snapshot.json"',
+      'scripts/normalize-ai-insight-labels.ts "public/data/snapshot.json"',
+      'scripts/validate-public-data.ts "public/data/snapshot.json", "--insights-only"',
+      'scripts/privacy-scan.ts "public"'
+    ]);
 
     // The deterministic step runs it, and the candidate is only uploaded when it passed.
     expect(source).toContain("run: npm run check:insights");
     expect(source).toContain("steps.check_candidate.outcome == 'success'");
-
-    // A post-step runs the normalization on the trusted side, and validation only afterwards.
-    const normalization = source.indexOf("run: npm run check:insights");
-    expect(normalization).toBeGreaterThan(-1);
 
     // A prompt change that never reached the compiled workflow would leave the agent free to write
     // the field again, so the generated lock has to carry the same command.
@@ -417,17 +431,25 @@ describe("AI insight publication gate", () => {
     expect(source).not.toMatch(/^- `period`$/m);
     expect(source).not.toContain("`recommendedAction`, and `period`");
 
-    // And the trusted publisher re-derives it, so a candidate that skipped the overwrite is
-    // rejected rather than published with whatever wording the analysis chose. That the call is
-    // reached, rather than merely present, is proved by spawning the validator in
+    // And the trusted publisher derives the period itself before repeating the gates, so the pass
+    // that ran in the workspace the agent can write to is feedback rather than authority. That the
+    // call is reached, rather than merely present, is proved by spawning the validator in
     // `insight-period.test.ts`.
     expect(deterministicValidation).toMatch(/^validateInsightPeriods\(parsed\);$/m);
     const periodGate = deterministicValidation.indexOf("validateInsightPeriods(parsed)");
     const proseGate = deterministicValidation.indexOf("validateJapaneseInsights(parsed.aiInsights)");
     expect(proseGate).toBeGreaterThan(periodGate);
-    expect(
-      readFileSync(".github/workflows/publish-ai-insights.yml", "utf8")
-    ).toContain("scripts/validate-public-data.ts .candidate/snapshot.json --insights-only");
+    const publisher = readFileSync(".github/workflows/publish-ai-insights.yml", "utf8");
+    const trustedDerivation = publisher.indexOf(
+      "scripts/normalize-ai-insight-period.ts .candidate/snapshot.json"
+    );
+    const trustedValidation = publisher.indexOf(
+      "scripts/validate-public-data.ts .candidate/snapshot.json --insights-only"
+    );
+    expect(trustedDerivation).toBeGreaterThan(-1);
+    expect(trustedValidation).toBeGreaterThan(trustedDerivation);
+    // An analysis that supported nothing has to say so, instead of reading as a routine no-op.
+    expect(publisher).toContain("::warning::The analysis published no insights");
   });
 
   it("retains every compiler audit and candidate artifact for one day", () => {
