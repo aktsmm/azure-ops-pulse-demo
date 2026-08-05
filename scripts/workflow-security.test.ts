@@ -355,7 +355,9 @@ describe("AI insight publication gate", () => {
     );
     expect(source).toContain("npm run check:insights");
     expect(source).toContain("never copy an English-only metric label or source path");
-    expect(deterministicValidation).toContain("validateJapaneseInsights(parsed.aiInsights)");
+    // Anchored rather than substring-matched: a commented-out call satisfies `toContain`, which is
+    // exactly how the period gate slipped past its own assertion before a behavioural test caught it.
+    expect(deterministicValidation).toMatch(/^validateJapaneseInsights\(parsed\.aiInsights\);$/m);
     expect(source).toContain("Do not inspect Azure, workflow secrets,");
     expect(source).toContain("logs, artifacts, commit history, or external services");
     expect(hardenAgentWorkflowLock(lock)).toBe(lock.replace(/\r\n/g, "\n"));
@@ -436,8 +438,13 @@ describe("AI insight publication gate", () => {
     // call is reached, rather than merely present, is proved by spawning the validator in
     // `insight-period.test.ts`.
     expect(deterministicValidation).toMatch(/^validateInsightPeriods\(parsed\);$/m);
-    const periodGate = deterministicValidation.indexOf("validateInsightPeriods(parsed)");
-    const proseGate = deterministicValidation.indexOf("validateJapaneseInsights(parsed.aiInsights)");
+    // Both indices come from the anchored forms, so commenting either call out breaks the ordering
+    // check instead of silently satisfying it.
+    const periodGate = deterministicValidation.search(/^validateInsightPeriods\(parsed\);$/m);
+    const proseGate = deterministicValidation.search(
+      /^validateJapaneseInsights\(parsed\.aiInsights\);$/m
+    );
+    expect(periodGate).toBeGreaterThan(-1);
     expect(proseGate).toBeGreaterThan(periodGate);
     const publisher = readFileSync(".github/workflows/publish-ai-insights.yml", "utf8");
     const trustedDerivation = publisher.indexOf(
