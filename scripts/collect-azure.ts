@@ -1,14 +1,12 @@
 import { execFileSync } from "node:child_process";
 import { mkdir, rename, rm, writeFile } from "node:fs/promises";
 import { dirname, resolve } from "node:path";
-import type {
-  AiInsight,
-  RawResource,
-  RawSnapshot,
-  SecurityRecommendation,
-  SourceStatus
-} from "../src/data/contracts";
+import type { AiInsight, RawResource, RawSnapshot, SourceStatus } from "../src/data/contracts";
 import { sanitizeSnapshot } from "../src/lib/sanitize";
+import {
+  summarizeAssessments,
+  type DefenderAssessmentRow
+} from "../src/lib/defender-recommendations";
 import {
   classifyResourceHealth,
   indexAvailabilityStatuses,
@@ -307,12 +305,7 @@ const activity = collectSource(
 const security = collectSource(
   "Defender for Cloud",
   () => {
-    const assessments = graphQuery<{
-      properties?: {
-        displayName?: string;
-        status?: { severity?: string; code?: string };
-      };
-    }>(
+    const assessments = graphQuery<DefenderAssessmentRow>(
       subscriptionId,
       "SecurityResources | where type =~ 'microsoft.security/assessments' | project properties"
     );
@@ -540,36 +533,7 @@ const costStatus: SourceStatus = !currentCostUsable
         message: `Current and prior comparable rounded JPY periods were collected from ${costData.currentRowCount} and ${costData.previousRowCount} records.`
       };
 
-const recommendationCounts = new Map<string, SecurityRecommendation>();
-for (const item of security.value?.assessments ?? []) {
-  const title = item.properties?.displayName ?? "Defender recommendation";
-  const current = recommendationCounts.get(title);
-  const severity = item.properties?.status?.severity?.toLowerCase();
-  const isOpen =
-    item.properties?.status?.code !== "Healthy" &&
-    item.properties?.status?.code !== "NotApplicable";
-  const severityRank = { info: 0, warning: 1, critical: 2 } as const;
-  const itemSeverity =
-    isOpen && severity === "high"
-      ? ("critical" as const)
-      : isOpen && severity === "medium"
-        ? ("warning" as const)
-        : ("info" as const);
-  const currentSeverity =
-    current?.severity === "critical"
-      ? "critical"
-      : current?.severity === "warning"
-        ? "warning"
-        : "info";
-  recommendationCounts.set(title, {
-    title,
-    severity:
-      severityRank[itemSeverity] > severityRank[currentSeverity] ? itemSeverity : currentSeverity,
-    affectedCount: (current?.affectedCount ?? 0) + (isOpen ? 1 : 0),
-    status: current?.status === "Open" || isOpen ? "Open" : "Resolved"
-  });
-}
-const recommendations = [...recommendationCounts.values()].slice(0, 12);
+const recommendations = summarizeAssessments(security.value?.assessments ?? []);
 // `properties.score.percentage` is a 0-1 ratio, not a 0-100 percentage.
 // https://learn.microsoft.com/rest/api/defenderforcloud/secure-scores/list
 const secureScoreRatio = security.value?.scores?.[0]?.percentageRatio;

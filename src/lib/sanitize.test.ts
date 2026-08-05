@@ -1,17 +1,49 @@
 import { describe, expect, it } from "vitest";
+import publishedSnapshot from "../../public/data/snapshot.json";
 import { createDemoRawSnapshot } from "../../scripts/demo-data";
 import { publicSnapshotSchema } from "../../scripts/public-schema";
 import { JPY_DISCLOSURE_FLOOR, WITHHELD_JPY_AMOUNT_LABEL } from "./jpy-disclosure";
 import {
+  assertResourceAliasesAreInjective,
   classifyEndpoint,
   formatApproximateJpy,
   maskGuid,
   maskIdentity,
   maskIp,
-  maskName,
+  maskResourceGroup,
+  maskResourceName,
+  resourceAliasLabel,
   sanitizeSnapshot,
   sanitizeTags
 } from "./sanitize";
+
+/**
+ * Synthetic, but shaped like the Azure names that used to leak through the partial mask: a project
+ * token, a region, and a trailing serial suffix, plus the auto-generated form that embeds a
+ * subscription GUID. The values are invented — publishing a real internal name in a test would
+ * re-commit the very disclosure this change removes — while the *shape* is what the assertions
+ * need. Keeping the raw value here rather than reading one out of the published snapshot is what
+ * lets these tests assert that none of it survives, which the published data alone can never show.
+ */
+const RAW_RESOURCE_NAME = "grantportal-intake-prod-westus2-qzwlmk07";
+const RAW_RESOURCE_GROUP = "rg-grantportal-intake-westus2-001";
+const RAW_SUBSCRIPTION_GUID = "0f1e2d3c-4b5a-6978-8796-a5b4c3d2e1f0";
+const RAW_GENERATED_NAME = `DefaultWorkspace-${RAW_SUBSCRIPTION_GUID}-WUS2`;
+
+function fragmentsOf(value: string, length: number): string[] {
+  return Array.from({ length: Math.max(0, value.length - length + 1) }, (_, index) =>
+    value.slice(index, index + length)
+  );
+}
+
+/**
+ * Strips the constant alias label so the assertion is about what the masking *derives* from the
+ * Azure name, not about the fixed prefix the format always contributes. An alias that stopped
+ * following the format keeps its whole value here, so a return to partial disclosure still fails.
+ */
+function derivedPartOf(alias: string, label: string): string {
+  return alias.startsWith(`${label}-`) ? alias.slice(label.length + 1) : alias;
+}
 
 describe("public sanitization boundary", () => {
   it("reveals exactly the first and last eight GUID hex characters", () => {
@@ -20,15 +52,79 @@ describe("public sanitization boundary", () => {
     expect(masked.replaceAll("-", "").replaceAll("*", "")).toHaveLength(16);
   });
 
-  it("uses deterministic typed aliases for short names", () => {
-    expect(maskName("prod-rg", "rg")).toMatch(/^rg-[0-9a-f]{8}$/);
-    expect(maskName("prod-rg", "rg")).toBe(maskName("prod-rg", "rg"));
+  it("leaves no fragment of an Azure resource name in the alias it publishes", () => {
+    const alias = maskResourceName(RAW_RESOURCE_NAME, "microsoft.compute/virtualMachines");
+
+    expect(alias).toMatch(/^virtualMachines-[0-9a-f]{8}$/);
+    const derived = derivedPartOf(alias, "virtualMachines").toLowerCase();
+    for (const fragment of fragmentsOf(RAW_RESOURCE_NAME, 3)) {
+      expect(derived).not.toContain(fragment.toLowerCase());
+    }
   });
 
-  it("retains about half of longer names and adds a stable suffix", () => {
-    const masked = maskName("commerce-production-east", "resource");
-    expect(masked).toMatch(/^commer…n-east-[0-9a-f]{8}$/);
-    expect(masked).not.toContain("commerce-production-east");
+  it("leaves no fragment of an Azure resource group name in the alias it publishes", () => {
+    const alias = maskResourceGroup(RAW_RESOURCE_GROUP);
+
+    expect(alias).toMatch(/^rg-[0-9a-f]{8}$/);
+    const derived = derivedPartOf(alias, "rg").toLowerCase();
+    for (const fragment of fragmentsOf(RAW_RESOURCE_GROUP, 3)) {
+      expect(derived).not.toContain(fragment.toLowerCase());
+    }
+  });
+
+  it("leaves no fragment of an Azure-generated name that embeds the subscription GUID", () => {
+    const alias = maskResourceName(RAW_GENERATED_NAME, "microsoft.operationalinsights/workspaces");
+
+    expect(alias).toMatch(/^workspaces-[0-9a-f]{8}$/);
+    const derived = derivedPartOf(alias, "workspaces").toLowerCase();
+    // The GUID is what actually escaped in production: the mask hid its middle in the subscription
+    // field while an auto-generated resource name republished it verbatim.
+    for (const fragment of fragmentsOf(RAW_SUBSCRIPTION_GUID.replaceAll("-", ""), 4)) {
+      expect(derived).not.toContain(fragment.toLowerCase());
+    }
+  });
+
+  it.each([
+    ["a resource name", () => maskResourceName(RAW_RESOURCE_NAME, "microsoft.compute/virtualMachines"), "virtualMachines-17f18328"],
+    ["a resource group", () => maskResourceGroup(RAW_RESOURCE_GROUP), "rg-e55748ad"]
+  ])("keeps the alias of %s stable across runs", (_label, produce, expected) => {
+    // Pins the hash input, not just the format. Changing the domain prefix would silently rewrite
+    // every published identifier on the next collection, which no format assertion would notice.
+    expect(produce()).toBe(expected);
+  });
+
+  it("takes the alias prefix from the resource type rather than the resource name", () => {
+    const asVirtualMachine = maskResourceName(RAW_RESOURCE_NAME, "microsoft.compute/virtualMachines");
+    const asStorageAccount = maskResourceName(RAW_RESOURCE_NAME, "microsoft.storage/storageAccounts");
+
+    expect(asVirtualMachine.split("-").at(-1)).toBe(asStorageAccount.split("-").at(-1));
+    expect(asVirtualMachine.split("-")[0]).toBe("virtualMachines");
+    expect(asStorageAccount.split("-")[0]).toBe("storageAccounts");
+  });
+
+  it.each([
+    ["an empty type", "", "resource"],
+    ["a trailing separator", "microsoft.compute/", "resource"],
+    ["a nested type", "microsoft.automation/automationAccounts/runbooks", "runbooks"],
+    ["no separator at all", "microsoft.compute", "microsoftcompute"],
+    ["punctuation in the tail", "microsoft.web/sites (classic)", "sitesclassic"],
+    ["an unreasonably long tail", `microsoft.test/${"a".repeat(80)}`, "a".repeat(24)]
+  ])("keeps the alias prefix well formed given %s", (_label, type, expected) => {
+    expect(resourceAliasLabel(type)).toBe(expected);
+    expect(maskResourceName("any-name", type)).toMatch(
+      new RegExp(`^${expected}-[0-9a-f]{8}$`)
+    );
+  });
+
+  it("gives every resource in one Azure resource group the same alias", () => {
+    expect(maskResourceGroup(RAW_RESOURCE_GROUP)).toBe(maskResourceGroup(RAW_RESOURCE_GROUP));
+    expect(maskResourceGroup(RAW_RESOURCE_GROUP)).not.toBe(maskResourceGroup(`${RAW_RESOURCE_GROUP}-2`));
+  });
+
+  it("keeps resource group and resource aliases apart for an identical Azure name", () => {
+    expect(maskResourceGroup(RAW_RESOURCE_NAME).split("-").at(-1)).not.toBe(
+      maskResourceName(RAW_RESOURCE_NAME, "microsoft.compute/virtualMachines").split("-").at(-1)
+    );
   });
 
   it("masks network addresses and classifies endpoints", () => {
@@ -36,6 +132,162 @@ describe("public sanitization boundary", () => {
     expect(maskIp("2603:1030:20e:3::23")).toBe("2603:1030:*");
     expect(classifyEndpoint("app.blob.core.windows.net")).toBe("Azure Storage endpoint");
     expect(classifyEndpoint("api.example.org")).toBe("External service endpoint");
+  });
+
+  it.each([
+    ["an oversized hextet", "deadbeefcafe:1"],
+    ["a label and a port", `${RAW_RESOURCE_NAME}:443`],
+    ["too many hextets", "1:2:3:4:5:6:7:8:9"],
+    ["an empty hextet", "2603::1030::23"],
+    ["an out-of-range IPv4 octet", "123.456.789.012"],
+    ["a zero-padded IPv4 octet", "192.000.002.128"],
+    ["an invalid IPv4 tail", "::ffff:999.999.999.999"],
+    ["an IPv4 address in a non-final position", "1.2.3.4::1"]
+  ])("refuses to publish %s as if it were an address", (_label, value) => {
+    // A colon alone used to be enough to take the IPv6 branch, which republished the first two
+    // colon-separated segments verbatim — an unbounded passthrough for anything shaped like a pair.
+    expect(maskIp(value)).toMatch(/^network-[0-9a-f]{8}$/);
+  });
+
+  it("expands the address before choosing a prefix so a leading :: cannot shift host bits forward", () => {
+    // Splitting on ":" and dropping the empties used to publish the low-order groups, which carry
+    // far more of the address than the routing prefix the mask is meant to keep.
+    expect(maskIp("::ffff:192.0.2.128")).toBe("0:0:*");
+    expect(maskIp("::1")).toBe("0:0:*");
+    expect(maskIp("2603:1030:20e:3::23")).toBe("2603:1030:*");
+  });
+
+  it("keeps the raw Azure names out of the collision error, which lands in a public log", () => {
+    const raw = createDemoRawSnapshot();
+    const [first, second] = raw.resources;
+    if (!first || !second) throw new Error("The demo snapshot lost its resources");
+    first.name = "svc-6uzx";
+    second.name = "svc-d2ad";
+    second.type = first.type;
+
+    const message = (() => {
+      try {
+        sanitizeSnapshot(raw);
+        return "";
+      } catch (error) {
+        return error instanceof Error ? error.message : String(error);
+      }
+    })();
+
+    expect(message).toMatch(/Alias collision/);
+    expect(message).not.toContain(first.name);
+    expect(message).not.toContain(second.name);
+    expect(message).not.toContain(first.resourceGroup);
+  });
+
+  it("fails the collection rather than publishing two Azure names under one alias", () => {
+    // Real 32-bit FNV-1a collision, found by search: both names hash to f004ce67. Going through
+    // sanitizeSnapshot proves the guard is wired into the publish path, not merely exported.
+    const raw = createDemoRawSnapshot();
+    const [first, second] = raw.resources;
+    if (!first || !second) throw new Error("The demo snapshot lost its resources");
+    first.name = "svc-6uzx";
+    second.name = "svc-d2ad";
+    second.type = first.type;
+
+    expect(maskResourceName(first.name, first.type)).toBe(
+      maskResourceName(second.name, second.type)
+    );
+    expect(() => sanitizeSnapshot(raw)).toThrow(/Alias collision: two distinct Azure resource name/);
+  });
+
+  it("fails the collection rather than publishing two resource groups under one alias", () => {
+    // Companion collision for the rg: hash domain, both landing on b320e567.
+    const raw = createDemoRawSnapshot();
+    const [first, second] = raw.resources;
+    if (!first || !second) throw new Error("The demo snapshot lost its resources");
+    first.resourceGroup = "rg-17yzx";
+    second.resourceGroup = "rg-1e6ad";
+
+    expect(maskResourceGroup(first.resourceGroup)).toBe(maskResourceGroup(second.resourceGroup));
+    expect(() => sanitizeSnapshot(raw)).toThrow(/Alias collision: two distinct Azure resource group/);
+  });
+
+  it("reports collisions through the exported guard so collectors can reuse it", () => {
+    const raw = [
+      { id: "/a/web-01", name: "web-01", resourceGroup: "rg-a", type: "microsoft.compute/virtualMachines" },
+      { id: "/a/web-02", name: "web-02", resourceGroup: "rg-a", type: "microsoft.compute/virtualMachines" }
+    ];
+    const collided = raw.map((resource) => ({
+      id: `res-${"0".repeat(8)}`,
+      name: "virtualMachines-00000000",
+      resourceGroup: maskResourceGroup(resource.resourceGroup),
+      type: resource.type,
+      region: "japaneast",
+      status: "Unknown" as const,
+      owner: "identity-00000000",
+      tags: {},
+      change: "No material change"
+    }));
+
+    expect(() => assertResourceAliasesAreInjective(raw, collided)).toThrow(
+      /Alias collision: two distinct Azure resource (name|id)/
+    );
+    expect(() => assertResourceAliasesAreInjective(raw, collided.slice(0, 1))).toThrow(
+      /one published record per Azure resource/
+    );
+  });
+
+  it("accepts an alias two resources share because their Azure names are identical", () => {
+    const raw = createDemoRawSnapshot();
+    const [first, second] = raw.resources;
+    if (!first || !second) throw new Error("The demo snapshot lost its resources");
+    first.name = RAW_RESOURCE_NAME;
+    second.name = RAW_RESOURCE_NAME;
+
+    expect(() => sanitizeSnapshot(raw)).not.toThrow();
+  });
+
+  it.each([
+    ["names a resource in the subscription", `Encrypt disks on ${RAW_RESOURCE_NAME}`],
+    ["names a resource group", `Review access for ${RAW_RESOURCE_GROUP}`],
+    ["embeds the subscription GUID", `Custom policy ${RAW_SUBSCRIPTION_GUID}`],
+    ["embeds a bare hex run", "Custom assessment deadbeefcafe"]
+  ])(
+    "withholds a Defender title that %s, because operators author custom assessments",
+    (_label, title) => {
+      const raw = createDemoRawSnapshot();
+      raw.mode = "AZURE";
+      raw.subscriptionId = RAW_SUBSCRIPTION_GUID;
+      const [first] = raw.resources;
+      if (!first) throw new Error("The demo snapshot lost its resources");
+      first.name = RAW_RESOURCE_NAME;
+      first.resourceGroup = RAW_RESOURCE_GROUP;
+      raw.security.recommendations = [
+        { title, severity: "warning", affectedCount: 3, status: "Open" }
+      ];
+
+      const snapshot = sanitizeSnapshot(raw);
+
+      const published = snapshot.security.recommendations[0]!;
+      expect(published.title).toBe("Defender の推奨事項（タイトル非公開）");
+      expect(published.affectedCount).toBe(3);
+      expect(JSON.stringify(snapshot)).not.toContain(RAW_RESOURCE_NAME);
+      expect(JSON.stringify(snapshot)).not.toContain(RAW_RESOURCE_GROUP);
+    }
+  );
+
+  it("keeps a built-in Defender title that names no resource", () => {
+    const raw = createDemoRawSnapshot();
+    raw.security.recommendations = [
+      {
+        title: "Machines should have vulnerability findings resolved",
+        severity: "warning",
+        affectedCount: 2,
+        status: "Open"
+      }
+    ];
+
+    const snapshot = sanitizeSnapshot(raw);
+
+    expect(snapshot.security.recommendations[0]!.title).toBe(
+      "Machines should have vulnerability findings resolved"
+    );
   });
 
   it("fully replaces identities and only allows approved tags", () => {
@@ -424,5 +676,55 @@ describe("public sanitization boundary", () => {
       incidentAvailability: "unavailable",
       incidents: null
     });
+  });
+});
+
+describe("published snapshot masking contract", () => {
+  const resources = publishedSnapshot.inventory.resources as Array<{
+    name: string;
+    resourceGroup: string;
+    type: string;
+  }>;
+
+  it("publishes every resource name as an alias whose prefix its own type explains", () => {
+    for (const resource of resources) {
+      expect(resource.name).toMatch(/^[A-Za-z0-9]+-[0-9a-f]{8}$/);
+      expect(resource.name.slice(0, resource.name.length - 9)).toBe(
+        resourceAliasLabel(resource.type)
+      );
+    }
+  });
+
+  it("publishes every resource group as a bare alias", () => {
+    for (const resource of resources) {
+      expect(resource.resourceGroup).toMatch(/^rg-[0-9a-f]{8}$/);
+    }
+  });
+
+  it("keeps resources that share an Azure resource group on one alias", () => {
+    const raw = createDemoRawSnapshot();
+    const [first, second, third] = raw.resources;
+    if (!first || !second || !third) throw new Error("The demo snapshot lost its resources");
+    first.resourceGroup = RAW_RESOURCE_GROUP;
+    second.resourceGroup = RAW_RESOURCE_GROUP;
+    third.resourceGroup = `${RAW_RESOURCE_GROUP}-other`;
+
+    const published = sanitizeSnapshot(raw).inventory.resources;
+
+    expect(published[0]!.resourceGroup).toBe(published[1]!.resourceGroup);
+    expect(published[2]!.resourceGroup).not.toBe(published[0]!.resourceGroup);
+  });
+
+  it("keeps resource group membership visible in the published inventory", () => {
+    const counts = new Map<string, number>();
+    for (const resource of resources) {
+      counts.set(resource.resourceGroup, (counts.get(resource.resourceGroup) ?? 0) + 1);
+    }
+
+    const total = [...counts.values()].reduce((sum, count) => sum + count, 0);
+    expect(total).toBe(resources.length);
+    // Hashing anything per-resource — the resource id, say — would still satisfy the alias format
+    // while quietly erasing every grouping the inventory is supposed to preserve.
+    expect(Math.max(...counts.values())).toBeGreaterThan(1);
   });
 });

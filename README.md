@@ -193,19 +193,60 @@ CI、Pages、Azure候補、AI候補のすべてでprivacy gateを実行します
 | データ | 公開表現 |
 | --- | --- |
 | subscription / tenant GUID | 先頭8桁と末尾8桁を残し、中間をmask |
-| resource group / resource name | 前後の一部とstable hash、短い名前はtyped alias |
-| IPv4 / IPv6 | 利用可能なendpointにならない形へmask |
+| resource name | `<type末尾>-<stable hash8>` のdeterministic pseudonym。prefixは同じrecordで公開済みの `type` から導出し、Azure上の名前は一切入力にしない |
+| resource group | `rg-<stable hash8>` のdeterministic pseudonym。同じresource groupのresourceは同じaliasを共有するので、所属関係は保ったまま名前だけを落とす |
+| IPv4 / IPv6 | 利用可能なendpointにならない形へmask。IPv6は8 hextetに展開してから先頭2つだけを公開するので、先頭の `::` 圧縮でhost bitが前に出ることはない |
 | URL / FQDN | service / provider分類だけ |
 | user / email | deterministic identity alias |
 | tags | `environment`、`team`、`workload`、`criticality` のallowlist |
-| Defender | recommendation titleと集計件数だけ |
+| Defender | 集計件数と、識別子を含まないrecommendation titleだけ |
 | Cost | 前期間比と丸めた概算JPY labelだけ |
 | Network | inventoryとflow telemetryを分離し、inventoryからhealthを推定しない |
 
-現在の正本は [`schemas/public/v1.3`](schemas/public/v1.3) と
-`schemaVersion: 1.3.0` です。`schemas/public/v1` はimmutableな1.1 compatibility alias、
-`schemas/public/v1.1` / `schemas/public/v1.2` はその明示version pathです。nullable値は
-「未収集 / 未評価」を表し、根拠のある数値 `0` と区別します。
+匿名化境界が連続して出力する16進は最大8桁（alias suffix、およびGUIDの先頭 / 末尾）です。
+そのためprivacy gateは9桁以上の16進連続を`recoverable hex fragment`として拒否します。
+公開JSONはparseした文字列だけを走査するので、bare numberと識別子を取り違えません。
+parseできない `.json` はgateが内容を保証できないため、raw scanに緩めずそのまま失敗させます。
+resource nameを部分開示していた頃は、Azureが自動生成する名前
+（`DefaultWorkspace-<subscriptionId>-<region>` など）にsubscription GUIDの断片が埋め込まれ、
+完全形GUIDだけを見ていたgateをすり抜けていました。
+
+Defenderのrecommendation titleは、収集側がAzureから受け取る唯一の「人が書いた自由文」です。
+運用者は`PUT /subscriptions/{id}/providers/Microsoft.Security/assessmentMetadata/{key}`で
+custom assessmentを作成でき、そこでは`displayName`も`assessmentType`も呼び出し側が指定する
+リクエストフィールドで、`assessmentType`には`BuiltIn`も指定できます
+（[Create In Subscription](https://learn.microsoft.com/rest/api/defenderforcloud/assessments-metadata/create-in-subscription)）。
+つまりレスポンスのどのフィールドでも著作者を証明できません。
+snapshotのどこにも現れないproject名や人名はマスク側から認識できないため、
+**収集側はAzure由来のtitleを一切公開しません**。
+推奨事項は個別の行として残しつつ、titleはリポジトリ内の定型文＋連番に置き換えます
+（`Defender の推奨事項（タイトル非公開） #1`）。
+これにより公開される文字列の集合はリポジトリ内の定数だけに閉じます。
+Microsoft組み込みのtitleを復活させるには、レビュー済みの文字列カタログをリポジトリに持ち
+APIの戻り値ではなくカタログ側の文字列を公開する必要があり、継続的な保守コストを伴うため
+リポジトリ所有者の判断に委ねています。
+公開境界のsanitizerには従来のdenylist（title内にresource名 / resource group名 / identity /
+subscription / tenant GUID / 9桁以上の16進が含まれないことの確認）を残していますが、
+これはDEMOとfixture経路のためのbackstopであり、主たる制御ではありません。
+それ以外の自由文はすべて収集側が件数から組み立てる集計文であり、Azure由来の文字列を含みません。
+
+aliasの`stableHash`は鍵を持たない32-bit FNV-1aなので、正確にはirreversibleではなく
+deterministic pseudonymです。名前そのものは公開値から復元できませんが、
+候補の名前を推測できる相手（Azureの命名規約は推測しやすい）はhashを再計算して
+オフラインで一致を確認できます。aliasは「名前を知らない相手に名前を教えない」ための境界であって、
+「所属の証明不可能性」ではありません。これを閉じるには公開できないkeyを使ったHMACが必要で、
+公開saltでは意味がありません。同じ制約は既存の `res-` / `identity-` にも当てはまります。
+
+privacy gateは既知の漏洩パターンを拒否する仕組みであって、任意のテキストを安全にする仕組みでは
+ありません。Azure由来の自由文はscanに頼らず、上記のようにallowlistまたは定型ラベルで扱います。
+
+現在の正本は [`schemas/public/v1.4`](schemas/public/v1.4) と
+`schemaVersion: 1.4.0` です。`schemas/public/v1` はimmutableな1.1 compatibility alias、
+`schemas/public/v1.1` / `schemas/public/v1.2` / `schemas/public/v1.3` はその明示version pathです。
+nullable値は「未収集 / 未評価」を表し、根拠のある数値 `0` と区別します。
+
+1.4.0 では `inventory.resources[].name` / `resourceGroup` をdeterministic pseudonymに限定します。
+1.3 で有効だった部分開示の値は1.4では拒否されるため、version pathを分けています。
 
 1.3.0 では Resource Health の適用範囲を明示するため、resource statusに `NotApplicable`
 （Resource Healthがそもそも評価しない種別＝対象外）を追加し、`Unknown`（対応種別だが状態を

@@ -1,0 +1,43 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://aktsmm.github.io/azure-ops-pulse-demo/schemas/public/v1.4/inventory.schema.json",
+  "title": "Azure Ops Pulse sanitized inventory v1.4",
+  "type": "object",
+  "required": ["total", "resources", "byType", "byRegion"],
+  "properties": {
+    "total": { "type": "integer", "minimum": 0 },
+    "resources": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["id", "name", "resourceGroup", "type", "region", "status", "owner", "tags", "change"],
+        "properties": {
+          "id": { "type": "string", "pattern": "^res-[0-9a-f]{8}$" },
+          "name": {
+            "description": "Irreversible alias built from the published resource type and a stable hash of the Azure name. No part of the Azure name is disclosed.",
+            "type": "string",
+            "pattern": "^[A-Za-z0-9]+-[0-9a-f]{8}$"
+          },
+          "resourceGroup": {
+            "description": "Irreversible alias of the resource group. Resources in the same group share one alias, so grouping survives without disclosing the name.",
+            "type": "string",
+            "pattern": "^rg-[0-9a-f]{8}$"
+          },
+          "type": { "type": "string" },
+          "region": { "type": "string" },
+          "status": {
+            "description": "NotApplicable means Azure Resource Health does not evaluate this resource type at all; Unknown means it is in scope but no availability state was published.",
+            "enum": ["Healthy", "Degraded", "Unavailable", "Unknown", "NotApplicable"]
+          },
+          "owner": { "type": "string", "pattern": "^identity-[0-9a-f]{8}$" },
+          "tags": { "type": "object", "additionalProperties": { "type": "string" } },
+          "change": { "type": "string" }
+        },
+        "additionalProperties": false
+      }
+    },
+    "byType": { "type": "array" },
+    "byRegion": { "type": "array" }
+  },
+  "additionalProperties": false
+}
