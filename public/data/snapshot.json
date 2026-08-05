@@ -1364,5 +1364,93 @@
       "flows": []
     }
   },
-  "aiInsights": []
+  "aiInsights": [
+    {
+      "id": "insight-a1b2c3d4",
+      "severity": "warning",
+      "title": "Service Health のアクティブイベントを検出",
+      "observation": "Service Health に 2 件のアクティブなイベントが存在しており、要確認の状態にある可能性がある。収集期間内に解決済みイベントは 3 件確認されている。",
+      "impact": "アクティブなサービス障害または勧告がサブスクリプション内のサービス可用性に影響を与えている可能性があり、関連するワークロードの運用に支障をきたすおそれがある。",
+      "numericEvidence": [
+        {
+          "label": "アクティブな Service Health イベント数",
+          "value": "2",
+          "source": "reliability.serviceHealth.activeEvents"
+        },
+        {
+          "label": "解決済み Service Health イベント数",
+          "value": "3",
+          "source": "reliability.serviceHealth.resolvedEvents"
+        }
+      ],
+      "recommendedAction": "/reliability ダッシュボードで Service Health イベントの詳細を確認し、影響範囲の精査を担当チームに依頼することを推奨する。",
+      "confidence": 0.85,
+      "period": "2026-08-05 スナップショット収集時点",
+      "route": "/reliability"
+    },
+    {
+      "id": "insight-e5f6a7b8",
+      "severity": "info",
+      "title": "Resource Health のカバレッジが部分的",
+      "observation": "対応リソース 19 件のうち 13 件のみが Resource Health で評価されており、6 件が未評価のままである。カバレッジ率は 68% にとどまっており、一部リソースの正常性が把握できていない可能性がある。",
+      "impact": "未評価の 6 件のリソースについては正常性が不明のため、障害の早期検知が困難になる可能性がある。",
+      "numericEvidence": [
+        {
+          "label": "Resource Health カバレッジ率（%）",
+          "value": "68",
+          "source": "reliability.coverage.supportedCoveragePercent"
+        },
+        {
+          "label": "未評価リソース数",
+          "value": "6",
+          "source": "reliability.coverage.unevaluatedResources"
+        }
+      ],
+      "recommendedAction": "未評価リソースの種別を /reliability ダッシュボードで確認し、Resource Health 対応状況の改善を検討することを推奨する。",
+      "confidence": 0.8,
+      "period": "2026-08-05 スナップショット収集時点",
+      "route": "/reliability"
+    },
+    {
+      "id": "insight-c9d0e1f2",
+      "severity": "warning",
+      "title": "2 件のデータソースが利用不可",
+      "observation": "Cost Management と Defender for Cloud の 2 件のデータソースが利用不可であり、コストおよびセキュリティ態勢の可視性が欠如している。これらのソースが利用不可の場合、関連する分析は実施できない。",
+      "impact": "コスト超過やセキュリティリスクが存在していても、現時点のスナップショットでは検知できない可能性がある。",
+      "numericEvidence": [
+        {
+          "label": "利用不可のデータソース数",
+          "value": "2",
+          "source": "overview.metrics.2.value"
+        }
+      ],
+      "recommendedAction": "/overview ダッシュボードでデータソースの状況を確認し、Cost Management のスコープ設定および Defender for Cloud プランの有効化について担当チームへの確認を推奨する。",
+      "confidence": 0.9,
+      "period": "2026-08-05 スナップショット収集時点",
+      "route": "/overview"
+    },
+    {
+      "id": "insight-3a4b5c6d",
+      "severity": "info",
+      "title": "Logic Apps ワークフローが多数配置されている",
+      "observation": "サブスクリプション全体で microsoft.logic/workflows が 22 件配置されており、全リソース 82 件の約 27% を占める。大半は japaneast リージョンに集中していることが確認されている。",
+      "impact": "ワークフロー数が多い場合、依存関係の管理や障害時の影響範囲が広がる可能性があり、定期的な棚卸しが有効な可能性がある。",
+      "numericEvidence": [
+        {
+          "label": "Logic Apps ワークフロー数",
+          "value": "22",
+          "source": "inventory.byType.16.count"
+        },
+        {
+          "label": "インベントリ総リソース数",
+          "value": "82",
+          "source": "inventory.total"
+        }
+      ],
+      "recommendedAction": "/resources ダッシュボードで Logic Apps の一覧を確認し、未使用または冗長なワークフローの整理を担当チームに検討させることを推奨する。",
+      "confidence": 0.75,
+      "period": "2026-08-05 スナップショット収集時点",
+      "route": "/resources"
+    }
+  ]
 }
