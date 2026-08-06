@@ -90,11 +90,6 @@ const FIELD_ALLOWANCES: Array<{ path: RegExp; allow: RegExp[] }> = [
     allow: [COST_CATEGORY_NAME]
   },
   {
-    // Service Health event categories are Azure API enumeration members, not translated copy.
-    path: /^reliability\.serviceHealth\.categories\[\d+\]\.label$/u,
-    allow: [/^(?:ServiceIssue|HealthAdvisory|PlannedMaintenance|SecurityAdvisory|RCA)$/u]
-  },
-  {
     path: /^overview\.metrics\[\d+\]\.label$/u,
     allow: [
       new RegExp(`^(?:${DEFENDER_AGGREGATE_METRIC_LABELS.join("|")})$`, "u")
@@ -291,6 +286,18 @@ export function findUiLanguageLeaks(snapshot: PublicSnapshotV1): UiLanguageLeak[
   for (const [index, category] of snapshot.reliability.serviceHealth.categories.entries()) {
     check(`reliability.serviceHealth.categories[${index}].label`, category.label);
   }
+  // This field used to be exempted above by an allowlist of Azure `EventType` members, on the
+  // reading that an enumeration member is an identifier rather than copy. Two things were wrong with
+  // that. The page prints the label verbatim, so the exemption put English on a Japanese screen; and
+  // an insight that quoted what the reader saw failed the audit on `aiInsights[].observation`, where
+  // no exemption applies, which is how three collections in a row published no insights at all. The
+  // allowlist was also not the enumeration — `Billing` and `EmergingIssues` were missing, and the
+  // collector's own `"Unclassified"` fallback was never on it — so a single billing notification
+  // would have failed this audit and stopped the whole snapshot.
+  //
+  // `scripts/service-health-event-types.ts` now translates the member in the collector, and it is
+  // total: no Azure spelling passes through it. So there is nothing left to exempt, and this
+  // unexempted check is what proves the translation still happens.
 
   // The compliance framework label is copy this repository writes in both modes, not an API value:
   // the collector emits a single aggregate row of its own. It stays unaudited only while Defender is
