@@ -105,12 +105,6 @@ For `numericEvidence[].label`, never copy an English-only metric label or source
 descriptor such as `対象リソース数`; product names and acronyms may appear only within an otherwise
 Japanese label. If a Japanese label cannot be written, omit that evidence or insight.
 
-Snapshot values the dashboard prints are already Japanese where they are reader-facing, so quoting
-one is safe. `reliability.serviceHealth.categories[].label` in particular holds a Japanese
-classification name such as `サービスの問題`, not the Azure `EventType` it came from; the collector
-translates it. Quote the label the snapshot actually holds rather than reconstructing an Azure
-spelling for it.
-
 Each insight must contain:
 
 - `severity`: exactly one of `critical`, `warning`, `healthy`, `info`. These four are the whole
