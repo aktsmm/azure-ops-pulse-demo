@@ -381,13 +381,20 @@ describe("AI insight publication gate", () => {
     expect(normalize).toContain("scripts/normalize-ai-insight-labels.ts public/data/snapshot.json");
     expect(normalize).toContain("scripts/normalize-ai-insight-ids.ts public/data/snapshot.json");
 
-    // The analysis agent is granted no command that touches its own output. Granting it the
-    // normalization and the validation let it validate first, fail on a field it was told not to
-    // write, and then honour a guardrail that said to leave the insights alone - a green run that
-    // published nothing. Granting one combined command did not fix it either: a shell allowlist
-    // matches a command prefix, so `<granted command> || <validator>` still reaches the validator.
+    // The analysis agent is granted exactly one command that touches its own output, and it is the
+    // combined one: `check:insights` derives `period`, the labels and the ids and only then runs the
+    // gates, and it refuses arguments, so there is no way to reach a gate through it before the
+    // derivations have run. Granting the validator on its own is what failed before - the agent
+    // could validate first and fail on a field it was told not to write.
+    //
+    // Granting it adds no capability. The post-step below already runs this same repository code on
+    // the runner, outside the sandbox, from a workspace `--allow-tool write --allow-all-paths` lets
+    // the agent edit, so code the agent has written already executes somewhere more privileged than
+    // its own container. What the grant changes is when the agent learns the result, and the result
+    // is never authority: `publish-ai-insights.yml` repeats every gate from a fresh checkout.
+    //
     // Listing the grants exactly, rather than forbidding `npm`, is what keeps `sh`, `node` or `tsx`
-    // from being added later and reopening it.
+    // from being added later: a bare interpreter would grant every command it can run.
     expect(packageJson.scripts["check:insights"]).toBe("tsx scripts/check-insights.ts");
     const allowlist = [...source.matchAll(/^ {4}- "(.+)"$/gm)].map((match) => match[1]);
     expect(allowlist).toEqual([
@@ -397,6 +404,7 @@ describe("AI insight publication gate", () => {
       "grep",
       "head",
       "ls",
+      "npm run check:insights",
       "printf",
       "pwd",
       "sort",
@@ -404,6 +412,11 @@ describe("AI insight publication gate", () => {
       "uniq",
       "wc"
     ]);
+    // A bare interpreter in the allowlist would grant everything it can be asked to run, so the
+    // exact-array assertion above is backed by a rule that says why, not only what.
+    for (const interpreter of ["npm", "node", "npx", "tsx", "sh", "bash", "env", "python", "python3"]) {
+      expect(allowlist).not.toContain(interpreter);
+    }
     // Dropping the block instead of trimming it compiles to `--allow-all-tools`, which is the
     // opposite of the intent.
     expect(lock).not.toContain("--allow-all-tools");
@@ -437,6 +450,19 @@ describe("AI insight publication gate", () => {
     // the field again, so the generated lock has to carry the same command.
     expect(lock).toContain("run: npm run check:insights");
 
+    // Three copies of one string have to stay identical: the grant, the command the prompt tells the
+    // agent to type, and the post-step that runs it. A grant the prompt spells differently is a
+    // grant the agent cannot use - run 30857345152 is the recorded case, where every attempt was
+    // prefixed with `cd <workspace> &&`, every attempt was refused, and the agent concluded the
+    // runner had blocked Node. Anchored to the line, so a mention inside a comment cannot stand in
+    // for the instruction.
+    const selfCheckCommand = "npm run check:insights";
+    expect(allowlist).toContain(selfCheckCommand);
+    expect(source).toContain(`run: ${selfCheckCommand}`);
+    // The prompt body is imported from this file at run time rather than embedded in the lock, so
+    // the body assertions below are the only place the agent's instructions are pinned.
+    expect(lock).toContain("{{#runtime-import .github/workflows/ai-insights.md}}");
+
     // The prompt no longer lists `period` or `id` among the fields the analysis writes. Scoped to
     // the body below the frontmatter, which is the part the model is given: a line added to the YAML
     // configuration above it is not an instruction and must not stand in for one.
@@ -449,6 +475,16 @@ describe("AI insight publication gate", () => {
     // reaches for `[0]` is writing the notation the rest of the world uses.
     expect(promptBody).toContain("cost.categories.0.sharePercent");
     expect(promptBody).toContain("cost.categories[0].sharePercent");
+
+    // The instruction the grant depends on. `cd <workspace> && npm run check:insights` is refused,
+    // and a refusal reads like a broken runtime rather than a rule, so the prompt has to say both
+    // that the command is typed alone and that a refusal is not a pass.
+    expect(promptBody).toContain(`run \`${selfCheckCommand}\``);
+    expect(promptBody).toContain("Do not put `cd` in front of it");
+    expect(promptBody).toContain("a refusal is not evidence that the check passed");
+    // Feedback the agent can act on is also feedback it can silence. Emptying the array passes every
+    // gate, so the instruction that it is a failure rather than a fix is part of the change.
+    expect(promptBody).toContain("do not empty the array, to make the check pass");
 
     // And the trusted publisher derives the period itself before repeating the gates, so the pass
     // that ran in the workspace the agent can write to is feedback rather than authority. That the
