@@ -1,11 +1,11 @@
 {
   "schemaVersion": "1.4.0",
-  "generatedAt": "2026-08-05T18:56:06.400Z",
+  "generatedAt": "2026-08-06T04:37:18.895Z",
   "mode": "AZURE",
   "freshness": {
     "state": "fresh",
     "ageMinutes": 0,
-    "lastSuccessfulCollection": "2026-08-05T18:56:06.400Z",
+    "lastSuccessfulCollection": "2026-08-06T04:37:18.895Z",
     "nextScheduledCollection": "Tuesday / Friday 06:00 JST"
   },
   "scope": {
@@ -47,7 +47,7 @@
     {
       "source": "Network inventory and metrics",
       "availability": "partial",
-      "message": "Network inventory covers 10 resources; 10 were sampled for Azure Monitor metrics; 3 exposed 5 metric series; 7 have no platform metrics; 0 could not be read. Flow telemetry was not collected."
+      "message": "Network inventory covers 10 resources; 10 were sampled for Azure Monitor metrics; 3 exposed 4 metric series; 7 have no platform metrics; 0 could not be read. Flow telemetry was not collected."
     }
   ],
   "overview": {
@@ -98,7 +98,7 @@
       },
       {
         "id": "event-cd198459",
-        "timestamp": "2026-08-05T17:12:14.20652Z",
+        "timestamp": "2026-08-05T21:23:32.0833386Z",
         "severity": "info",
         "title": "管理操作を検出",
         "detail": "公開前に実行者と対象リソースの詳細を削除しています。",
@@ -106,7 +106,7 @@
       },
       {
         "id": "event-cc1982c6",
-        "timestamp": "2026-08-05T17:12:13.8315206Z",
+        "timestamp": "2026-08-05T21:23:31.6301794Z",
         "severity": "info",
         "title": "管理操作を検出",
         "detail": "公開前に実行者と対象リソースの詳細を削除しています。",
@@ -114,7 +114,7 @@
       },
       {
         "id": "event-cb198133",
-        "timestamp": "2026-08-05T17:11:08.3373469Z",
+        "timestamp": "2026-08-05T17:12:14.20652Z",
         "severity": "info",
         "title": "管理操作を検出",
         "detail": "公開前に実行者と対象リソースの詳細を削除しています。",
@@ -122,7 +122,7 @@
       },
       {
         "id": "event-ca197fa0",
-        "timestamp": "2026-08-05T17:11:07.9154431Z",
+        "timestamp": "2026-08-05T17:12:13.8315206Z",
         "severity": "info",
         "title": "管理操作を検出",
         "detail": "公開前に実行者と対象リソースの詳細を削除しています。",
@@ -166,13 +166,13 @@
   "cost": {
     "current": {
       "availability": "available",
-      "approximateAmount": "約¥2.1万"
+      "approximateAmount": "約¥2.2万"
     },
     "previous": {
       "availability": "available",
       "approximateAmount": "約¥1.2万"
     },
-    "deltaPercent": 76.7,
+    "deltaPercent": 72.7,
     "forecast": {
       "availability": "unavailable",
       "approximateAmount": null
@@ -186,25 +186,25 @@
       {
         "name": "Azure Cognitive Search",
         "approximateAmount": "約¥1.4万",
-        "sharePercent": 67.5,
-        "deltaPercent": 91
+        "sharePercent": 65.6,
+        "deltaPercent": 78.3
       },
       {
         "name": "Foundry Tools",
-        "approximateAmount": "約¥5千",
-        "sharePercent": 24.7,
-        "deltaPercent": 55.6
+        "approximateAmount": "約¥6千",
+        "sharePercent": 26.4,
+        "deltaPercent": 68.3
       },
       {
         "name": "Container Registry",
         "approximateAmount": "約¥1千未満",
-        "sharePercent": 3.6,
+        "sharePercent": 3.5,
         "deltaPercent": null
       },
       {
         "name": "Logic Apps",
         "approximateAmount": "約¥1千未満",
-        "sharePercent": 2.1,
+        "sharePercent": 2,
         "deltaPercent": null
       },
       {
@@ -216,13 +216,13 @@
       {
         "name": "Load Balancer",
         "approximateAmount": "約¥1千未満",
-        "sharePercent": 0.5,
+        "sharePercent": 0.7,
         "deltaPercent": null
       },
       {
         "name": "Storage",
         "approximateAmount": "約¥1千未満",
-        "sharePercent": 0.2,
+        "sharePercent": 0.3,
         "deltaPercent": null
       },
       {
@@ -1400,7 +1400,7 @@
       "inventoryTotal": 10,
       "sampledResources": 10,
       "metricCapableResources": 3,
-      "metricSeries": 5,
+      "metricSeries": 4,
       "notApplicableResources": 7,
       "failedResources": 0
     },
