@@ -194,6 +194,50 @@ describe("language audit in validate-public-data", () => {
   });
 
   /**
+   * The defect this pair of tests exists for. `reliability.serviceHealth.categories[].label` used to
+   * carry Azure's `EventType` verbatim under a named exemption, so English reached the Japanese page
+   * — and an insight that quoted what the reader saw failed on `aiInsights[].observation`, where no
+   * exemption applies. The collector now translates the member, so the exemption is gone and this is
+   * the check that keeps it gone.
+   */
+  it("rejects an untranslated Service Health category", { timeout: SUBPROCESS_TIMEOUT }, () => {
+    const result = validate({
+      ...snapshot,
+      reliability: {
+        ...snapshot.reliability,
+        serviceHealth: {
+          ...snapshot.reliability.serviceHealth,
+          categories: [{ label: "ServiceIssue", count: 3 }]
+        }
+      }
+    });
+
+    expect(result.status).not.toBe(0);
+    expect(result.output).toContain("English prose in a Japanese dashboard");
+    expect(result.output).toContain("reliability.serviceHealth.categories[0].label");
+  });
+
+  /**
+   * The other half of the same defect: the label was legal as a field but fatal as a quotation. An
+   * insight quoting the label the page prints has to validate, or the collector-side fix would have
+   * moved the failure rather than removed it.
+   */
+  it("accepts an insight quoting the label the page prints", { timeout: SUBPROCESS_TIMEOUT }, () => {
+    const [category] = snapshot.reliability.serviceHealth.categories;
+    if (!category) throw new Error("demo fixture must publish at least one category");
+    const result = validate({
+      ...snapshot,
+      aiInsights: [
+        editedInsight({
+          observation: `Service Health では ${category.label} の分類が報告されています。`
+        })
+      ]
+    });
+
+    expect(result.status).toBe(0);
+  });
+
+  /**
    * The AI workflow rewrites `aiInsights` on an already-published file and revalidates with
    * `--insights-only`, which is the only path an insight reaches production by. Skipping the audit in
    * that mode would leave the field that arrives last as the field nothing checks.

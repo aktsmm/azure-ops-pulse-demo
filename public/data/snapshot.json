@@ -1328,11 +1328,11 @@
       "resolvedEvents": 3,
       "categories": [
         {
-          "label": "ServiceIssue",
+          "label": "サービスの問題",
           "count": 3
         },
         {
-          "label": "HealthAdvisory",
+          "label": "正常性アドバイザリ",
           "count": 2
         }
       ]

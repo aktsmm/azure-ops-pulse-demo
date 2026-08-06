@@ -4,6 +4,7 @@ import type {
   SecurityRecommendation
 } from "../src/data/contracts";
 import { snapshotInsightPeriod } from "./insight-period";
+import { localizeServiceHealthEventType } from "./service-health-event-types";
 
 const guid = (...segments: string[]) => segments.join("-");
 const address = (...octets: string[]) => octets.join(".");
@@ -375,9 +376,11 @@ export function createDemoRawSnapshot(generatedAt = new Date().toISOString()): R
           "Synthetic DEMO Service Health aggregate; only event counts and categories are published.",
         activeEvents: 1,
         resolvedEvents: 3,
+        // Written through the collector's own mapping rather than as literal Japanese, so DEMO
+        // cannot drift from AZURE and cannot be updated without updating the mapping.
         categories: [
-          { label: "ServiceIssue", count: 3 },
-          { label: "HealthAdvisory", count: 1 }
+          { label: localizeServiceHealthEventType("ServiceIssue"), count: 3 },
+          { label: localizeServiceHealthEventType("HealthAdvisory"), count: 1 }
         ]
       }
     },
