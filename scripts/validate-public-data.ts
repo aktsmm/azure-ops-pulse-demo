@@ -4,6 +4,7 @@ import { relative, resolve } from "node:path";
 import { isDeepStrictEqual } from "node:util";
 import { validateNumericEvidence } from "./evidence-validator";
 import { validatePublicJsonSchema } from "./json-schema-validator";
+import { validateInsightPeriods } from "./insight-period";
 import { validateJapaneseInsights } from "./japanese-insights-validator";
 import { validateUiLanguage } from "./ui-language-audit";
 import { publicSnapshotSchema } from "./public-schema";
@@ -18,6 +19,10 @@ validatePublicJsonSchema(candidate);
 const parsed = publicSnapshotSchema.parse(candidate);
 
 validateNumericEvidence(parsed);
+// Checked before the prose audit so the field the pipeline owns reports the rule it broke instead of
+// being reported as bad Japanese. The prose audit still covers `period` afterwards, which is what
+// catches a derivation that stopped producing Japanese rather than one the analysis overwrote.
+validateInsightPeriods(parsed);
 validateJapaneseInsights(parsed.aiInsights);
 
 // Unconditional on purpose. The one artifact that predated the localised collector was excused by a
@@ -52,5 +57,5 @@ if (insightsOnly) {
 }
 
 console.log(
-  `Validated ${insightsOnly ? "AI insights" : "public snapshot"} JSON Schema, runtime schema, Japanese prose, rendered UI language, and numeric evidence: ${file}`
+  `Validated ${insightsOnly ? "AI insights" : "public snapshot"} JSON Schema, runtime schema, Japanese prose, insight period derivation, rendered UI language, and numeric evidence: ${file}`
 );

@@ -2018,7 +2018,7 @@ function InsightCard({ insight }: { insight: AiInsight }) {
       </header>
       <div className="insight-context">
         <span>領域: {routeLabel(insight.route)}</span>
-        <span>期間: {insight.period}</span>
+        <span>基準時点: {insight.period}</span>
       </div>
       <h2>{insight.title}</h2>
       <section>
@@ -2158,8 +2158,8 @@ function AiInsightsPage({ data }: { data: PublicSnapshotV1 }) {
       </section>
 
       <Panel
-        title="分析期間"
-        description="各分析に記録された期間ラベルです。期間外の傾向は推定しません。"
+        title="分析の基準時点"
+        description="各分析が参照したスナップショットの収集時点です。分析対象の集計期間そのものではありません。"
       >
         <div className="chip-list">
           {periods.map((period) => (

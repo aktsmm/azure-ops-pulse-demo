@@ -14,8 +14,10 @@
     "preview:demo": "tsx scripts/generate-demo.ts --preview",
     "collect:azure": "tsx scripts/collect-azure.ts",
     "compile:ai-insights": "tsx scripts/compile-ai-insights.ts",
+    "normalize:insights": "tsx scripts/normalize-ai-insight-period.ts public/data/snapshot.json && tsx scripts/normalize-ai-insight-labels.ts public/data/snapshot.json",
     "validate:data": "tsx scripts/validate-public-data.ts public/data/snapshot.json",
     "validate:insights": "tsx scripts/validate-public-data.ts public/data/snapshot.json --insights-only",
+    "check:insights": "tsx scripts/check-insights.ts",
     "scan:privacy": "tsx scripts/privacy-scan.ts"
   },
   "dependencies": {

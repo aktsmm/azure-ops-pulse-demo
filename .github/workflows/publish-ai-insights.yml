@@ -104,6 +104,13 @@ jobs:
         run: npm ci --ignore-scripts
       - name: Repeat JSON Schema, runtime schema, Japanese, evidence, baseline, and privacy gates
         run: |
+          # `period` is derived from the collection time rather than written by the analysis, and it
+          # is derived here, on trusted code from the default branch, rather than trusted from the
+          # analysis job. The analysis job can write to its own workspace, so the pass it runs there
+          # is fast feedback, not authority. `generatedAt` is the only input to the derivation and
+          # the baseline gate below rejects any candidate that changed it, so a tampered collection
+          # time fails publication instead of renaming the period.
+          npx tsx scripts/normalize-ai-insight-period.ts .candidate/snapshot.json
           npx tsx scripts/validate-public-data.ts .candidate/snapshot.json --insights-only --baseline=public/data/snapshot.json
           npx tsx scripts/privacy-scan.ts .candidate
       - name: Upload trusted candidate
@@ -137,8 +144,14 @@ jobs:
           git fetch origin "${{ github.event.repository.default_branch }}"
           git merge --ff-only "origin/${{ github.event.repository.default_branch }}"
           cp .candidate/snapshot.json public/data/snapshot.json
+          # An analysis that supported no insight is a real outcome, not a routine no-op, so it says
+          # so in the run rather than reading as "nothing changed".
+          insight_count="$(node -e 'process.stdout.write(String(JSON.parse(require("fs").readFileSync(".candidate/snapshot.json","utf8")).aiInsights.length))')"
+          if [ "$insight_count" -eq 0 ]; then
+            echo "::warning::The analysis published no insights. The dashboard will show its empty state."
+          fi
           if git diff --quiet -- public/data/snapshot.json; then
-            echo "No validated AI insight change."
+            echo "No validated AI insight change ($insight_count insight(s) in the candidate)."
             echo "published=false" >> "$GITHUB_OUTPUT"
             exit 0
           fi

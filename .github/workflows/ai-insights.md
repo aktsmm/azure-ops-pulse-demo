@@ -15,25 +15,37 @@ max-ai-credits: 1000
 
 tools:
   bash:
-    - "npm run validate:insights"
-    - "npm run scan:privacy -- public"
+    # Read-only commands, and deliberately no command that checks the analysis output. Granting a
+    # checking command let the agent choose when to run it, and the order is not the agent's to
+    # choose: the derived fields are filled in first, so checking first fails on a field the
+    # analysis was told not to write. The checks now run in a post-step the agent cannot reach.
+    # This block cannot be dropped entirely - without it the compiled workflow falls back to
+    # `--allow-all-tools`.
+    - "cat"
+    - "date"
+    - "echo"
+    - "grep"
+    - "head"
+    - "ls"
+    - "printf"
+    - "pwd"
+    - "sort"
+    - "tail"
+    - "uniq"
+    - "wc"
 
 steps:
   - name: Install deterministic validation dependencies
     run: npm ci --ignore-scripts
 
 post-steps:
-  - name: Normalize evidence labels for Japanese display
-    id: normalize_labels
+  - name: Normalize the derived insight fields, then validate schema, prose, evidence and privacy
+    id: check_candidate
     if: success()
-    run: npx tsx scripts/normalize-ai-insight-labels.ts public/data/snapshot.json
-  - name: Validate generated insight JSON Schema, runtime schema, Japanese prose, evidence, and privacy
-    id: validate_candidate
-    if: success() && steps.normalize_labels.outcome == 'success'
-    run: npm run validate:insights && npm run scan:privacy -- public
+    run: npm run check:insights
   - name: Verify bounded candidate handoff
     id: bound_candidate
-    if: success() && steps.validate_candidate.outcome == 'success'
+    if: success() && steps.check_candidate.outcome == 'success'
     run: |
       candidate_path="public/data/snapshot.json"
       candidate_count="$(find public/data -maxdepth 1 -type f -name 'snapshot.json' -printf '1\n' | wc -l)"
@@ -47,7 +59,7 @@ post-steps:
         exit 1
       fi
   - name: Upload validated insight candidate
-    if: success() && steps.validate_candidate.outcome == 'success' && steps.bound_candidate.outcome == 'success'
+    if: success() && steps.check_candidate.outcome == 'success' && steps.bound_candidate.outcome == 'success'
     uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
     with:
       name: validated-ai-insights
@@ -86,7 +98,7 @@ Update only the `aiInsights` array in `public/data/snapshot.json` with zero to f
 insights. Preserve every other byte-level data value and the existing schema version.
 
 Write every human-facing prose field in natural Japanese: `title`, `observation`, `impact`,
-`numericEvidence[].label`, `recommendedAction`, and `period`. Keep Azure product names, resource
+`numericEvidence[].label`, and `recommendedAction`. Keep Azure product names, resource
 types, regions, sanitized values, numeric values, and source paths unchanged. Do not emit complete
 English sentences except where an official product or technical term has no useful Japanese form.
 For `numericEvidence[].label`, never copy an English-only metric label or source path. Use a Japanese
@@ -105,9 +117,13 @@ Each insight must contain:
   and the numeric token in `value` must equal the scalar at that path
 - `recommendedAction`
 - `confidence`: a number from 0 through 1
-- `period`
 - `route`: one of `/overview`, `/cost`, `/resources`, `/reliability`, `/security`, `/network`,
   `/ai-insights`
+
+Do not write `period`. It records when the snapshot was collected — nothing more — and the pipeline
+derives it from `generatedAt`. Leave it out, or leave the existing value alone; a deterministic step
+overwrites it either way and a later gate rejects any candidate whose `period` did not come from
+`generatedAt`. Elsewhere, never state a window the source you cited does not itself state.
 
 ## Guardrails
 
@@ -120,8 +136,13 @@ Each insight must contain:
 6. Do not add exact JPY amounts. Use only existing approximate labels and percentages.
 7. Do not alter identifiers, resource rows, source status, freshness, or any field outside
    `aiInsights`.
-8. Run `npm run validate:insights` and `npm run scan:privacy -- public`.
-9. If validation fails or the evidence is insufficient, leave the existing insights unchanged.
+8. `period` is not yours to write, and neither are the evidence labels: a deterministic step derives
+   them from the snapshot after you finish, then checks schema, Japanese prose, evidence, and
+   privacy. Nothing reaches the site unless the trusted publisher repeats those checks from a fresh
+   checkout, and a failure there fails the run visibly.
+9. Publish only what the snapshot supports. If the evidence for an insight is insufficient, leave
+   that insight out; if no insight is supportable, write an empty array. Do not pad the array to
+   reach a count.
 10. Do not request or emit a safe output. gh-aw requires a non-builtin safe output to avoid
    auto-injecting `create_issue`, so the only configured capability is a staged, non-publishing
    artifact restricted to the already-sanitized snapshot path. It is not the
