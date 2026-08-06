@@ -414,10 +414,12 @@ describe("AI insight publication gate", () => {
     // The whole sequence is pinned, not just that validation follows one normalization: dropping
     // the label pass, moving the privacy scan ahead of validation, or deriving the ids before the
     // notation repair that settles the content they are derived from all have to fail here too.
+    // Anchored to the step lines themselves, because an unanchored match would read a commented-out
+    // step as a step that runs.
     const check = readFileSync("scripts/check-insights.ts", "utf8");
-    const sequence = [...check.matchAll(/\["(scripts\/[\w-]+\.ts)", \[(.*?)\]\]/g)].map(
-      (match) => `${match[1]} ${match[2]}`
-    );
+    const sequence = [
+      ...check.matchAll(/^ {2}\["(scripts\/[\w-]+\.ts)", \[(.*?)\]\],?$/gm)
+    ].map((match) => `${match[1]} ${match[2]}`);
     expect(sequence).toEqual([
       'scripts/normalize-ai-insight-notation.ts "public/data/snapshot.json"',
       'scripts/normalize-ai-insight-period.ts "public/data/snapshot.json"',
@@ -435,15 +437,18 @@ describe("AI insight publication gate", () => {
     // the field again, so the generated lock has to carry the same command.
     expect(lock).toContain("run: npm run check:insights");
 
-    // The prompt no longer lists `period` or `id` among the fields the analysis writes.
-    expect(source).toContain("Do not write `id` or `period`");
-    expect(source).not.toMatch(/^- `period`$/m);
-    expect(source).not.toMatch(/^- `id`/m);
-    expect(source).not.toContain("`recommendedAction`, and `period`");
+    // The prompt no longer lists `period` or `id` among the fields the analysis writes. Scoped to
+    // the body below the frontmatter, which is the part the model is given: a line added to the YAML
+    // configuration above it is not an instruction and must not stand in for one.
+    const promptBody = source.split(/^---\r?$/m).slice(2).join("---");
+    expect(promptBody).toContain("Do not write `id` or `period`");
+    expect(promptBody).not.toMatch(/^- `period`$/m);
+    expect(promptBody).not.toMatch(/^- `id`/m);
+    expect(promptBody).not.toContain("`recommendedAction`, and `period`");
     // The notation the schema accepts for an array element is spelled out, because a model that
     // reaches for `[0]` is writing the notation the rest of the world uses.
-    expect(source).toContain("cost.categories.0.sharePercent");
-    expect(source).toContain("cost.categories[0].sharePercent");
+    expect(promptBody).toContain("cost.categories.0.sharePercent");
+    expect(promptBody).toContain("cost.categories[0].sharePercent");
 
     // And the trusted publisher derives the period itself before repeating the gates, so the pass
     // that ran in the workspace the agent can write to is feedback rather than authority. That the

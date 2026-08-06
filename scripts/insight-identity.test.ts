@@ -51,19 +51,44 @@ describe("deriving an insight identifier from the insight", () => {
     }
   });
 
-  it("produces the same identifier for the same analysis and a different one for a different analysis", () => {
-    const base = insight();
+  /**
+   * Every field the identity is meant to cover, mutated one at a time. A field left out of the
+   * hashed content would make two different findings share an id, and the dashboard renders insight
+   * cards with `key={insight.id}`, so one of them would silently disappear.
+   */
+  it.each([
+    ["severity", { severity: "info" as const }],
+    ["title", { title: "コストの前期比増加を確認しました" }],
+    ["observation", { observation: "公開スナップショットのコスト増減率は前回から横ばいです。" }],
+    ["impact", { impact: "この傾向が続いても、次回の比較で増加幅は広がりません。" }],
+    ["recommendedAction", { recommendedAction: "コスト ページの確認は不要です。" }],
+    ["confidence", { confidence: 0.86 }],
+    ["route", { route: "/security" as const }],
+    [
+      "numericEvidence[].label",
+      { numericEvidence: [{ label: "コストの構成比", value: "76.7%", source: "cost.deltaPercent" }] }
+    ],
+    [
+      "numericEvidence[].value",
+      { numericEvidence: [{ label: "コストの増減率", value: "76.8%", source: "cost.deltaPercent" }] }
+    ],
+    [
+      "numericEvidence[].source",
+      {
+        numericEvidence: [
+          { label: "コストの増減率", value: "76.7%", source: "cost.categories.0.deltaPercent" }
+        ]
+      }
+    ],
+    ["numericEvidence length", { numericEvidence: [] }]
+  ])("changes when %s changes", (_field, edit) => {
+    expect(deriveInsightId(insight(edit as Partial<AiInsight>))).not.toBe(
+      deriveInsightId(insight())
+    );
+  });
 
-    expect(deriveInsightId(base)).toBe(deriveInsightId(insight()));
-    expect(deriveInsightId(insight({ title: `${base.title}。` }))).not.toBe(deriveInsightId(base));
-    expect(deriveInsightId(insight({ confidence: 0.86 }))).not.toBe(deriveInsightId(base));
-    expect(
-      deriveInsightId(
-        insight({
-          numericEvidence: [{ label: "コストの増減率", value: "76.7%", source: "cost.categories.0.deltaPercent" }]
-        })
-      )
-    ).not.toBe(deriveInsightId(base));
+  it("produces the same identifier for the same analysis", () => {
+    expect(deriveInsightId(insight())).toBe(deriveInsightId(insight()));
   });
 
   /**

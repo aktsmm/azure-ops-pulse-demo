@@ -4,6 +4,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 import { buildDemoSnapshot } from "./build-demo-snapshot";
+import { validateEvidenceItem } from "./evidence-validator";
 import { PUBLIC_SCHEMA_DIRECTORY, validatePublicJsonSchema } from "./json-schema-validator";
 import { insightSchema } from "./public-schema";
 import {
@@ -95,12 +96,37 @@ describe("evidence path notation", () => {
   it("repairs only the notation, so an unresolvable path still fails", () => {
     const snapshot = buildDemoSnapshot(COLLECTED_AT);
     const invented = "cost.categories[99].sharePercent";
+    const repaired = normalizeEvidenceSourceNotation(invented);
 
-    expect(normalizeEvidenceSourceNotation(invented)).toBe("cost.categories.99.sharePercent");
+    expect(repaired).toBe("cost.categories.99.sharePercent");
     expect(
       snapshot.cost.categories.length,
       "the repaired path must still point at nothing"
     ).toBeLessThan(99);
+    // The repair makes the path well-formed, which is exactly why the resolver still has to reject
+    // it: a citation that survives repair and points nowhere would otherwise reach the site.
+    expect(() =>
+      validateEvidenceItem(snapshot, "コストの構成比", {
+        label: "コストの構成比",
+        value: "65.6",
+        source: repaired!
+      })
+    ).toThrow(/invalid scalar source/);
+  });
+
+  it("leaves a repaired path that points at a different value to fail on the value", () => {
+    const snapshot = buildDemoSnapshot(COLLECTED_AT);
+    const source = evidenceSourceWithIndex();
+    const repaired = normalizeEvidenceSourceNotation(bracketIndices(source));
+
+    expect(repaired).toBe(source);
+    expect(() =>
+      validateEvidenceItem(snapshot, "コストの構成比", {
+        label: "コストの構成比",
+        value: "-987654.3",
+        source: repaired!
+      })
+    ).toThrow(/contains/);
   });
 });
 
