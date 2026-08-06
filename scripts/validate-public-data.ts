@@ -4,6 +4,7 @@ import { relative, resolve } from "node:path";
 import { isDeepStrictEqual } from "node:util";
 import { validateNumericEvidence } from "./evidence-validator";
 import { validatePublicJsonSchema } from "./json-schema-validator";
+import { validateInsightIds } from "./insight-identity";
 import { validateInsightPeriods } from "./insight-period";
 import { validateJapaneseInsights } from "./japanese-insights-validator";
 import { validateUiLanguage } from "./ui-language-audit";
@@ -18,6 +19,10 @@ const candidate = JSON.parse(await readFile(file, "utf8")) as unknown;
 validatePublicJsonSchema(candidate);
 const parsed = publicSnapshotSchema.parse(candidate);
 
+// Checked first because every message below names the insight by id, and because the schema cannot
+// state the property the dashboard actually needs: `src/App.tsx` keys insight cards by id, so two
+// insights sharing one id render as one card.
+validateInsightIds(parsed);
 validateNumericEvidence(parsed);
 // Checked before the prose audit so the field the pipeline owns reports the rule it broke instead of
 // being reported as bad Japanese. The prose audit still covers `period` afterwards, which is what
@@ -57,5 +62,5 @@ if (insightsOnly) {
 }
 
 console.log(
-  `Validated ${insightsOnly ? "AI insights" : "public snapshot"} JSON Schema, runtime schema, Japanese prose, insight period derivation, rendered UI language, and numeric evidence: ${file}`
+  `Validated ${insightsOnly ? "AI insights" : "public snapshot"} JSON Schema, runtime schema, Japanese prose, insight identity derivation, insight period derivation, rendered UI language, and numeric evidence: ${file}`
 );
