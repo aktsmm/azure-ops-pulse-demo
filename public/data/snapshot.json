@@ -1,11 +1,11 @@
 {
   "schemaVersion": "1.4.0",
-  "generatedAt": "2026-08-06T05:59:22.188Z",
+  "generatedAt": "2026-08-06T07:34:01.522Z",
   "mode": "AZURE",
   "freshness": {
     "state": "fresh",
     "ageMinutes": 0,
-    "lastSuccessfulCollection": "2026-08-06T05:59:22.188Z",
+    "lastSuccessfulCollection": "2026-08-06T07:34:01.522Z",
     "nextScheduledCollection": "Tuesday / Friday 06:00 JST"
   },
   "scope": {
@@ -98,7 +98,7 @@
       },
       {
         "id": "event-cd198459",
-        "timestamp": "2026-08-05T21:23:32.0833386Z",
+        "timestamp": "2026-08-06T07:19:58.5079654Z",
         "severity": "info",
         "title": "管理操作を検出",
         "detail": "公開前に実行者と対象リソースの詳細を削除しています。",
@@ -106,7 +106,7 @@
       },
       {
         "id": "event-cc1982c6",
-        "timestamp": "2026-08-05T21:23:31.6301794Z",
+        "timestamp": "2026-08-06T07:19:58.0704522Z",
         "severity": "info",
         "title": "管理操作を検出",
         "detail": "公開前に実行者と対象リソースの詳細を削除しています。",
@@ -114,7 +114,7 @@
       },
       {
         "id": "event-cb198133",
-        "timestamp": "2026-08-05T17:12:14.20652Z",
+        "timestamp": "2026-08-06T06:45:16.6126515Z",
         "severity": "info",
         "title": "管理操作を検出",
         "detail": "公開前に実行者と対象リソースの詳細を削除しています。",
@@ -122,7 +122,7 @@
       },
       {
         "id": "event-ca197fa0",
-        "timestamp": "2026-08-05T17:12:13.8315206Z",
+        "timestamp": "2026-08-06T06:45:16.0345161Z",
         "severity": "info",
         "title": "管理操作を検出",
         "detail": "公開前に実行者と対象リソースの詳細を削除しています。",
@@ -131,7 +131,7 @@
       {
         "id": "event-ff907070",
         "timestamp": "現在の収集期間",
-        "severity": "info",
+        "severity": "warning",
         "title": "Service Health イベントを検出",
         "detail": "影響を受けたサブスクリプションやリソースの詳細を除き、サービス単位の状態のみを表示します。",
         "route": "/reliability"
@@ -139,7 +139,7 @@
       {
         "id": "event-00907203",
         "timestamp": "現在の収集期間",
-        "severity": "warning",
+        "severity": "info",
         "title": "Service Health イベントを検出",
         "detail": "影響を受けたサブスクリプションやリソースの詳細を除き、サービス単位の状態のみを表示します。",
         "route": "/reliability"
