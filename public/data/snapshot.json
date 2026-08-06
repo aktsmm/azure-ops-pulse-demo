@@ -1,11 +1,11 @@
 {
   "schemaVersion": "1.4.0",
-  "generatedAt": "2026-08-06T04:37:18.895Z",
+  "generatedAt": "2026-08-06T05:59:22.188Z",
   "mode": "AZURE",
   "freshness": {
     "state": "fresh",
     "ageMinutes": 0,
-    "lastSuccessfulCollection": "2026-08-06T04:37:18.895Z",
+    "lastSuccessfulCollection": "2026-08-06T05:59:22.188Z",
     "nextScheduledCollection": "Tuesday / Friday 06:00 JST"
   },
   "scope": {
@@ -172,7 +172,7 @@
       "availability": "available",
       "approximateAmount": "約¥1.2万"
     },
-    "deltaPercent": 72.7,
+    "deltaPercent": 73,
     "forecast": {
       "availability": "unavailable",
       "approximateAmount": null
@@ -187,7 +187,7 @@
         "name": "Azure Cognitive Search",
         "approximateAmount": "約¥1.4万",
         "sharePercent": 65.6,
-        "deltaPercent": 78.3
+        "deltaPercent": 78.6
       },
       {
         "name": "Foundry Tools",
