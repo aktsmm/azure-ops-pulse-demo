@@ -374,8 +374,12 @@ describe("AI insight publication gate", () => {
     // One command owns every field the pipeline derives rather than authors, so the pass the agent
     // runs and the pass that runs after it cannot drift apart.
     const normalize = packageJson.scripts["normalize:insights"];
+    expect(normalize).toContain(
+      "scripts/normalize-ai-insight-notation.ts public/data/snapshot.json"
+    );
     expect(normalize).toContain("scripts/normalize-ai-insight-period.ts public/data/snapshot.json");
     expect(normalize).toContain("scripts/normalize-ai-insight-labels.ts public/data/snapshot.json");
+    expect(normalize).toContain("scripts/normalize-ai-insight-ids.ts public/data/snapshot.json");
 
     // The analysis agent is granted no command that touches its own output. Granting it the
     // normalization and the validation let it validate first, fail on a field it was told not to
@@ -408,14 +412,17 @@ describe("AI insight publication gate", () => {
     }
 
     // The whole sequence is pinned, not just that validation follows one normalization: dropping
-    // the label pass or moving the privacy scan ahead of validation has to fail here too.
+    // the label pass, moving the privacy scan ahead of validation, or deriving the ids before the
+    // notation repair that settles the content they are derived from all have to fail here too.
     const check = readFileSync("scripts/check-insights.ts", "utf8");
     const sequence = [...check.matchAll(/\["(scripts\/[\w-]+\.ts)", \[(.*?)\]\]/g)].map(
       (match) => `${match[1]} ${match[2]}`
     );
     expect(sequence).toEqual([
+      'scripts/normalize-ai-insight-notation.ts "public/data/snapshot.json"',
       'scripts/normalize-ai-insight-period.ts "public/data/snapshot.json"',
       'scripts/normalize-ai-insight-labels.ts "public/data/snapshot.json"',
+      'scripts/normalize-ai-insight-ids.ts "public/data/snapshot.json"',
       'scripts/validate-public-data.ts "public/data/snapshot.json", "--insights-only"',
       'scripts/privacy-scan.ts "public"'
     ]);
@@ -428,32 +435,60 @@ describe("AI insight publication gate", () => {
     // the field again, so the generated lock has to carry the same command.
     expect(lock).toContain("run: npm run check:insights");
 
-    // The prompt no longer lists `period` among the fields the analysis writes.
-    expect(source).toContain("Do not write `period`");
+    // The prompt no longer lists `period` or `id` among the fields the analysis writes.
+    expect(source).toContain("Do not write `id` or `period`");
     expect(source).not.toMatch(/^- `period`$/m);
+    expect(source).not.toMatch(/^- `id`/m);
     expect(source).not.toContain("`recommendedAction`, and `period`");
+    // The notation the schema accepts for an array element is spelled out, because a model that
+    // reaches for `[0]` is writing the notation the rest of the world uses.
+    expect(source).toContain("cost.categories.0.sharePercent");
+    expect(source).toContain("cost.categories[0].sharePercent");
 
     // And the trusted publisher derives the period itself before repeating the gates, so the pass
     // that ran in the workspace the agent can write to is feedback rather than authority. That the
     // call is reached, rather than merely present, is proved by spawning the validator in
     // `insight-period.test.ts`.
     expect(deterministicValidation).toMatch(/^validateInsightPeriods\(parsed\);$/m);
+    expect(deterministicValidation).toMatch(/^validateInsightIds\(parsed\);$/m);
     // Both indices come from the anchored forms, so commenting either call out breaks the ordering
     // check instead of silently satisfying it.
     const periodGate = deterministicValidation.search(/^validateInsightPeriods\(parsed\);$/m);
+    const identityGate = deterministicValidation.search(/^validateInsightIds\(parsed\);$/m);
+    const evidenceGate = deterministicValidation.search(
+      /^validateNumericEvidence\(parsed\);$/m
+    );
     const proseGate = deterministicValidation.search(
       /^validateJapaneseInsights\(parsed\.aiInsights\);$/m
     );
     expect(periodGate).toBeGreaterThan(-1);
+    expect(identityGate).toBeGreaterThan(-1);
+    expect(evidenceGate).toBeGreaterThan(identityGate);
     expect(proseGate).toBeGreaterThan(periodGate);
     const publisher = readFileSync(".github/workflows/publish-ai-insights.yml", "utf8");
-    const trustedDerivation = publisher.indexOf(
+    // Anchored to the command line rather than substring-matched, so a YAML comment naming the
+    // script cannot stand in for running it. The repair has to precede the derivation that hashes
+    // the repaired content, and every derivation has to precede the gates that check it.
+    const publisherIndex = (command: string) =>
+      publisher.search(
+        new RegExp(`^\\s*npx tsx ${command.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}(?:\\s|$)`, "m")
+      );
+    const trustedNotation = publisherIndex(
+      "scripts/normalize-ai-insight-notation.ts .candidate/snapshot.json"
+    );
+    const trustedDerivation = publisherIndex(
       "scripts/normalize-ai-insight-period.ts .candidate/snapshot.json"
     );
-    const trustedValidation = publisher.indexOf(
+    const trustedIdentity = publisherIndex(
+      "scripts/normalize-ai-insight-ids.ts .candidate/snapshot.json"
+    );
+    const trustedValidation = publisherIndex(
       "scripts/validate-public-data.ts .candidate/snapshot.json --insights-only"
     );
-    expect(trustedDerivation).toBeGreaterThan(-1);
+    expect(trustedNotation).toBeGreaterThan(-1);
+    expect(trustedDerivation).toBeGreaterThan(trustedNotation);
+    expect(trustedIdentity).toBeGreaterThan(trustedNotation);
+    expect(trustedValidation).toBeGreaterThan(trustedIdentity);
     expect(trustedValidation).toBeGreaterThan(trustedDerivation);
     // An analysis that supported nothing has to say so, instead of reading as a routine no-op.
     expect(publisher).toContain("::warning::The analysis published no insights");

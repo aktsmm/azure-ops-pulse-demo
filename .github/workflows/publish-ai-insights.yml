@@ -104,13 +104,18 @@ jobs:
         run: npm ci --ignore-scripts
       - name: Repeat JSON Schema, runtime schema, Japanese, evidence, baseline, and privacy gates
         run: |
-          # `period` is derived from the collection time rather than written by the analysis, and it
-          # is derived here, on trusted code from the default branch, rather than trusted from the
-          # analysis job. The analysis job can write to its own workspace, so the pass it runs there
-          # is fast feedback, not authority. `generatedAt` is the only input to the derivation and
-          # the baseline gate below rejects any candidate that changed it, so a tampered collection
-          # time fails publication instead of renaming the period.
+          # `period` and the insight ids are derived from the snapshot rather than written by the
+          # analysis, and the evidence paths, severities, routes and confidences are respelled to the
+          # one notation the schema accepts. All of that happens here, on trusted code from the
+          # default branch, rather than being trusted from the analysis job. The analysis job can
+          # write to its own workspace, so the pass it runs there is fast feedback, not authority.
+          # `generatedAt` is the only input to the period derivation and the baseline gate below
+          # rejects any candidate that changed it, so a tampered collection time fails publication
+          # instead of renaming the period. Notation is repaired before the ids are derived, because
+          # the ids are derived from the content the repair settles.
+          npx tsx scripts/normalize-ai-insight-notation.ts .candidate/snapshot.json
           npx tsx scripts/normalize-ai-insight-period.ts .candidate/snapshot.json
+          npx tsx scripts/normalize-ai-insight-ids.ts .candidate/snapshot.json
           npx tsx scripts/validate-public-data.ts .candidate/snapshot.json --insights-only --baseline=public/data/snapshot.json
           npx tsx scripts/privacy-scan.ts .candidate
       - name: Upload trusted candidate

@@ -9,6 +9,7 @@ import {
   buildDemoSnapshot,
   resolveDemoOutputPath
 } from "./build-demo-snapshot";
+import { deriveInsightId } from "./insight-identity";
 
 /**
  * `public/data/snapshot.json` is what GitHub Pages serves as the site's real data, and nothing else
@@ -112,18 +113,30 @@ describe("language audit in validate-public-data", () => {
   const snapshot = { ...demo, mode: "AZURE" } as typeof demo;
 
   /**
-   * An insight the Japanese-prose rule accepts — it clears the minimum Japanese ratio — carrying an
-   * English clause the UI audit still has to reject. Insight fields are otherwise owned by earlier
-   * validators (`numericEvidence[].value` by the numeric-evidence rule, everything else by the
-   * Japanese rule), so mixed prose is the only way to reach the audit through an insight.
+   * `id` is derived from the insight's own content, so a fixture that rewrites `observation` has to
+   * re-derive it or the identity gate rejects it before the language audit is ever reached. The
+   * expected id comes from the implementation rather than a literal, so it tracks the derivation.
    */
-  function leakingInsight(): (typeof demo)["aiInsights"][number] {
+  function editedInsight(
+    edits: Partial<(typeof demo)["aiInsights"][number]>
+  ): (typeof demo)["aiInsights"][number] {
     const [insight] = demo.aiInsights;
     if (!insight) throw new Error("demo fixture must publish at least one AI insight");
-    return {
-      ...insight,
+    const edited = { ...insight, ...edits };
+    return { ...edited, id: deriveInsightId(edited) };
+  }
+
+  /**
+   * An insight the Japanese-prose rule accepts — it clears the minimum Japanese ratio — carrying an
+   * English clause the UI audit still has to reject. Insight fields are otherwise owned by earlier
+   * validators (`numericEvidence[].value` by the numeric-evidence rule, `id` by the identity rule,
+   * everything else by the Japanese rule), so mixed prose is the only way to reach the audit through
+   * an insight.
+   */
+  function leakingInsight(): (typeof demo)["aiInsights"][number] {
+    return editedInsight({
       observation: "評価対象のリソースは前期間から変化していません no material change"
-    };
+    });
   }
 
   it("accepts a snapshot whose prose is Japanese", { timeout: SUBPROCESS_TIMEOUT }, () => {
@@ -157,11 +170,9 @@ describe("language audit in validate-public-data", () => {
    * two cases below are for — this one only proves the script wires the Japanese rule at all.
    */
   it("rejects an English AI insight", { timeout: SUBPROCESS_TIMEOUT }, () => {
-    const [insight] = demo.aiInsights;
-    if (!insight) throw new Error("demo fixture must publish at least one AI insight");
     const result = validate({
       ...snapshot,
-      aiInsights: [{ ...insight, observation: "Compute spend increased again this period" }]
+      aiInsights: [editedInsight({ observation: "Compute spend increased again this period" })]
     });
 
     expect(result.status).not.toBe(0);

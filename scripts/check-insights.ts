@@ -1,12 +1,16 @@
 import { spawnSync } from "node:child_process";
 
 /**
- * The deterministic pass over an analysis candidate: it fills in the fields this pipeline derives
- * rather than writes, then checks schema, Japanese prose, evidence, baseline and privacy, in that
- * order and always in that order.
+ * The deterministic pass over an analysis candidate: it repairs the notation of the machine-checked
+ * fields, fills in the fields this pipeline derives rather than writes, and then checks schema,
+ * Japanese prose, evidence, baseline and privacy, in that order and always in that order.
  *
- * The order is not the analysis agent's to choose. `period` and the evidence labels are derived
- * here, so validating before normalizing fails on fields the analysis was told not to write. Giving
+ * Every step before the checks is ordered by what it reads. Notation runs first because everything
+ * after it reads values the analysis may have spelled its own way; ids run last because they are
+ * derived from the content the earlier steps just settled.
+ *
+ * The order is not the analysis agent's to choose. `period`, the ids and the evidence labels are
+ * derived here, so validating before normalizing fails on fields the analysis was told not to write. Giving
  * the agent the commands and depending on it to run them in the right order does not work: a shell
  * allowlist matches a command prefix, so any granted command can be followed by another one. So the
  * agent is granted no command that touches its own output, and this runs afterwards instead.
@@ -17,8 +21,10 @@ import { spawnSync } from "node:child_process";
  * before anything reaches the site.
  */
 const steps: ReadonlyArray<readonly [string, readonly string[]]> = [
+  ["scripts/normalize-ai-insight-notation.ts", ["public/data/snapshot.json"]],
   ["scripts/normalize-ai-insight-period.ts", ["public/data/snapshot.json"]],
   ["scripts/normalize-ai-insight-labels.ts", ["public/data/snapshot.json"]],
+  ["scripts/normalize-ai-insight-ids.ts", ["public/data/snapshot.json"]],
   ["scripts/validate-public-data.ts", ["public/data/snapshot.json", "--insights-only"]],
   ["scripts/privacy-scan.ts", ["public"]]
 ];
@@ -43,5 +49,5 @@ for (const [script, args] of steps) {
 }
 
 console.log(
-  "Insight check passed: derived period, derived evidence labels, schema, Japanese prose, evidence, baseline and privacy."
+  "Insight check passed: repaired notation, derived period, derived evidence labels, derived ids, schema, Japanese prose, evidence, baseline and privacy."
 );

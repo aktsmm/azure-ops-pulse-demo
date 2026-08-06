@@ -1,14 +1,22 @@
 import { createDemoRawSnapshot } from "./demo-data";
 import { sanitizeSnapshot } from "../src/lib/sanitize";
+import { applyDeterministicInsightIds } from "./insight-identity";
 import type { PublicSnapshotV1 } from "../src/data/contracts";
 
 /**
  * The single place that turns the DEMO fixture into a publishable snapshot. `generate-demo.ts` and
  * the DEMO contract test both call it so the tested artifact is the artifact that gets written; a
  * test that rebuilt the pipeline itself could stay green while the script produced something else.
+ *
+ * The insight ids are derived here for the same reason the periods are derived in the fixture:
+ * `preview:demo` writes over the published file, and a DEMO artifact that could not survive
+ * `validate:data` would make that flow fail for a reason that has nothing to do with the change
+ * being previewed.
  */
 export function buildDemoSnapshot(generatedAt = new Date().toISOString()): PublicSnapshotV1 {
-  return sanitizeSnapshot(createDemoRawSnapshot(generatedAt));
+  const snapshot = sanitizeSnapshot(createDemoRawSnapshot(generatedAt));
+  applyDeterministicInsightIds(snapshot);
+  return snapshot;
 }
 
 /** Where a DEMO run writes when nothing asks it to write somewhere else. */

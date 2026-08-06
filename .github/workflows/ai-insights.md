@@ -107,23 +107,32 @@ Japanese label. If a Japanese label cannot be written, omit that evidence or ins
 
 Each insight must contain:
 
-- `id`: `insight-` followed by exactly eight lowercase hexadecimal characters
-- `severity`: `critical`, `warning`, `healthy`, or `info`
+- `severity`: exactly one of `critical`, `warning`, `healthy`, `info`. These four are the whole
+  vocabulary; `high`, `medium` and `low` belong to a different scale and are rejected
 - `title`
 - `observation`
 - `impact`
-- `numericEvidence`: one to six objects containing `label`, `value`, and `source`; `source` must be
-  an exact dot path under `overview`, `cost`, `inventory`, `reliability`, `security`, or `network`,
-  and the numeric token in `value` must equal the scalar at that path
+- `numericEvidence`: one to six objects containing `label`, `value`, and `source`
+  - `source`: a dot path under `overview`, `cost`, `inventory`, `reliability`, `security`, or
+    `network`. Array elements are addressed by a dot-separated index, never by brackets: write
+    `cost.categories.0.sharePercent`, not `cost.categories[0].sharePercent`, and
+    `overview.trends.1.points.3`, not `overview.trends[1].points[3]`
+  - `value`: text containing exactly one number, and that number must equal the scalar at `source`.
+    A unit or sign may travel with it (`+11.4%`, `約 1,234 件`), but a second number in the same
+    string — a year, a threshold, a comparison — is rejected
 - `recommendedAction`
-- `confidence`: a number from 0 through 1
+- `confidence`: a JSON number from 0 through 1, such as `0.78`. It is not a percentage: `78` is
+  rejected rather than read as 78%
 - `route`: one of `/overview`, `/cost`, `/resources`, `/reliability`, `/security`, `/network`,
   `/ai-insights`
 
-Do not write `period`. It records when the snapshot was collected — nothing more — and the pipeline
-derives it from `generatedAt`. Leave it out, or leave the existing value alone; a deterministic step
-overwrites it either way and a later gate rejects any candidate whose `period` did not come from
-`generatedAt`. Elsewhere, never state a window the source you cited does not itself state.
+Do not write `id` or `period`. Neither carries analysis. `period` records when the snapshot was
+collected — nothing more — and the pipeline derives it from `generatedAt`. `id` identifies the
+insight, and the pipeline derives it from the insight's own content so that two insights can never
+collide into one card on the page. Leave both out, or leave the existing values alone; a
+deterministic step overwrites them either way and a later gate rejects any candidate whose `id` or
+`period` did not come from the snapshot. Elsewhere, never state a window the source you cited does
+not itself state.
 
 ## Guardrails
 
@@ -136,10 +145,12 @@ overwrites it either way and a later gate rejects any candidate whose `period` d
 6. Do not add exact JPY amounts. Use only existing approximate labels and percentages.
 7. Do not alter identifiers, resource rows, source status, freshness, or any field outside
    `aiInsights`.
-8. `period` is not yours to write, and neither are the evidence labels: a deterministic step derives
-   them from the snapshot after you finish, then checks schema, Japanese prose, evidence, and
-   privacy. Nothing reaches the site unless the trusted publisher repeats those checks from a fresh
-   checkout, and a failure there fails the run visibly.
+8. `id` and `period` are not yours to write, and neither are the evidence labels: a deterministic
+   step derives them from the snapshot after you finish, respells the machine-checked fields where
+   only the notation differs, then checks schema, Japanese prose, evidence, and privacy. Nothing
+   reaches the site unless the trusted publisher repeats those checks from a fresh checkout, and a
+   failure there fails the run visibly. That step only ever respells a value onto one the schema
+   already allows; it never guesses which value you meant.
 9. Publish only what the snapshot supports. If the evidence for an insight is insufficient, leave
    that insight out; if no insight is supportable, write an empty array. Do not pad the array to
    reach a count.
