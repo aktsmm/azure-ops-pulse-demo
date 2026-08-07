@@ -1413,5 +1413,80 @@
       "flows": []
     }
   },
-  "aiInsights": []
+  "aiInsights": [
+    {
+      "severity": "warning",
+      "title": "コストの急増：前期比約 68% 増加",
+      "observation": "当期コストは前期比で約 67.9% 増加しています。Azure Cognitive Search が総コストの 65.2%、Foundry Tools が 26.3% を占めており、両サービスともほぼ同水準の増加率が見られます。",
+      "impact": "このペースが継続した場合、月次コスト計画への影響が懸念されます。主要サービスの使用量の変化がコスト増加と関連している可能性があります。",
+      "numericEvidence": [
+        {
+          "label": "前期比コスト増加率",
+          "value": "+67.9%",
+          "source": "cost.deltaPercent"
+        },
+        {
+          "label": "Azure Cognitive Search のコスト占有率",
+          "value": "65.2%",
+          "source": "cost.categories.0.sharePercent"
+        },
+        {
+          "label": "Foundry Tools のコスト占有率",
+          "value": "26.3%",
+          "source": "cost.categories.1.sharePercent"
+        }
+      ],
+      "recommendedAction": "コストダッシュボードで Azure Cognitive Search および Foundry Tools の使用量の推移を確認し、想定外の増加要因がないかをレビューすることを推奨します。",
+      "confidence": 0.88,
+      "route": "/cost",
+      "period": "2026-08-07 スナップショット収集時点",
+      "id": "insight-9ad1cf9b"
+    },
+    {
+      "severity": "warning",
+      "title": "Service Health にアクティブなサービス障害イベントを検出",
+      "observation": "Service Health が 2 件のアクティブイベントを報告しており、そのうち 2 件が「サービスの問題」カテゴリに該当します。また 2 件は解決済みとして記録されています。",
+      "impact": "アクティブなサービス障害が継続している場合、依存するワークロードの可用性に影響が生じる可能性があります。詳細な影響範囲の確認が必要です。",
+      "numericEvidence": [
+        {
+          "label": "アクティブな Service Health イベント数",
+          "value": "2",
+          "source": "reliability.serviceHealth.activeEvents"
+        },
+        {
+          "label": "「サービスの問題」カテゴリのイベント数",
+          "value": "2",
+          "source": "reliability.serviceHealth.categories.0.count"
+        }
+      ],
+      "recommendedAction": "信頼性ダッシュボードでアクティブイベントの詳細を確認し、影響を受けるサービスとリソースへの対応状況をレビューすることを推奨します。",
+      "confidence": 0.85,
+      "route": "/reliability",
+      "period": "2026-08-07 スナップショット収集時点",
+      "id": "insight-1674a21e"
+    },
+    {
+      "severity": "info",
+      "title": "Resource Health の評価カバレッジが 68% にとどまっています",
+      "observation": "Resource Health のサポート対象 19 件のうち 13 件が評価済みで、6 件が未評価です。評価カバレッジは 68% であり、一部リソースの健全性状態が把握されていません。",
+      "impact": "未評価のリソースに潜在的な問題があった場合、検出が遅れる可能性があります。カバレッジの拡大を検討することが望まれます。",
+      "numericEvidence": [
+        {
+          "label": "Resource Health の評価カバレッジ率",
+          "value": "68%",
+          "source": "reliability.coverage.supportedCoveragePercent"
+        },
+        {
+          "label": "未評価リソース数",
+          "value": "6",
+          "source": "reliability.coverage.unevaluatedResources"
+        }
+      ],
+      "recommendedAction": "信頼性ダッシュボードで未評価リソースを特定し、Resource Health のサポート対象かどうかを確認することを推奨します。",
+      "confidence": 0.75,
+      "route": "/reliability",
+      "period": "2026-08-07 スナップショット収集時点",
+      "id": "insight-cf84b711"
+    }
+  ]
 }
