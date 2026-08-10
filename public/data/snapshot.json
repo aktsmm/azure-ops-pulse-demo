@@ -1413,5 +1413,113 @@
       "flows": []
     }
   },
-  "aiInsights": []
+  "aiInsights": [
+    {
+      "severity": "warning",
+      "title": "コスト前期比 41.4% 増加 — Azure Cognitive Search が主因",
+      "observation": "当期コストは前期比 41.4% 増加しており、Azure Cognitive Search が総コストの 66.3% を占め、同サービス単体でも 45.8% のデルタが確認されている。Foundry Tools が 22.6% で続いている。",
+      "impact": "このまま増加傾向が続く場合、予算超過リスクが高まる可能性がある。コスト配分の見直しが必要かどうかを担当者が確認することを推奨する。",
+      "numericEvidence": [
+        {
+          "label": "前期比コスト増加率",
+          "value": "+41.4%",
+          "source": "cost.deltaPercent"
+        },
+        {
+          "label": "Azure Cognitive Search のコスト占有率",
+          "value": "66.3%",
+          "source": "cost.categories.0.sharePercent"
+        },
+        {
+          "label": "Azure Cognitive Search の前期比増加率",
+          "value": "+45.8%",
+          "source": "cost.categories.0.deltaPercent"
+        }
+      ],
+      "recommendedAction": "/cost ダッシュボードで Azure Cognitive Search の利用状況を確認し、コスト最適化の要否を担当者がレビューすることを推奨する。",
+      "confidence": 0.85,
+      "route": "/cost",
+      "period": "2026-08-11 スナップショット収集時点",
+      "id": "insight-eb8f1b44"
+    },
+    {
+      "severity": "warning",
+      "title": "Service Health のアクティブイベント 2 件を検出",
+      "observation": "Service Health が現在 2 件のアクティブイベント（サービスの問題カテゴリ）と 2 件の解決済みイベントを報告している。詳細なリソース影響は本スナップショットには含まれていない。",
+      "impact": "アクティブなサービスの問題が継続している場合、関連リソースの可用性に影響を与える可能性がある。",
+      "numericEvidence": [
+        {
+          "label": "アクティブな Service Health イベント数",
+          "value": "2",
+          "source": "reliability.serviceHealth.activeEvents"
+        },
+        {
+          "label": "「サービスの問題」カテゴリのイベント数",
+          "value": "2",
+          "source": "reliability.serviceHealth.categories.0.count"
+        }
+      ],
+      "recommendedAction": "/reliability ダッシュボードで Service Health イベントの詳細を確認し、影響範囲を担当者がレビューすることを推奨する。",
+      "confidence": 0.82,
+      "route": "/reliability",
+      "period": "2026-08-11 スナップショット収集時点",
+      "id": "insight-bf5e134f"
+    },
+    {
+      "severity": "info",
+      "title": "Resource Health の評価範囲は対応リソースの 68% にとどまる",
+      "observation": "全 82 件のリソースのうち、Resource Health の対応リソースは 19 件であり、そのうち評価済みは 13 件（68%）にとどまる。63 件は Resource Health 対象外のリソースタイプである。",
+      "impact": "未評価リソースの健全性が把握できていないため、障害の早期検知が困難になる可能性がある。",
+      "numericEvidence": [
+        {
+          "label": "Resource Health 対応カバレッジ率",
+          "value": "68%",
+          "source": "reliability.coverage.supportedCoveragePercent"
+        },
+        {
+          "label": "Resource Health 対象外リソース数",
+          "value": "63",
+          "source": "reliability.coverage.notApplicableResources"
+        },
+        {
+          "label": "評価済みリソース数",
+          "value": "13",
+          "source": "reliability.coverage.evaluatedResources"
+        }
+      ],
+      "recommendedAction": "/reliability ダッシュボードで未評価リソースの状況を確認し、監視体制の拡充について担当者がレビューすることを推奨する。",
+      "confidence": 0.78,
+      "route": "/reliability",
+      "period": "2026-08-11 スナップショット収集時点",
+      "id": "insight-5938fba0"
+    },
+    {
+      "severity": "info",
+      "title": "ネットワークリソースの大半でプラットフォームメトリクスが取得不可",
+      "observation": "ネットワークインベントリ 10 件のうち、プラットフォームメトリクスが利用可能なリソースは 3 件のみであり、7 件はメトリクス非対応と判定されている。フロー テレメトリは未収集である。",
+      "impact": "メトリクスが取得できないリソースについては、トラフィックや障害の傾向を把握することが困難になる可能性がある。",
+      "numericEvidence": [
+        {
+          "label": "メトリクス非対応ネットワークリソース数",
+          "value": "7",
+          "source": "network.metricCoverage.notApplicableResources"
+        },
+        {
+          "label": "ネットワークインベントリ総数",
+          "value": "10",
+          "source": "network.metricCoverage.inventoryTotal"
+        },
+        {
+          "label": "メトリクス取得可能なリソース数",
+          "value": "3",
+          "source": "network.metricCoverage.metricCapableResources"
+        }
+      ],
+      "recommendedAction": "/network ダッシュボードで対象リソースを確認し、監視方針について担当者がレビューすることを推奨する。",
+      "confidence": 0.72,
+      "route": "/network",
+      "period": "2026-08-11 スナップショット収集時点",
+      "id": "insight-62170890"
+    }
+  ]
 }
