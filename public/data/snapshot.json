@@ -1,11 +1,11 @@
 {
   "schemaVersion": "1.4.0",
-  "generatedAt": "2026-08-10T21:38:19.359Z",
+  "generatedAt": "2026-08-13T21:41:34.200Z",
   "mode": "AZURE",
   "freshness": {
     "state": "fresh",
     "ageMinutes": 0,
-    "lastSuccessfulCollection": "2026-08-10T21:38:19.359Z",
+    "lastSuccessfulCollection": "2026-08-13T21:41:34.200Z",
     "nextScheduledCollection": "Tuesday / Friday 06:00 JST"
   },
   "scope": {
@@ -21,13 +21,13 @@
     },
     {
       "source": "Cost Management",
-      "availability": "available",
-      "message": "Current and prior comparable rounded JPY periods were collected from 14 and 9 records."
+      "availability": "unavailable",
+      "message": "Current Cost Management period is unavailable; billing scope or role access may be required."
     },
     {
       "source": "Resource Health",
       "availability": "partial",
-      "message": "Resource Health evaluated 13 of 19 supported resources; 63 resources are outside Resource Health coverage."
+      "message": "Resource Health evaluated 11 of 19 supported resources; 63 resources are outside Resource Health coverage."
     },
     {
       "source": "Service Health",
@@ -37,7 +37,7 @@
     {
       "source": "Activity Log",
       "availability": "available",
-      "message": "100 recent Activity Log events were collected without actor or resource detail."
+      "message": "5 recent Activity Log events were collected without actor or resource detail."
     },
     {
       "source": "Defender for Cloud",
@@ -54,21 +54,21 @@
     "metrics": [
       {
         "label": "Resource Health の評価範囲",
-        "value": "68%",
-        "change": "対応 19 件中 13 件を評価済み（対象外 63 件）",
+        "value": "58%",
+        "change": "対応 19 件中 11 件を評価済み（対象外 63 件）",
         "direction": "flat",
         "severity": "info",
         "points": [
-          68,
-          68
+          58,
+          58
         ]
       },
       {
         "label": "コストの収集範囲",
-        "value": "収集済み",
+        "value": "利用不可",
         "change": "公開用に丸めた値",
         "direction": "flat",
-        "severity": "healthy",
+        "severity": "warning",
         "points": [
           1,
           1
@@ -76,13 +76,13 @@
       },
       {
         "label": "利用不可のソース",
-        "value": "1",
+        "value": "2",
         "change": "未収集を明示",
         "direction": "flat",
         "severity": "warning",
         "points": [
-          1,
-          1
+          2,
+          2
         ]
       }
     ],
@@ -93,12 +93,12 @@
         "timestamp": "現在のスナップショット",
         "severity": "warning",
         "title": "Azure データ収集が完了",
-        "detail": "82 件のリソースをサニタイズし、利用不可の任意ソースは 1 件でした。",
+        "detail": "82 件のリソースをサニタイズし、利用不可の任意ソースは 2 件でした。",
         "route": "/overview"
       },
       {
         "id": "event-cd198459",
-        "timestamp": "2026-08-08T12:45:03.0833592Z",
+        "timestamp": "2026-08-12T11:05:09.488343Z",
         "severity": "info",
         "title": "推奨事項操作を検出",
         "detail": "公開前に実行者と対象リソースの詳細を削除しています。",
@@ -106,7 +106,7 @@
       },
       {
         "id": "event-cc1982c6",
-        "timestamp": "2026-08-08T12:05:41.86242Z",
+        "timestamp": "2026-08-08T12:45:03.0833592Z",
         "severity": "info",
         "title": "推奨事項操作を検出",
         "detail": "公開前に実行者と対象リソースの詳細を削除しています。",
@@ -114,7 +114,7 @@
       },
       {
         "id": "event-cb198133",
-        "timestamp": "2026-08-07T23:55:13.4202671Z",
+        "timestamp": "2026-08-08T12:05:41.86242Z",
         "severity": "info",
         "title": "推奨事項操作を検出",
         "detail": "公開前に実行者と対象リソースの詳細を削除しています。",
@@ -122,7 +122,7 @@
       },
       {
         "id": "event-ca197fa0",
-        "timestamp": "2026-08-07T23:25:10.1048387Z",
+        "timestamp": "2026-08-07T23:55:13.4202671Z",
         "severity": "info",
         "title": "推奨事項操作を検出",
         "detail": "公開前に実行者と対象リソースの詳細を削除しています。",
@@ -131,7 +131,7 @@
       {
         "id": "event-ff907070",
         "timestamp": "現在の収集期間",
-        "severity": "warning",
+        "severity": "info",
         "title": "Service Health イベントを検出",
         "detail": "影響を受けたサブスクリプションやリソースの詳細を除き、サービス単位の状態のみを表示します。",
         "route": "/reliability"
@@ -139,7 +139,7 @@
       {
         "id": "event-00907203",
         "timestamp": "現在の収集期間",
-        "severity": "info",
+        "severity": "warning",
         "title": "Service Health イベントを検出",
         "detail": "影響を受けたサブスクリプションやリソースの詳細を除き、サービス単位の状態のみを表示します。",
         "route": "/reliability"
@@ -165,14 +165,14 @@
   },
   "cost": {
     "current": {
-      "availability": "available",
-      "approximateAmount": "約¥2.2万"
+      "availability": "unavailable",
+      "approximateAmount": null
     },
     "previous": {
-      "availability": "available",
-      "approximateAmount": "約¥1.5万"
+      "availability": "unavailable",
+      "approximateAmount": null
     },
-    "deltaPercent": 41.4,
+    "deltaPercent": null,
     "forecast": {
       "availability": "unavailable",
       "approximateAmount": null
@@ -182,56 +182,7 @@
       "usedPercent": null
     },
     "normalizedTrend": [],
-    "categories": [
-      {
-        "name": "Azure Cognitive Search",
-        "approximateAmount": "約¥1.4万",
-        "sharePercent": 66.3,
-        "deltaPercent": 45.8
-      },
-      {
-        "name": "Foundry Tools",
-        "approximateAmount": "約¥5千",
-        "sharePercent": 22.6,
-        "deltaPercent": 12.3
-      },
-      {
-        "name": "Container Registry",
-        "approximateAmount": "約¥1千未満",
-        "sharePercent": 3.5,
-        "deltaPercent": null
-      },
-      {
-        "name": "Load Balancer",
-        "approximateAmount": "約¥1千未満",
-        "sharePercent": 2.5,
-        "deltaPercent": null
-      },
-      {
-        "name": "Logic Apps",
-        "approximateAmount": "約¥1千未満",
-        "sharePercent": 2.1,
-        "deltaPercent": null
-      },
-      {
-        "name": "Log Analytics",
-        "approximateAmount": "約¥1千未満",
-        "sharePercent": 1.5,
-        "deltaPercent": null
-      },
-      {
-        "name": "Storage",
-        "approximateAmount": "約¥1千未満",
-        "sharePercent": 1,
-        "deltaPercent": null
-      },
-      {
-        "name": "Virtual Network",
-        "approximateAmount": "約¥1千未満",
-        "sharePercent": 0.5,
-        "deltaPercent": null
-      }
-    ]
+    "categories": []
   },
   "inventory": {
     "total": 82,
@@ -976,7 +927,7 @@
         "resourceGroup": "rg-d9a6959d",
         "type": "microsoft.operationalinsights/workspaces",
         "region": "japaneast",
-        "status": "Healthy",
+        "status": "Unknown",
         "owner": "identity-caac8562",
         "tags": {},
         "change": "Azure Resource Graph から収集"
@@ -987,7 +938,7 @@
         "resourceGroup": "rg-8c2924db",
         "type": "microsoft.operationalinsights/workspaces",
         "region": "japaneast",
-        "status": "Healthy",
+        "status": "Unknown",
         "owner": "identity-caac8562",
         "tags": {},
         "change": "Azure Resource Graph から収集"
@@ -1314,12 +1265,12 @@
       "totalResources": 82,
       "supportedResources": 19,
       "notApplicableResources": 63,
-      "evaluatedResources": 13,
-      "unevaluatedResources": 6,
-      "healthyResources": 13,
+      "evaluatedResources": 11,
+      "unevaluatedResources": 8,
+      "healthyResources": 11,
       "degradedResources": 0,
       "unavailableResources": 0,
-      "supportedCoveragePercent": 68
+      "supportedCoveragePercent": 58
     },
     "serviceHealth": {
       "availability": "available",
@@ -1413,113 +1364,5 @@
       "flows": []
     }
   },
-  "aiInsights": [
-    {
-      "severity": "warning",
-      "title": "コスト前期比 41.4% 増加 — Azure Cognitive Search が主因",
-      "observation": "当期コストは前期比 41.4% 増加しており、Azure Cognitive Search が総コストの 66.3% を占め、同サービス単体でも 45.8% のデルタが確認されている。Foundry Tools が 22.6% で続いている。",
-      "impact": "このまま増加傾向が続く場合、予算超過リスクが高まる可能性がある。コスト配分の見直しが必要かどうかを担当者が確認することを推奨する。",
-      "numericEvidence": [
-        {
-          "label": "前期比コスト増加率",
-          "value": "+41.4%",
-          "source": "cost.deltaPercent"
-        },
-        {
-          "label": "Azure Cognitive Search のコスト占有率",
-          "value": "66.3%",
-          "source": "cost.categories.0.sharePercent"
-        },
-        {
-          "label": "Azure Cognitive Search の前期比増加率",
-          "value": "+45.8%",
-          "source": "cost.categories.0.deltaPercent"
-        }
-      ],
-      "recommendedAction": "/cost ダッシュボードで Azure Cognitive Search の利用状況を確認し、コスト最適化の要否を担当者がレビューすることを推奨する。",
-      "confidence": 0.85,
-      "route": "/cost",
-      "period": "2026-08-11 スナップショット収集時点",
-      "id": "insight-eb8f1b44"
-    },
-    {
-      "severity": "warning",
-      "title": "Service Health のアクティブイベント 2 件を検出",
-      "observation": "Service Health が現在 2 件のアクティブイベント（サービスの問題カテゴリ）と 2 件の解決済みイベントを報告している。詳細なリソース影響は本スナップショットには含まれていない。",
-      "impact": "アクティブなサービスの問題が継続している場合、関連リソースの可用性に影響を与える可能性がある。",
-      "numericEvidence": [
-        {
-          "label": "アクティブな Service Health イベント数",
-          "value": "2",
-          "source": "reliability.serviceHealth.activeEvents"
-        },
-        {
-          "label": "「サービスの問題」カテゴリのイベント数",
-          "value": "2",
-          "source": "reliability.serviceHealth.categories.0.count"
-        }
-      ],
-      "recommendedAction": "/reliability ダッシュボードで Service Health イベントの詳細を確認し、影響範囲を担当者がレビューすることを推奨する。",
-      "confidence": 0.82,
-      "route": "/reliability",
-      "period": "2026-08-11 スナップショット収集時点",
-      "id": "insight-bf5e134f"
-    },
-    {
-      "severity": "info",
-      "title": "Resource Health の評価範囲は対応リソースの 68% にとどまる",
-      "observation": "全 82 件のリソースのうち、Resource Health の対応リソースは 19 件であり、そのうち評価済みは 13 件（68%）にとどまる。63 件は Resource Health 対象外のリソースタイプである。",
-      "impact": "未評価リソースの健全性が把握できていないため、障害の早期検知が困難になる可能性がある。",
-      "numericEvidence": [
-        {
-          "label": "Resource Health 対応カバレッジ率",
-          "value": "68%",
-          "source": "reliability.coverage.supportedCoveragePercent"
-        },
-        {
-          "label": "Resource Health 対象外リソース数",
-          "value": "63",
-          "source": "reliability.coverage.notApplicableResources"
-        },
-        {
-          "label": "評価済みリソース数",
-          "value": "13",
-          "source": "reliability.coverage.evaluatedResources"
-        }
-      ],
-      "recommendedAction": "/reliability ダッシュボードで未評価リソースの状況を確認し、監視体制の拡充について担当者がレビューすることを推奨する。",
-      "confidence": 0.78,
-      "route": "/reliability",
-      "period": "2026-08-11 スナップショット収集時点",
-      "id": "insight-5938fba0"
-    },
-    {
-      "severity": "info",
-      "title": "ネットワークリソースの大半でプラットフォームメトリクスが取得不可",
-      "observation": "ネットワークインベントリ 10 件のうち、プラットフォームメトリクスが利用可能なリソースは 3 件のみであり、7 件はメトリクス非対応と判定されている。フロー テレメトリは未収集である。",
-      "impact": "メトリクスが取得できないリソースについては、トラフィックや障害の傾向を把握することが困難になる可能性がある。",
-      "numericEvidence": [
-        {
-          "label": "メトリクス非対応ネットワークリソース数",
-          "value": "7",
-          "source": "network.metricCoverage.notApplicableResources"
-        },
-        {
-          "label": "ネットワークインベントリ総数",
-          "value": "10",
-          "source": "network.metricCoverage.inventoryTotal"
-        },
-        {
-          "label": "メトリクス取得可能なリソース数",
-          "value": "3",
-          "source": "network.metricCoverage.metricCapableResources"
-        }
-      ],
-      "recommendedAction": "/network ダッシュボードで対象リソースを確認し、監視方針について担当者がレビューすることを推奨する。",
-      "confidence": 0.72,
-      "route": "/network",
-      "period": "2026-08-11 スナップショット収集時点",
-      "id": "insight-62170890"
-    }
-  ]
+  "aiInsights": []
 }
