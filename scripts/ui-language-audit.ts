@@ -20,17 +20,21 @@ export interface UiLanguageLeak {
  * "Azure Resource Graph から収集" reads as Japanese while "Collected from Azure Resource Graph"
  * still reads as English.
  *
- * Order matters. `latinRuns` strips these in array order, so a name that contains a shorter one
- * has to come first: with the bare "Azure" removed ahead of it, "Azure Portal から" leaves a
- * stray "Portal" and the whole snapshot is rejected over a product name nobody translates.
- * That is what blocked the 2026-08-17 collection — two recommendedAction fields, both natural
- * Japanese, both naming the portal the reader is being sent to.
+ * `strippableNames` sorts this list, so entries can go anywhere. Matching is case-sensitive and
+ * whole-word, so a name that Microsoft writes in more than one casing needs each spelling: the
+ * portal is documented as "Azure portal" but written "Azure Portal" about as often, and only the
+ * exact compound is allowed — a bare "Portal" is still English on a Japanese page.
+ *
+ * The list is a closed set held against open-ended agent prose, so a product the collector can
+ * surface but this list omits stops the whole snapshot. That is not hypothetical: two
+ * recommendedAction fields naming the portal blocked the 2026-08-17 collection entirely.
  */
 const PRODUCT_NAMES = [
   "Azure Resource Graph",
   "Azure Monitor",
   "Azure Front Door",
   "Azure Portal",
+  "Azure portal",
   "Azure SQL",
   "Resource Health",
   "Service Health",
@@ -44,6 +48,7 @@ const PRODUCT_NAMES = [
   "Front Door",
   "Cosmos DB",
   "Application Gateway",
+  "Network Watcher",
   "Microsoft",
   "Azure",
   "Defender",
@@ -208,13 +213,32 @@ function stripWholeWord(text: string, name: string): string {
   );
 }
 
+/**
+ * Every name the prose test may remove, longest first.
+ *
+ * The order is not cosmetic. `stripWholeWord` replaces a match with a space, so removing a shorter
+ * name first destroys the longer one that contains it: with the bare "Azure" gone, "Azure Portal"
+ * no longer matches and the leftover "Portal" is reported as English. That is what stopped the
+ * 2026-08-17 collection from publishing anything.
+ *
+ * `PRODUCT_NAMES` used to rely on being hand-ordered, and the two lists were concatenated with the
+ * snapshot's own identifiers in front, so a snapshot that published a short identifier could undo
+ * the hand-ordering from the outside. Sorting the combined set makes the ordering a property of the
+ * code rather than of the data or of whoever last edited the list.
+ */
+function strippableNames(identifiers: string[]): string[] {
+  return [...new Set([...identifiers, ...PRODUCT_NAMES])].sort(
+    (left, right) => right.length - left.length
+  );
+}
+
 function latinRuns(path: string, rendered: string, identifiers: string[]): string[] {
   for (const { path: pattern, allow } of FIELD_ALLOWANCES) {
     if (!pattern.test(path)) continue;
     if (allow.some((allowed) => allowed.test(rendered.trim()))) return [];
   }
   let text = rendered;
-  for (const name of [...identifiers, ...PRODUCT_NAMES]) {
+  for (const name of strippableNames(identifiers)) {
     text = stripWholeWord(text, name);
   }
   return (text.match(LATIN_RUN) ?? []).map((run) => run.trim()).filter((run) => run.length > 1);

@@ -334,13 +334,14 @@ describe("UI language audit", () => {
   });
 
   /**
-   * "Azure Portal" is the name of the destination, not copy to translate, and an insight that tells
-   * the reader where to go names it. It has to be stripped as a unit: while only the bare "Azure"
-   * was listed, the leftover "Portal" failed the whole snapshot and the 2026-08-17 collection
-   * published nothing over two otherwise-Japanese recommendedAction fields.
+   * The portal is the name of the destination, not copy to translate, and an insight that tells the
+   * reader where to go names it. It has to be stripped as a unit: while only the bare "Azure" was
+   * listed, the leftover "Portal" failed the whole snapshot and the 2026-08-17 collection published
+   * nothing over two otherwise-Japanese recommendedAction fields.
    *
-   * The bare word stays a leak, so this allows the product name without excusing English prose that
-   * merely mentions a portal.
+   * Microsoft documents it as "Azure portal" and writes "Azure Portal" about as often, and matching
+   * is case-sensitive, so both spellings are checked. The bare word stays a leak, so this allows the
+   * product name without excusing English prose that merely mentions a portal.
    */
   it("allows the portal by its product name without excusing the bare word", () => {
     const snapshot = demo();
@@ -351,19 +352,68 @@ describe("UI language audit", () => {
       aiInsights: [{ ...first, recommendedAction }, ...rest]
     });
 
-    expect(
-      findUiLanguageLeaks(
-        withAction("Azure Portal から Defender for Cloud プランの有効化状況を確認してください。")
-      )
-    ).toEqual([]);
-    expect(
-      findUiLanguageLeaks(
-        withAction("Azure Portal の Service Health ブレードで詳細を確認してください。")
-      )
-    ).toEqual([]);
+    for (const allowed of [
+      "Azure Portal から Defender for Cloud プランの有効化状況を確認してください。",
+      "Azure Portal の Service Health ブレードで詳細を確認してください。",
+      "Azure portal から Defender for Cloud プランの有効化状況を確認してください。"
+    ]) {
+      expect(findUiLanguageLeaks(withAction(allowed))).toEqual([]);
+    }
 
-    const bare = findUiLanguageLeaks(withAction("Portal から有効化状況を確認してください。"));
-    expect(bare.map((leak) => leak.path)).toContain("aiInsights[0].recommendedAction");
+    for (const bare of [
+      "Portal から有効化状況を確認してください。",
+      "portal から有効化状況を確認してください。"
+    ]) {
+      expect(findUiLanguageLeaks(withAction(bare)).map((leak) => leak.path)).toContain(
+        "aiInsights[0].recommendedAction"
+      );
+    }
+  });
+
+  /**
+   * `Network Watcher` reaches the page the same way the portal did: the estate publishes
+   * `microsoft.network/networkwatchers`, so an insight about network telemetry names the service.
+   * It was missing from the list for the same reason the portal was — nobody had written a sentence
+   * containing it yet.
+   */
+  it("allows Network Watcher inside Japanese prose", () => {
+    expect(findUiLanguageLeaks(withFirstResourceChange("Network Watcher で接続診断を実行"))).toEqual(
+      []
+    );
+  });
+
+  /**
+   * The strip order used to be hand-maintained in `PRODUCT_NAMES` and the snapshot's own identifiers
+   * were applied first, so a snapshot that published a short identifier could destroy a longer
+   * product name from the outside: with "Azure" stripped ahead of it, "Azure Portal" stopped
+   * matching and the residue came back. Sorting the combined set longest-first is what makes the
+   * order a property of the code rather than of the data.
+   */
+  it("keeps a compound product name intact when the snapshot publishes a shorter identifier", () => {
+    const snapshot = demo();
+    const [firstCategory, ...restCategories] = snapshot.cost.categories;
+    if (!firstCategory) throw new Error("demo fixture must publish at least one cost category");
+    const [firstInsight, ...restInsights] = snapshot.aiInsights;
+    if (!firstInsight) throw new Error("demo fixture must publish at least one insight");
+
+    const declaringAzure: PublicSnapshotV1 = {
+      ...snapshot,
+      cost: {
+        ...snapshot.cost,
+        categories: [{ ...firstCategory, name: "Azure" }, ...restCategories]
+      },
+      aiInsights: [
+        {
+          ...firstInsight,
+          recommendedAction: "Azure Portal から設定を確認してください。"
+        },
+        ...restInsights
+      ]
+    };
+
+    expect(
+      findUiLanguageLeaks(declaringAzure).map((leak) => leak.path)
+    ).not.toContain("aiInsights[0].recommendedAction");
   });
 
   /**
