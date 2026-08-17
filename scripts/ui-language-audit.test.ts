@@ -334,6 +334,39 @@ describe("UI language audit", () => {
   });
 
   /**
+   * "Azure Portal" is the name of the destination, not copy to translate, and an insight that tells
+   * the reader where to go names it. It has to be stripped as a unit: while only the bare "Azure"
+   * was listed, the leftover "Portal" failed the whole snapshot and the 2026-08-17 collection
+   * published nothing over two otherwise-Japanese recommendedAction fields.
+   *
+   * The bare word stays a leak, so this allows the product name without excusing English prose that
+   * merely mentions a portal.
+   */
+  it("allows the portal by its product name without excusing the bare word", () => {
+    const snapshot = demo();
+    const [first, ...rest] = snapshot.aiInsights;
+    if (!first) throw new Error("demo fixture must publish at least one insight");
+    const withAction = (recommendedAction: string): PublicSnapshotV1 => ({
+      ...snapshot,
+      aiInsights: [{ ...first, recommendedAction }, ...rest]
+    });
+
+    expect(
+      findUiLanguageLeaks(
+        withAction("Azure Portal から Defender for Cloud プランの有効化状況を確認してください。")
+      )
+    ).toEqual([]);
+    expect(
+      findUiLanguageLeaks(
+        withAction("Azure Portal の Service Health ブレードで詳細を確認してください。")
+      )
+    ).toEqual([]);
+
+    const bare = findUiLanguageLeaks(withAction("Portal から有効化状況を確認してください。"));
+    expect(bare.map((leak) => leak.path)).toContain("aiInsights[0].recommendedAction");
+  });
+
+  /**
    * The allowances are per field. A shared list previously accepted an English `change` value
    * because some unrelated field was allowed to carry that enumeration member or unit.
    */

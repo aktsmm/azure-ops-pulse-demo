@@ -19,11 +19,18 @@ export interface UiLanguageLeak {
  * the demo estate's service identifiers. They are removed before the prose test so that
  * "Azure Resource Graph から収集" reads as Japanese while "Collected from Azure Resource Graph"
  * still reads as English.
+ *
+ * Order matters. `latinRuns` strips these in array order, so a name that contains a shorter one
+ * has to come first: with the bare "Azure" removed ahead of it, "Azure Portal から" leaves a
+ * stray "Portal" and the whole snapshot is rejected over a product name nobody translates.
+ * That is what blocked the 2026-08-17 collection — two recommendedAction fields, both natural
+ * Japanese, both naming the portal the reader is being sent to.
  */
 const PRODUCT_NAMES = [
   "Azure Resource Graph",
   "Azure Monitor",
   "Azure Front Door",
+  "Azure Portal",
   "Azure SQL",
   "Resource Health",
   "Service Health",
