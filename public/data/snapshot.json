@@ -1413,5 +1413,98 @@
       "flows": []
     }
   },
-  "aiInsights": []
+  "aiInsights": [
+    {
+      "severity": "warning",
+      "title": "Azure Cognitive Search にコストが集中しています",
+      "observation": "現在の請求期間において、Azure Cognitive Search がサブスクリプション全体のコストの 65.9% を占めており、単一サービスへの依存度が高い状態です。サブスクリプション全体のコストは前期比 -6.8% と減少傾向にありますが、この集中度は維持されています。",
+      "impact": "このサービスの価格変動やスケール変更がサブスクリプション全体の予算に直接影響する可能性があります。コストの最適化余地を評価する際の優先対象と考えられます。",
+      "numericEvidence": [
+        {
+          "label": "Azure Cognitive Search のコスト占有率",
+          "value": "65.9%",
+          "source": "cost.categories.0.sharePercent"
+        },
+        {
+          "label": "サブスクリプション全体のコスト変化率",
+          "value": "-6.8%",
+          "source": "cost.deltaPercent"
+        }
+      ],
+      "recommendedAction": "/cost ダッシュボードで Azure Cognitive Search のコスト構成を確認し、不要なインデックスやスケール設定の見直しについて担当者によるレビューを推奨します。",
+      "confidence": 0.82,
+      "route": "/cost",
+      "period": "2026-08-21 スナップショット収集時点",
+      "id": "insight-0e404c23"
+    },
+    {
+      "severity": "warning",
+      "title": "Service Health にアクティブなイベントが検出されています",
+      "observation": "Service Health に合計 4 件のイベントが存在し、うち 2 件がアクティブな状態です。「サービスの問題」カテゴリが 2 件含まれており、関連サービスの可用性への影響が懸念されます。",
+      "impact": "アクティブなサービスの問題が継続している場合、関連リソースの可用性や応答性に影響が及ぶ可能性があります。早期の状況確認が推奨されます。",
+      "numericEvidence": [
+        {
+          "label": "アクティブな Service Health イベント数",
+          "value": "2",
+          "source": "reliability.serviceHealth.activeEvents"
+        },
+        {
+          "label": "サービスの問題カテゴリのイベント件数",
+          "value": "2",
+          "source": "reliability.serviceHealth.categories.0.count"
+        }
+      ],
+      "recommendedAction": "/reliability ダッシュボードで Service Health の詳細を確認し、影響を受けているサービスとリージョンについて担当者によるレビューを推奨します。",
+      "confidence": 0.85,
+      "route": "/reliability",
+      "period": "2026-08-21 スナップショット収集時点",
+      "id": "insight-421101f2"
+    },
+    {
+      "severity": "warning",
+      "title": "Defender for Cloud が未収集のためセキュリティ評価を取得できません",
+      "observation": "Defender for Cloud からセキュア スコアおよびアセスメント情報が取得できていません。収集不可のソースが 1 件存在しており、全 82 件のリソースに対するセキュリティ状態の把握ができない状況が続いています。Defender プランが無効化されている可能性があります。",
+      "impact": "セキュリティ上の問題が発生していても検知できないリスクがあります。脆弱性や設定ミスが可視化されないまま放置される恐れがあります。",
+      "numericEvidence": [
+        {
+          "label": "収集不可ソース数",
+          "value": "1",
+          "source": "overview.metrics.2.points.0"
+        },
+        {
+          "label": "セキュリティ評価対象の総リソース数",
+          "value": "82",
+          "source": "reliability.coverage.totalResources"
+        }
+      ],
+      "recommendedAction": "/security ダッシュボードを確認し、Defender for Cloud プランの有効化について担当者によるレビューを推奨します。",
+      "confidence": 0.78,
+      "route": "/security",
+      "period": "2026-08-21 スナップショット収集時点",
+      "id": "insight-ea8f1f43"
+    },
+    {
+      "severity": "info",
+      "title": "Resource Health の評価カバレッジが 68% にとどまっています",
+      "observation": "サポート対象 19 件のうち 13 件が評価済みであり、6 件が未評価の状態です。全 82 件のリソース中 63 件は Resource Health の対象外となっており、評価済みの 13 件はすべて正常と報告されています。",
+      "impact": "未評価のリソースについては正常性の確認ができないため、障害の早期発見が困難になる可能性があります。",
+      "numericEvidence": [
+        {
+          "label": "Resource Health のサポート対象カバレッジ率",
+          "value": "68%",
+          "source": "reliability.coverage.supportedCoveragePercent"
+        },
+        {
+          "label": "未評価リソース数",
+          "value": "6",
+          "source": "reliability.coverage.unevaluatedResources"
+        }
+      ],
+      "recommendedAction": "/reliability ダッシュボードで未評価リソースの種別を確認し、Resource Health のサポート範囲拡大について担当者によるレビューを推奨します。",
+      "confidence": 0.75,
+      "route": "/reliability",
+      "period": "2026-08-21 スナップショット収集時点",
+      "id": "insight-51e3dc97"
+    }
+  ]
 }
