@@ -17,7 +17,7 @@
     "normalize:insights": "tsx scripts/normalize-ai-insight-notation.ts public/data/snapshot.json && tsx scripts/normalize-ai-insight-period.ts public/data/snapshot.json && tsx scripts/normalize-ai-insight-labels.ts public/data/snapshot.json && tsx scripts/normalize-ai-insight-ids.ts public/data/snapshot.json",
     "validate:data": "tsx scripts/validate-public-data.ts public/data/snapshot.json",
     "validate:insights": "tsx scripts/validate-public-data.ts public/data/snapshot.json --insights-only",
-    "check:insights": "tsx scripts/check-insights.ts",
+    "check-insights": "tsx scripts/check-insights.ts",
     "scan:privacy": "tsx scripts/privacy-scan.ts"
   },
   "dependencies": {

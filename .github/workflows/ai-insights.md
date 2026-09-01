@@ -29,9 +29,10 @@ tools:
     # The earlier grant (`npm run validate:insights`) was withdrawn as useless, not as dangerous.
     # Run 30857345152 records what actually happened: the agent prefixed every attempt with
     # `cd <workspace> &&`, entries are matched from the first character of the command so every call
-    # was refused, and the agent finished by reporting that the runner blocked Node. The prompt below
-    # therefore names this exact string and forbids the prefix. This entry, the string in the prompt
-    # and the post-step `run:` are the same literal and a test keeps them that way.
+    # was refused. Runs 33143695720 and 33454461097 then showed that `:` in the npm script name was
+    # parsed as permission syntax and even the exact command was refused. The colon-free alias avoids
+    # that ambiguity. This entry, the string in the prompt and the post-step `run:` are the same
+    # literal and a test keeps them that way.
     #
     # Because entries match from the start of the command, list them exactly. A bare `npm`, `node`,
     # `npx`, `tsx`, `sh` or `bash` would grant far more than this one command and must not be added.
@@ -43,7 +44,7 @@ tools:
     - "grep"
     - "head"
     - "ls"
-    - "npm run check:insights"
+    - "npm run check-insights"
     - "printf"
     - "pwd"
     - "sort"
@@ -59,7 +60,7 @@ post-steps:
   - name: Normalize the derived insight fields, then validate schema, prose, evidence and privacy
     id: check_candidate
     if: success()
-    run: npm run check:insights
+    run: npm run check-insights
   - name: Verify bounded candidate handoff
     id: bound_candidate
     if: success() && steps.check_candidate.outcome == 'success'
@@ -153,7 +154,7 @@ not itself state.
 
 ## Check your own work before you finish
 
-When you have finished editing `public/data/snapshot.json`, run `npm run check:insights`. Run it
+When you have finished editing `public/data/snapshot.json`, run `npm run check-insights`. Run it
 exactly as written, as the whole command. Do not put `cd` in front of it, and do not add an argument,
 a redirection, a pipe, or a second command: the sandbox matches a command from its first character,
 refuses anything that is not this exact string, and a refusal is not evidence that the check passed.
@@ -164,10 +165,13 @@ looks like after `id`, `period` and the evidence labels have been derived — th
 trusted publisher will see. It takes no arguments, so you cannot run the gates before the derived
 fields exist.
 
-If it reports a failure, it names every field it can locate, not only the first. Fix the fields it
-names and run it again. Do not finish while it still reports a failure. If a command you tried is
-refused, that is a sandbox rule, not a broken runtime; re-read this paragraph and run the exact
-string above.
+If it reports a failure, treat the error and every `[advisory]` finding as one repair queue. Fix every
+named field, run the exact command again, and repeat until it prints `Insight check passed`. The audit
+has final say: if it rejects a technical English token that you believe is legitimate, rewrite that
+sentence with accepted Japanese wording instead of ignoring the failure or assuming an exemption.
+Do not finish, stage an artifact, or call a safe output before the success line appears. If a command
+you tried is refused, that is a sandbox rule, not a broken runtime; re-read this paragraph and run
+the exact string above.
 
 Do not delete a supportable insight, and do not empty the array, to make the check pass. Silencing a
 gate by removing evidence the snapshot does support is a failure, not a fix.
@@ -186,7 +190,7 @@ gate by removing evidence the snapshot does support is a failure, not a fix.
 8. `id` and `period` are not yours to write, and neither are the evidence labels: a deterministic
    step derives them from the snapshot after you finish, respells the machine-checked fields where
    only the notation differs, then checks schema, Japanese prose, evidence, and privacy. That step
-   is the same `npm run check:insights` you run yourself above; running it early only means you see
+   is the same `npm run check-insights` you run yourself above; running it early only means you see
    its result while you can still act on it. Nothing reaches the site unless the trusted publisher
    repeats those checks from a fresh checkout, and a failure there fails the run visibly. That step
    only ever respells a value onto one the schema already allows; it never guesses which value you

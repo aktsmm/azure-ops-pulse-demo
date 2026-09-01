@@ -353,7 +353,7 @@ describe("AI insight publication gate", () => {
     expect(source).toContain(
       "Normalize the derived insight fields, then validate schema, prose, evidence and privacy"
     );
-    expect(source).toContain("npm run check:insights");
+    expect(source).toContain("npm run check-insights");
     expect(source).toContain("never copy an English-only metric label or source path");
     // Anchored rather than substring-matched: a commented-out call satisfies `toContain`, which is
     // exactly how the period gate slipped past its own assertion before a behavioural test caught it.
@@ -382,7 +382,7 @@ describe("AI insight publication gate", () => {
     expect(normalize).toContain("scripts/normalize-ai-insight-ids.ts public/data/snapshot.json");
 
     // The analysis agent is granted exactly one command that touches its own output, and it is the
-    // combined one: `check:insights` derives `period`, the labels and the ids and only then runs the
+    // combined one: `check-insights` derives `period`, the labels and the ids and only then runs the
     // gates, and it refuses arguments, so there is no way to reach a gate through it before the
     // derivations have run. Granting the validator on its own is what failed before - the agent
     // could validate first and fail on a field it was told not to write.
@@ -395,7 +395,8 @@ describe("AI insight publication gate", () => {
     //
     // Listing the grants exactly, rather than forbidding `npm`, is what keeps `sh`, `node` or `tsx`
     // from being added later: a bare interpreter would grant every command it can run.
-    expect(packageJson.scripts["check:insights"]).toBe("tsx scripts/check-insights.ts");
+    expect(packageJson.scripts["check-insights"]).toBe("tsx scripts/check-insights.ts");
+    expect(packageJson.scripts["check:insights"]).toBeUndefined();
     const allowlist = [...source.matchAll(/^ {4}- "(.+)"$/gm)].map((match) => match[1]);
     expect(allowlist).toEqual([
       "cat",
@@ -404,7 +405,7 @@ describe("AI insight publication gate", () => {
       "grep",
       "head",
       "ls",
-      "npm run check:insights",
+      "npm run check-insights",
       "printf",
       "pwd",
       "sort",
@@ -443,12 +444,12 @@ describe("AI insight publication gate", () => {
     ]);
 
     // The deterministic step runs it, and the candidate is only uploaded when it passed.
-    expect(source).toContain("run: npm run check:insights");
+    expect(source).toContain("run: npm run check-insights");
     expect(source).toContain("steps.check_candidate.outcome == 'success'");
 
     // A prompt change that never reached the compiled workflow would leave the agent free to write
     // the field again, so the generated lock has to carry the same command.
-    expect(lock).toContain("run: npm run check:insights");
+    expect(lock).toContain("run: npm run check-insights");
 
     // Three copies of one string have to stay identical: the grant, the command the prompt tells the
     // agent to type, and the post-step that runs it. A grant the prompt spells differently is a
@@ -456,7 +457,10 @@ describe("AI insight publication gate", () => {
     // prefixed with `cd <workspace> &&`, every attempt was refused, and the agent concluded the
     // runner had blocked Node. Anchored to the line, so a mention inside a comment cannot stand in
     // for the instruction.
-    const selfCheckCommand = "npm run check:insights";
+    const selfCheckCommand = "npm run check-insights";
+    // Copilot CLI uses `:` in permission patterns. Runs 33143695720 and 33454461097 proved that an
+    // npm script name containing it can be denied even when the displayed command matches exactly.
+    expect(selfCheckCommand).not.toContain(":");
     expect(allowlist).toContain(selfCheckCommand);
     expect(source).toContain(`run: ${selfCheckCommand}`);
     // The prompt body is imported from this file at run time rather than embedded in the lock, so
@@ -476,12 +480,14 @@ describe("AI insight publication gate", () => {
     expect(promptBody).toContain("cost.categories.0.sharePercent");
     expect(promptBody).toContain("cost.categories[0].sharePercent");
 
-    // The instruction the grant depends on. `cd <workspace> && npm run check:insights` is refused,
+    // The instruction the grant depends on. `cd <workspace> && npm run check-insights` is refused,
     // and a refusal reads like a broken runtime rather than a rule, so the prompt has to say both
     // that the command is typed alone and that a refusal is not a pass.
     expect(promptBody).toContain(`run \`${selfCheckCommand}\``);
     expect(promptBody).toContain("Do not put `cd` in front of it");
     expect(promptBody).toContain("a refusal is not evidence that the check passed");
+    expect(promptBody).toContain("repeat until it prints `Insight check passed`");
+    expect(promptBody).toContain("Do not finish, stage an artifact, or call a safe output");
     // Feedback the agent can act on is also feedback it can silence. Emptying the array passes every
     // gate, so the instruction that it is a failure rather than a fix is part of the change.
     expect(promptBody).toContain("do not empty the array, to make the check pass");

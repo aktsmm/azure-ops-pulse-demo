@@ -59,6 +59,16 @@ const PRODUCT_NAMES = [
 ];
 
 /**
+ * Closed technical abbreviations that are conventional Japanese notation, not untranslated copy.
+ * Keeping this explicit prevents an uppercase-shape exemption from accepting prose such as
+ * "REGULATORY COMPLIANCE AGGREGATE". Whole-word stripping still leaves the rest of an English
+ * sentence for the audit to reject.
+ *
+ * `BCP` and `IP` replay the false positives from runs 33143695720 and 33454461097.
+ */
+const TECHNICAL_ABBREVIATIONS = ["BCP", "IP"];
+
+/**
  * A measurement is digits and a Latin unit, which is how a reader expects to see it. The same shape
  * is allowed wherever the dashboard prints one.
  */
@@ -227,7 +237,7 @@ function stripWholeWord(text: string, name: string): string {
  * code rather than of the data or of whoever last edited the list.
  */
 function strippableNames(identifiers: string[]): string[] {
-  return [...new Set([...identifiers, ...PRODUCT_NAMES])].sort(
+  return [...new Set([...identifiers, ...PRODUCT_NAMES, ...TECHNICAL_ABBREVIATIONS])].sort(
     (left, right) => right.length - left.length
   );
 }
