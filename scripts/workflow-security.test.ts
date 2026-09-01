@@ -350,7 +350,7 @@ describe("AI insight publication gate", () => {
     expect(lock).toContain('GH_AW_SAFE_OUTPUTS_STAGED: "true"');
     expect(lock).toContain('GH_AW_SAFE_OUTPUTS_HANDLER_CONFIG: "{\\"noop\\"');
     expect(lock).toContain('\\"upload_artifact\\":{\\"allowed-paths\\"');
-    expect(source).toMatch(/^  noop:\s*$/m);
+    expect(source).toMatch(/^\s{2}noop:\s*$/m);
     expect(source).toContain("Analyze only `public/data/snapshot.json`");
     expect(source).toContain(
       "Normalize the derived insight fields, then validate schema, prose, evidence and privacy"
