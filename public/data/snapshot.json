@@ -1,11 +1,11 @@
 {
   "schemaVersion": "1.4.0",
-  "generatedAt": "2026-09-01T00:21:51.895Z",
+  "generatedAt": "2026-09-01T06:17:52.161Z",
   "mode": "AZURE",
   "freshness": {
     "state": "fresh",
     "ageMinutes": 0,
-    "lastSuccessfulCollection": "2026-09-01T00:21:51.895Z",
+    "lastSuccessfulCollection": "2026-09-01T06:17:52.161Z",
     "nextScheduledCollection": "Tuesday / Friday 06:00 JST"
   },
   "scope": {
@@ -21,8 +21,8 @@
     },
     {
       "source": "Cost Management",
-      "availability": "unavailable",
-      "message": "Current Cost Management period is unavailable; billing scope or role access may be required."
+      "availability": "available",
+      "message": "Current and prior comparable rounded JPY periods were collected from 14 and 10 records."
     },
     {
       "source": "Resource Health",
@@ -37,7 +37,7 @@
     {
       "source": "Activity Log",
       "availability": "available",
-      "message": "80 recent Activity Log events were collected without actor or resource detail."
+      "message": "1 recent Activity Log events were collected without actor or resource detail."
     },
     {
       "source": "Defender for Cloud",
@@ -65,10 +65,10 @@
       },
       {
         "label": "コストの収集範囲",
-        "value": "利用不可",
+        "value": "収集済み",
         "change": "公開用に丸めた値",
         "direction": "flat",
-        "severity": "warning",
+        "severity": "healthy",
         "points": [
           1,
           1
@@ -76,13 +76,13 @@
       },
       {
         "label": "利用不可のソース",
-        "value": "2",
+        "value": "1",
         "change": "未収集を明示",
         "direction": "flat",
         "severity": "warning",
         "points": [
-          2,
-          2
+          1,
+          1
         ]
       }
     ],
@@ -93,7 +93,7 @@
         "timestamp": "現在のスナップショット",
         "severity": "warning",
         "title": "Azure データ収集が完了",
-        "detail": "82 件のリソースをサニタイズし、利用不可の任意ソースは 2 件でした。",
+        "detail": "82 件のリソースをサニタイズし、利用不可の任意ソースは 1 件でした。",
         "route": "/overview"
       },
       {
@@ -105,33 +105,9 @@
         "route": "/overview"
       },
       {
-        "id": "event-cc1982c6",
-        "timestamp": "2026-08-25T06:08:35.0711749Z",
-        "severity": "info",
-        "title": "仮想ネットワークの削除を検出",
-        "detail": "公開前に実行者と対象リソースの詳細を削除しています。",
-        "route": "/overview"
-      },
-      {
-        "id": "event-cb198133",
-        "timestamp": "2026-08-25T06:08:32.2714467Z",
-        "severity": "info",
-        "title": "管理操作を検出",
-        "detail": "公開前に実行者と対象リソースの詳細を削除しています。",
-        "route": "/overview"
-      },
-      {
-        "id": "event-ca197fa0",
-        "timestamp": "2026-08-25T06:08:01.6756775Z",
-        "severity": "info",
-        "title": "管理操作を検出",
-        "detail": "公開前に実行者と対象リソースの詳細を削除しています。",
-        "route": "/overview"
-      },
-      {
         "id": "event-ff907070",
         "timestamp": "現在の収集期間",
-        "severity": "warning",
+        "severity": "info",
         "title": "Service Health イベントを検出",
         "detail": "影響を受けたサブスクリプションやリソースの詳細を除き、サービス単位の状態のみを表示します。",
         "route": "/reliability"
@@ -139,7 +115,7 @@
       {
         "id": "event-00907203",
         "timestamp": "現在の収集期間",
-        "severity": "info",
+        "severity": "warning",
         "title": "Service Health イベントを検出",
         "detail": "影響を受けたサブスクリプションやリソースの詳細を除き、サービス単位の状態のみを表示します。",
         "route": "/reliability"
@@ -165,14 +141,14 @@
   },
   "cost": {
     "current": {
-      "availability": "unavailable",
-      "approximateAmount": null
+      "availability": "available",
+      "approximateAmount": "約¥2.2万"
     },
     "previous": {
-      "availability": "unavailable",
-      "approximateAmount": null
+      "availability": "available",
+      "approximateAmount": "約¥2.1万"
     },
-    "deltaPercent": null,
+    "deltaPercent": 3,
     "forecast": {
       "availability": "unavailable",
       "approximateAmount": null
@@ -182,7 +158,56 @@
       "usedPercent": null
     },
     "normalizedTrend": [],
-    "categories": []
+    "categories": [
+      {
+        "name": "Azure Cognitive Search",
+        "approximateAmount": "約¥1.4万",
+        "sharePercent": 64.1,
+        "deltaPercent": -4.2
+      },
+      {
+        "name": "Load Balancer",
+        "approximateAmount": "約¥2千",
+        "sharePercent": 11.3,
+        "deltaPercent": null
+      },
+      {
+        "name": "Foundry Tools",
+        "approximateAmount": "約¥2千",
+        "sharePercent": 11,
+        "deltaPercent": -53.6
+      },
+      {
+        "name": "Storage",
+        "approximateAmount": "約¥1千未満",
+        "sharePercent": 4.4,
+        "deltaPercent": null
+      },
+      {
+        "name": "Container Registry",
+        "approximateAmount": "約¥1千未満",
+        "sharePercent": 3.3,
+        "deltaPercent": null
+      },
+      {
+        "name": "Virtual Network",
+        "approximateAmount": "約¥1千未満",
+        "sharePercent": 2.3,
+        "deltaPercent": null
+      },
+      {
+        "name": "Logic Apps",
+        "approximateAmount": "約¥1千未満",
+        "sharePercent": 2,
+        "deltaPercent": null
+      },
+      {
+        "name": "Log Analytics",
+        "approximateAmount": "約¥1千未満",
+        "sharePercent": 1.7,
+        "deltaPercent": null
+      }
+    ]
   },
   "inventory": {
     "total": 82,
