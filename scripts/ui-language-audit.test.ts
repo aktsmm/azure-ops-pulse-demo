@@ -383,6 +383,38 @@ describe("UI language audit", () => {
   });
 
   /**
+   * Runs 33143695720, 33454461097, and 33474896360 failed after otherwise-Japanese recommendations
+   * used `BCP`, `IP`, and `API`. These are conventional technical abbreviations, but the allowance
+   * must stay closed: accepting any uppercase token would also accept untranslated status words.
+   */
+  it("allows known technical abbreviations without excusing arbitrary uppercase text", () => {
+    const snapshot = demo();
+    const [first, ...rest] = snapshot.aiInsights;
+    if (!first) throw new Error("demo fixture must publish at least one insight");
+    const withAction = (recommendedAction: string): PublicSnapshotV1 => ({
+      ...snapshot,
+      aiInsights: [{ ...first, recommendedAction }, ...rest]
+    });
+
+    for (const allowed of [
+      "監視 API の取得状況を確認してください。",
+      "BCP の観点から復旧手順を人が確認してください。",
+      "パブリック IP を持つリソースの監視設定を確認してください。"
+    ]) {
+      expect(findUiLanguageLeaks(withAction(allowed))).toEqual([]);
+    }
+
+    for (const rejected of [
+      "NETWORK の状態を確認してください。",
+      "XYZ の設定を確認してください。"
+    ]) {
+      expect(findUiLanguageLeaks(withAction(rejected)).map((leak) => leak.path)).toContain(
+        "aiInsights[0].recommendedAction"
+      );
+    }
+  });
+
+  /**
    * The strip order used to be hand-maintained in `PRODUCT_NAMES` and the snapshot's own identifiers
    * were applied first, so a snapshot that published a short identifier could destroy a longer
    * product name from the outside: with "Azure" stripped ahead of it, "Azure Portal" stopped

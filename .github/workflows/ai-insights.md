@@ -15,8 +15,8 @@ max-ai-credits: 1000
 
 tools:
   bash:
-    # Read-only commands, plus the single command that checks the analysis output. That command runs
-    # the derivations and the gates as one fixed sequence and refuses arguments, so the order is not
+    # Read-only commands, plus the npm command stem used for the single analysis check. The check
+    # runs the derivations and gates as one fixed sequence and refuses arguments, so the order is not
     # the agent's to choose: checking before the derived fields exist is not reachable through it.
     #
     # Granting it costs no privilege. The post-step below already runs this same repository code on
@@ -26,24 +26,25 @@ tools:
     # authority: `publish-ai-insights.yml` repeats every gate from a fresh checkout of the default
     # branch, and nothing reaches the site unless that pass succeeds.
     #
-    # The earlier grant (`npm run validate:insights`) was withdrawn as useless, not as dangerous.
+    # The earlier exact grant (`npm run validate:insights`) was withdrawn as unusable, not dangerous.
     # Run 30857345152 records what actually happened: the agent prefixed every attempt with
     # `cd <workspace> &&`, entries are matched from the first character of the command so every call
-    # was refused, and the agent finished by reporting that the runner blocked Node. The prompt below
-    # therefore names this exact string and forbids the prefix. This entry, the string in the prompt
-    # and the post-step `run:` are the same literal and a test keeps them that way.
+    # was refused. Run 33474896360 then proved that Copilot CLI also refuses a colon-free multiword
+    # `npm run ...` grant even while displaying the exact allowed string. Granting the supported npm
+    # command stem compiles to `shell(npm:*)`, so the agent can finally execute the fixed self-check.
     #
-    # Because entries match from the start of the command, list them exactly. A bare `npm`, `node`,
-    # `npx`, `tsx`, `sh` or `bash` would grant far more than this one command and must not be added.
-    # This block cannot be dropped entirely - without it the compiled workflow falls back to
-    # `--allow-all-tools`.
+    # The npm stem grants every package script, but adds no code-execution privilege here: the agent
+    # can already edit the package and scripts, and the runner executes the same package script in the
+    # post-step. Network access remains restricted, tokens are removed before the sandbox starts, and
+    # the trusted publisher repeats every gate from a clean default-branch checkout. Other runtimes
+    # stay forbidden, and this block cannot be dropped because that compiles to `--allow-all-tools`.
     - "cat"
     - "date"
     - "echo"
     - "grep"
     - "head"
     - "ls"
-    - "npm run check:insights"
+    - "npm"
     - "printf"
     - "pwd"
     - "sort"
@@ -59,7 +60,7 @@ post-steps:
   - name: Normalize the derived insight fields, then validate schema, prose, evidence and privacy
     id: check_candidate
     if: success()
-    run: npm run check:insights
+    run: npm run check-insights
   - name: Verify bounded candidate handoff
     id: bound_candidate
     if: success() && steps.check_candidate.outcome == 'success'
@@ -96,7 +97,7 @@ safe-outputs:
       - public/data/snapshot.json
   missing-tool: false
   missing-data: false
-  noop: false
+  noop:
   report-incomplete: false
   report-failure-as-issue: false
   threat-detection: false
@@ -153,7 +154,7 @@ not itself state.
 
 ## Check your own work before you finish
 
-When you have finished editing `public/data/snapshot.json`, run `npm run check:insights`. Run it
+When you have finished editing `public/data/snapshot.json`, run `npm run check-insights`. Run it
 exactly as written, as the whole command. Do not put `cd` in front of it, and do not add an argument,
 a redirection, a pipe, or a second command: the sandbox matches a command from its first character,
 refuses anything that is not this exact string, and a refusal is not evidence that the check passed.
@@ -164,10 +165,13 @@ looks like after `id`, `period` and the evidence labels have been derived — th
 trusted publisher will see. It takes no arguments, so you cannot run the gates before the derived
 fields exist.
 
-If it reports a failure, it names every field it can locate, not only the first. Fix the fields it
-names and run it again. Do not finish while it still reports a failure. If a command you tried is
-refused, that is a sandbox rule, not a broken runtime; re-read this paragraph and run the exact
-string above.
+If it reports a failure, treat the error and every `[advisory]` finding as one repair queue. Fix every
+named field, run the exact command again, and repeat until it prints `Insight check passed`. The audit
+has final say: if it rejects a technical English token that you believe is legitimate, rewrite that
+sentence with accepted Japanese wording instead of ignoring the failure or assuming an exemption.
+Do not finish, stage an artifact, or call a safe output before the success line appears. If a command
+you tried is refused, that is a sandbox rule, not a broken runtime; re-read this paragraph and run
+the exact string above.
 
 Do not delete a supportable insight, and do not empty the array, to make the check pass. Silencing a
 gate by removing evidence the snapshot does support is a failure, not a fix.
@@ -186,7 +190,7 @@ gate by removing evidence the snapshot does support is a failure, not a fix.
 8. `id` and `period` are not yours to write, and neither are the evidence labels: a deterministic
    step derives them from the snapshot after you finish, respells the machine-checked fields where
    only the notation differs, then checks schema, Japanese prose, evidence, and privacy. That step
-   is the same `npm run check:insights` you run yourself above; running it early only means you see
+   is the same `npm run check-insights` you run yourself above; running it early only means you see
    its result while you can still act on it. Nothing reaches the site unless the trusted publisher
    repeats those checks from a fresh checkout, and a failure there fails the run visibly. That step
    only ever respells a value onto one the schema already allows; it never guesses which value you
@@ -195,9 +199,8 @@ gate by removing evidence the snapshot does support is a failure, not a fix.
    that insight out; if no insight is supportable, write an empty array. Do not pad the array to
    reach a count, and do not shrink it to quiet a gate: an empty array is correct only when the
    snapshot supports nothing.
-10. Do not request or emit a safe output. gh-aw requires a non-builtin safe output to avoid
-   auto-injecting `create_issue`, so the only configured capability is a staged, non-publishing
-   artifact restricted to the already-sanitized snapshot path. It is not the
-   `validated-ai-insights` handoff. The deterministic bounded post-step owns that exact artifact,
-   and a separate trusted workflow can publish only after repeating schema, exact evidence,
-   baseline-diff, and privacy gates from a fresh checkout.
+10. After `npm run check-insights` prints its success line, call the configured `noop` safe output to
+   report that no GitHub mutation is needed. Do not call `upload-artifact`: its configured capability
+   is staged and non-publishing, and it is not the `validated-ai-insights` handoff. The deterministic
+   bounded post-step owns that exact artifact, and a separate trusted workflow can publish only after
+   repeating schema, exact evidence, baseline-diff, and privacy gates from a fresh checkout.

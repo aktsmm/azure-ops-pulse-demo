@@ -200,6 +200,25 @@ describe("recorded insight failures replayed through the derivations", () => {
       expect(result.output).toContain("English prose in a Japanese dashboard");
     }
   );
+
+  it(
+    "accepts the Japanese technical abbreviations rejected by recorded production runs",
+    { timeout: SUBPROCESS_TIMEOUT },
+    async () => {
+      for (const recommendedAction of [
+        "監視 API の取得状況を確認してください。",
+        "BCP の観点から復旧手順を人が確認してください。",
+        "メトリクス取得が可能なネットワークリソース（ロードバランサー、パブリック IP など）については、Azure Monitor でアラートを設定することを推奨します。詳細は /network ダッシュボードを参照してください。"
+      ]) {
+        const candidate = {
+          ...snapshot,
+          aiInsights: [{ ...insightAt(0), recommendedAction }, ...snapshot.aiInsights.slice(1)]
+        };
+
+        expect((await deriveThenValidate(candidate)).status).toBe(0);
+      }
+    }
+  );
 });
 
 describe("insight findings report", () => {
