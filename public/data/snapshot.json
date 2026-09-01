@@ -1389,5 +1389,93 @@
       "flows": []
     }
   },
-  "aiInsights": []
+  "aiInsights": [
+    {
+      "severity": "warning",
+      "title": "Azure Cognitive Search へのコスト集中",
+      "observation": "Azure Cognitive Search が今期コスト全体の 64.1% を占めており、単一サービスへのコスト配分が著しく集中しています。全体コストは前期比 3% 増加しており、注視が必要です。",
+      "impact": "特定サービスへのコスト依存度が高い状態は、利用量増加時のコスト超過リスクを高める可能性があります。",
+      "numericEvidence": [
+        {
+          "label": "Azure Cognitive Search のコスト比率",
+          "value": "64.1%",
+          "source": "cost.categories.0.sharePercent"
+        },
+        {
+          "label": "前期比コスト変化率",
+          "value": "+3%",
+          "source": "cost.deltaPercent"
+        }
+      ],
+      "recommendedAction": "コストダッシュボードで Azure Cognitive Search の利用状況を確認し、最適化の余地を検討してください。",
+      "confidence": 0.82,
+      "route": "/cost",
+      "period": "2026-09-01 スナップショット収集時点",
+      "id": "insight-53a3e449"
+    },
+    {
+      "severity": "warning",
+      "title": "Service Health にアクティブイベントあり",
+      "observation": "Service Health に 2 件のアクティブイベントが存在します。収集期間中のイベント総数は 5 件で、うち 3 件がサービスの問題として分類されています。",
+      "impact": "アクティブなサービスイベントはリソースの可用性に影響する可能性があり、早期の確認が推奨されます。",
+      "numericEvidence": [
+        {
+          "label": "アクティブな Service Health イベント数",
+          "value": "2",
+          "source": "reliability.serviceHealth.activeEvents"
+        },
+        {
+          "label": "サービスの問題イベント数（解決済み含む）",
+          "value": "3",
+          "source": "reliability.serviceHealth.categories.0.count"
+        }
+      ],
+      "recommendedAction": "信頼性ダッシュボードで Service Health イベントの詳細を確認し、影響範囲を評価してください。",
+      "confidence": 0.85,
+      "route": "/reliability",
+      "period": "2026-09-01 スナップショット収集時点",
+      "id": "insight-cbff9825"
+    },
+    {
+      "severity": "critical",
+      "title": "Defender for Cloud が利用不可 — セキュリティ評価を取得できず",
+      "observation": "Defender for Cloud のデータ収集が利用不可状態であり、セキュアスコアおよびセキュリティ評価が取得されていません。このサブスクリプションで Defender プランが無効化されている可能性があります。",
+      "impact": "セキュリティ態勢の可視性が失われており、脆弱なリソースの検出が困難になっている可能性があります。",
+      "numericEvidence": [
+        {
+          "label": "利用不可データソース数",
+          "value": "1",
+          "source": "overview.metrics.2.points.0"
+        }
+      ],
+      "recommendedAction": "Azure Portal で Defender for Cloud のプラン設定を確認し、有効化を検討してください。その後セキュリティダッシュボードで状態を再確認してください。",
+      "confidence": 0.9,
+      "route": "/security",
+      "period": "2026-09-01 スナップショット収集時点",
+      "id": "insight-51ab99fc"
+    },
+    {
+      "severity": "info",
+      "title": "Resource Health 評価カバレッジに不完全な部分あり",
+      "observation": "Resource Health 対象の 19 件のうち 13 件のみが評価済みで、6 件が未評価のままです。評価カバレッジ率は 68% にとどまっています。",
+      "impact": "未評価リソースの健全性状態が把握できないため、一部のリスクが見落とされる可能性があります。",
+      "numericEvidence": [
+        {
+          "label": "未評価リソース数",
+          "value": "6",
+          "source": "reliability.coverage.unevaluatedResources"
+        },
+        {
+          "label": "Resource Health 評価カバレッジ率",
+          "value": "68%",
+          "source": "reliability.coverage.supportedCoveragePercent"
+        }
+      ],
+      "recommendedAction": "信頼性ダッシュボードで未評価リソースを確認し、必要に応じて Resource Health の適用範囲の拡大を検討してください。",
+      "confidence": 0.75,
+      "route": "/reliability",
+      "period": "2026-09-01 スナップショット収集時点",
+      "id": "insight-f78bd4cb"
+    }
+  ]
 }
