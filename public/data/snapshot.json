@@ -1,11 +1,11 @@
 {
   "schemaVersion": "1.4.0",
-  "generatedAt": "2026-08-28T05:05:10.264Z",
+  "generatedAt": "2026-09-01T00:21:51.895Z",
   "mode": "AZURE",
   "freshness": {
     "state": "fresh",
     "ageMinutes": 0,
-    "lastSuccessfulCollection": "2026-08-28T05:05:10.264Z",
+    "lastSuccessfulCollection": "2026-09-01T00:21:51.895Z",
     "nextScheduledCollection": "Tuesday / Friday 06:00 JST"
   },
   "scope": {
@@ -37,7 +37,7 @@
     {
       "source": "Activity Log",
       "availability": "available",
-      "message": "82 recent Activity Log events were collected without actor or resource detail."
+      "message": "80 recent Activity Log events were collected without actor or resource detail."
     },
     {
       "source": "Defender for Cloud",
