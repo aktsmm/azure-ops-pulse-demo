@@ -383,9 +383,9 @@ describe("UI language audit", () => {
   });
 
   /**
-   * Runs 33143695720 and 33454461097 failed after otherwise-Japanese recommendations used `BCP`
-   * and `IP`. These are conventional technical abbreviations, but the allowance must stay closed:
-   * accepting any uppercase token would also accept untranslated status words.
+   * Runs 33143695720, 33454461097, and 33474896360 failed after otherwise-Japanese recommendations
+   * used `BCP`, `IP`, and `API`. These are conventional technical abbreviations, but the allowance
+   * must stay closed: accepting any uppercase token would also accept untranslated status words.
    */
   it("allows known technical abbreviations without excusing arbitrary uppercase text", () => {
     const snapshot = demo();
@@ -397,6 +397,7 @@ describe("UI language audit", () => {
     });
 
     for (const allowed of [
+      "監視 API の取得状況を確認してください。",
       "BCP の観点から復旧手順を人が確認してください。",
       "パブリック IP を持つリソースの監視設定を確認してください。"
     ]) {

@@ -15,8 +15,8 @@ max-ai-credits: 1000
 
 tools:
   bash:
-    # Read-only commands, plus the single command that checks the analysis output. That command runs
-    # the derivations and the gates as one fixed sequence and refuses arguments, so the order is not
+    # Read-only commands, plus the npm command stem used for the single analysis check. The check
+    # runs the derivations and gates as one fixed sequence and refuses arguments, so the order is not
     # the agent's to choose: checking before the derived fields exist is not reachable through it.
     #
     # Granting it costs no privilege. The post-step below already runs this same repository code on
@@ -26,25 +26,25 @@ tools:
     # authority: `publish-ai-insights.yml` repeats every gate from a fresh checkout of the default
     # branch, and nothing reaches the site unless that pass succeeds.
     #
-    # The earlier grant (`npm run validate:insights`) was withdrawn as useless, not as dangerous.
+    # The earlier exact grant (`npm run validate:insights`) was withdrawn as unusable, not dangerous.
     # Run 30857345152 records what actually happened: the agent prefixed every attempt with
     # `cd <workspace> &&`, entries are matched from the first character of the command so every call
-    # was refused. Runs 33143695720 and 33454461097 then showed that `:` in the npm script name was
-    # parsed as permission syntax and even the exact command was refused. The colon-free alias avoids
-    # that ambiguity. This entry, the string in the prompt and the post-step `run:` are the same
-    # literal and a test keeps them that way.
+    # was refused. Run 33474896360 then proved that Copilot CLI also refuses a colon-free multiword
+    # `npm run ...` grant even while displaying the exact allowed string. Granting the supported npm
+    # command stem compiles to `shell(npm:*)`, so the agent can finally execute the fixed self-check.
     #
-    # Because entries match from the start of the command, list them exactly. A bare `npm`, `node`,
-    # `npx`, `tsx`, `sh` or `bash` would grant far more than this one command and must not be added.
-    # This block cannot be dropped entirely - without it the compiled workflow falls back to
-    # `--allow-all-tools`.
+    # The npm stem grants every package script, but adds no code-execution privilege here: the agent
+    # can already edit the package and scripts, and the runner executes the same package script in the
+    # post-step. Network access remains restricted, tokens are removed before the sandbox starts, and
+    # the trusted publisher repeats every gate from a clean default-branch checkout. Other runtimes
+    # stay forbidden, and this block cannot be dropped because that compiles to `--allow-all-tools`.
     - "cat"
     - "date"
     - "echo"
     - "grep"
     - "head"
     - "ls"
-    - "npm run check-insights"
+    - "npm"
     - "printf"
     - "pwd"
     - "sort"
@@ -97,7 +97,7 @@ safe-outputs:
       - public/data/snapshot.json
   missing-tool: false
   missing-data: false
-  noop: false
+  noop:
   report-incomplete: false
   report-failure-as-issue: false
   threat-detection: false
@@ -199,9 +199,8 @@ gate by removing evidence the snapshot does support is a failure, not a fix.
    that insight out; if no insight is supportable, write an empty array. Do not pad the array to
    reach a count, and do not shrink it to quiet a gate: an empty array is correct only when the
    snapshot supports nothing.
-10. Do not request or emit a safe output. gh-aw requires a non-builtin safe output to avoid
-   auto-injecting `create_issue`, so the only configured capability is a staged, non-publishing
-   artifact restricted to the already-sanitized snapshot path. It is not the
-   `validated-ai-insights` handoff. The deterministic bounded post-step owns that exact artifact,
-   and a separate trusted workflow can publish only after repeating schema, exact evidence,
-   baseline-diff, and privacy gates from a fresh checkout.
+10. After `npm run check-insights` prints its success line, call the configured `noop` safe output to
+   report that no GitHub mutation is needed. Do not call `upload-artifact`: its configured capability
+   is staged and non-publishing, and it is not the `validated-ai-insights` handoff. The deterministic
+   bounded post-step owns that exact artifact, and a separate trusted workflow can publish only after
+   repeating schema, exact evidence, baseline-diff, and privacy gates from a fresh checkout.

@@ -202,10 +202,11 @@ describe("recorded insight failures replayed through the derivations", () => {
   );
 
   it(
-    "accepts the Japanese technical abbreviations rejected by runs 33143695720 and 33454461097",
+    "accepts the Japanese technical abbreviations rejected by recorded production runs",
     { timeout: SUBPROCESS_TIMEOUT },
     async () => {
       for (const recommendedAction of [
+        "監視 API の取得状況を確認してください。",
         "BCP の観点から復旧手順を人が確認してください。",
         "メトリクス取得が可能なネットワークリソース（ロードバランサー、パブリック IP など）については、Azure Monitor でアラートを設定することを推奨します。詳細は /network ダッシュボードを参照してください。"
       ]) {

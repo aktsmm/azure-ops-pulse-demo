@@ -64,9 +64,10 @@ const PRODUCT_NAMES = [
  * "REGULATORY COMPLIANCE AGGREGATE". Whole-word stripping still leaves the rest of an English
  * sentence for the audit to reject.
  *
- * `BCP` and `IP` replay the false positives from runs 33143695720 and 33454461097.
+ * `BCP`, `IP`, and `API` replay false positives from runs 33143695720, 33454461097, and
+ * 33474896360.
  */
-const TECHNICAL_ABBREVIATIONS = ["BCP", "IP"];
+const TECHNICAL_ABBREVIATIONS = ["API", "BCP", "IP"];
 
 /**
  * A measurement is digits and a Latin unit, which is how a reader expects to see it. The same shape
