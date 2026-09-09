@@ -1511,7 +1511,95 @@
       "flows": []
     }
   },
-  "aiInsights": [],
+  "aiInsights": [
+    {
+      "severity": "warning",
+      "title": "Resource Health の評価範囲は 68% にとどまる",
+      "observation": "Resource Health は対応する 19 リソースのうち 13 件のみを評価しており、63 件は評価対象外です。可用性の把握が一部にとどまっている可能性があります。",
+      "impact": "評価対象外のリソースで問題が発生しても、ダッシュボード上では検知できない可能性があります。",
+      "numericEvidence": [
+        {
+          "label": "評価済み割合",
+          "value": "68%",
+          "source": "reliability.coverage.supportedCoveragePercent"
+        },
+        {
+          "label": "評価対象外リソース数",
+          "value": "63件",
+          "source": "reliability.coverage.notApplicableResources"
+        }
+      ],
+      "recommendedAction": "評価対象外のリソースについて、代替の監視手段がないか人手で確認することを推奨します。",
+      "confidence": 0.7,
+      "route": "/reliability",
+      "period": "2026-09-10 スナップショット収集時点",
+      "id": "insight-eb0e90cf"
+    },
+    {
+      "severity": "info",
+      "title": "Logic Apps ワークフローがリソース構成の中心を占める",
+      "observation": "全 82 リソースのうち 22 件が microsoft.logic/workflows で、単一のリソース種別としては最大の割合を占めています。",
+      "impact": "自動化ロジックが Logic Apps に集中しているため、変更や障害の影響範囲が広がる可能性があります。",
+      "numericEvidence": [
+        {
+          "label": "ワークフロー数",
+          "value": "22件",
+          "source": "inventory.byType.16.count"
+        },
+        {
+          "label": "総リソース数",
+          "value": "82件",
+          "source": "inventory.total"
+        }
+      ],
+      "recommendedAction": "Logic Apps の構成やオーナーシップについて人手でレビューすることを推奨します。",
+      "confidence": 0.6,
+      "route": "/resources",
+      "period": "2026-09-10 スナップショット収集時点",
+      "id": "insight-4b702c21"
+    },
+    {
+      "severity": "warning",
+      "title": "ネットワークリソースのメトリック取得率が低い",
+      "observation": "ネットワーク関連の 10 リソースのうち、メトリックを取得できたのは 3 件のみで、7 件は対象外でした。",
+      "impact": "ネットワークの稼働状況を数値で継続的に把握できない範囲が広い可能性があります。",
+      "numericEvidence": [
+        {
+          "label": "メトリック取得可能リソース数",
+          "value": "3件",
+          "source": "network.metricCoverage.metricCapableResources"
+        },
+        {
+          "label": "メトリック対象外リソース数",
+          "value": "7件",
+          "source": "network.metricCoverage.notApplicableResources"
+        }
+      ],
+      "recommendedAction": "対象外リソースについて、代替の監視手段がないか人手で検討することを推奨します。",
+      "confidence": 0.6,
+      "route": "/network",
+      "period": "2026-09-10 スナップショット収集時点",
+      "id": "insight-bd989d8e"
+    },
+    {
+      "severity": "warning",
+      "title": "Azure Advisor が可用性関連の重要度が高い推奨事項を検出",
+      "observation": "Azure Advisor は可用性に関するカテゴリで重要度が高い推奨事項を 21 件検出しています。",
+      "impact": "可用性に関わる推奨事項が多いことは、構成上のリスクが複数存在している可能性と関連しています。",
+      "numericEvidence": [
+        {
+          "label": "重要度が高い推奨事項の件数",
+          "value": "21件",
+          "source": "advisor.recommendations.0.count"
+        }
+      ],
+      "recommendedAction": "Azure Advisor の可用性に関するカテゴリの推奨事項を人手でレビューすることを推奨します。",
+      "confidence": 0.65,
+      "route": "/reliability",
+      "period": "2026-09-10 スナップショット収集時点",
+      "id": "insight-216cce21"
+    }
+  ],
   "advisor": {
     "availability": "available",
     "message": "Advisor の推奨事項をカテゴリと影響度で集計しました。タイトル・対象名は公開しません。",
