@@ -75,7 +75,8 @@ describe("evidence path notation", () => {
     ["cost.categories[0].sharePercent", "cost.categories.0.sharePercent"],
     ["cost.categories[1].sharePercent", "cost.categories.1.sharePercent"],
     ["overview.trends[2].points[3]", "overview.trends.2.points.3"],
-    ["inventory.byType[10].count", "inventory.byType.10.count"]
+    ["inventory.byType[10].count", "inventory.byType.10.count"],
+    ["advisor.recommendations[0].count", "advisor.recommendations.0.count"]
   ])("respells %j as %j", (written, expected) => {
     expect(normalizeEvidenceSourceNotation(written)).toBe(expected);
     expect(EVIDENCE_SOURCE_PATTERN.test(expected)).toBe(true);
@@ -88,7 +89,7 @@ describe("evidence path notation", () => {
     "cost.categories[].sharePercent", // no index at all
     "cost.categories[0][1]", // an index of an index: an unexpected shape, not a misspelling
     "[0].cost", // a rewrite would still miss the pattern
-    "spend.categories[0].sharePercent" // not one of the six roots
+    "spend.categories[0].sharePercent" // not one of the supported roots
   ])("leaves %j for the schema to judge", (written) => {
     expect(normalizeEvidenceSourceNotation(written)).toBeNull();
   });
