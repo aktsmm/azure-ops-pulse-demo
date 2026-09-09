@@ -3,7 +3,8 @@ import { cleanup, fireEvent, render, screen } from "@testing-library/react";
 import { HashRouter } from "react-router-dom";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import type { PublicSnapshotV1 } from "./data/contracts";
-import { publishedSnapshot } from "./test/reliability-fixtures";
+import { publishedSnapshot, withDefenderUnavailable } from "./test/reliability-fixtures";
+import { buildDemoSnapshot } from "../scripts/build-demo-snapshot";
 import { publicSnapshotSchema } from "../scripts/public-schema";
 import App from "./App";
 
@@ -25,7 +26,7 @@ describe("Optional collection data reaches the dashboard", () => {
     const vnet = publishedSnapshot.inventory.resources.find((resource) => resource.type === "microsoft.network/virtualnetworks")!;
     const snapshot: PublicSnapshotV1 = {
       ...publishedSnapshot,
-      sources: [...publishedSnapshot.sources, { source: "Network topology", availability: "partial", message: "Collected topology." }],
+      sources: [...publishedSnapshot.sources.filter((source) => source.source !== "Network topology"), { source: "Network topology", availability: "partial", message: "Collected topology." }],
       network: {
         ...publishedSnapshot.network,
         topology: {
@@ -46,9 +47,10 @@ describe("Optional collection data reaches the dashboard", () => {
     expect(screen.getByRole("dialog")).toHaveTextContent(vnet.name);
   });
   it("displays Advisor even when Defender is unavailable", async () => {
+    const snapshot = withDefenderUnavailable(buildDemoSnapshot("2026-09-09T00:00:00.000Z"));
     mount("/security", {
-      ...publishedSnapshot,
-      sources: [...publishedSnapshot.sources, { source: "Azure Advisor", availability: "available", message: "Collected Advisor." }],
+      ...snapshot,
+      sources: [...snapshot.sources.filter((source) => source.source !== "Azure Advisor"), { source: "Azure Advisor", availability: "available", message: "Collected Advisor." }],
       advisor: {
         availability: "available", message: "Collected Advisor.",
         recommendations: [{ category: "Security", impact: "High", count: 3 }]
@@ -58,11 +60,12 @@ describe("Optional collection data reaches the dashboard", () => {
     expect(screen.getByText("Defender for Cloud は未収集です")).toBeInTheDocument();
   });
   it("does not turn a failed assessments subquery into zero recommendations", async () => {
+    const snapshot = withDefenderUnavailable(buildDemoSnapshot("2026-09-09T00:00:00.000Z"));
     mount("/security", {
-      ...publishedSnapshot,
-      sources: publishedSnapshot.sources.map((source) => source.source === "Defender for Cloud" ? { ...source, availability: "partial" } : source),
+      ...snapshot,
+      sources: snapshot.sources.map((source) => source.source === "Defender for Cloud" ? { ...source, availability: "partial" } : source),
       security: {
-        ...publishedSnapshot.security,
+        ...snapshot.security,
         secureScore: 55,
         activeAlerts: null,
         recommendations: [],

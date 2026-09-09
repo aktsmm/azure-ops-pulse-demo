@@ -42,6 +42,14 @@ export function costFixture(services: CostServiceFixture[]): PublicSnapshotV1 {
   raw.exactCostJpy = comparable.currentTotalJpy;
   raw.exactPreviousCostJpy = comparable.previousTotalJpy;
   raw.costCategories = comparable.categories;
+  for (const source of raw.sources) {
+    if (source.source === "Cost Management") {
+      source.availability = comparable.currentTotalJpy === null
+        ? "unavailable" : comparable.previousTotalJpy === null ? "partial" : "available";
+    } else if (source.source === "Cost Management prior period") {
+      source.availability = comparable.previousTotalJpy === null ? "unavailable" : "available";
+    }
+  }
   return sanitizeSnapshot(raw);
 }
 

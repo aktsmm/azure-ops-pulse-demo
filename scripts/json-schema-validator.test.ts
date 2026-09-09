@@ -5,6 +5,8 @@ import addFormats from "ajv-formats";
 import { describe, expect, it } from "vitest";
 import type { ReliabilityCoverage } from "../src/data/contracts";
 import { costFixture } from "../src/test/cost-fixtures";
+import { withDefenderUnavailable } from "../src/test/reliability-fixtures";
+import { buildDemoSnapshot } from "./build-demo-snapshot";
 import { publicSnapshotSchema } from "./public-schema";
 import {
   PUBLIC_SCHEMA_DIRECTORY,
@@ -134,7 +136,10 @@ describe("public JSON Schema contract", () => {
   });
 
   it("keeps all v1.4 unavailable metrics nullable in both contracts", () => {
-    const snapshot = currentSnapshot();
+    const snapshot = withDefenderUnavailable(buildDemoSnapshot("2026-09-09T00:00:00.000Z"));
+    snapshot.security.fieldAvailability = {
+      secureScore: "unavailable", assessments: "unavailable", activeAlerts: "unavailable"
+    };
     snapshot.overview.postureScore = null;
     snapshot.security.secureScore = null;
     snapshot.security.activeAlerts = null;

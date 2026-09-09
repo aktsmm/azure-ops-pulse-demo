@@ -107,7 +107,7 @@ afterEach(() => {
 
 describe("Operator diagnostics stay out of the rendered page", () => {
   it("shows separate cost-period reasons without exposing raw diagnostic text", async () => {
-    const snapshot = withDiagnosticSentinels(publishedSnapshot);
+    const snapshot = withDiagnosticSentinels(costFixture([]));
     snapshot.cost.periodDiagnostics = {
       current: { availability: "unavailable", reason: "currency-mismatch" },
       previous: { availability: "unavailable", reason: "forbidden" }
@@ -133,7 +133,9 @@ describe("Operator diagnostics stay out of the rendered page", () => {
   });
 
   it("does not infer a reason from an old snapshot without reason codes", async () => {
-    await renderAt("/cost", publishedSnapshot);
+    const snapshot = costFixture([]);
+    delete snapshot.cost.periodDiagnostics;
+    await renderAt("/cost", snapshot);
     expect(screen.getAllByText(/具体的な理由は記録されていません/)).toHaveLength(2);
   });
 
