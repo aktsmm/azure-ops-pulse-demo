@@ -1,11 +1,11 @@
 {
   "schemaVersion": "1.4.0",
-  "generatedAt": "2026-09-07T23:16:28.476Z",
+  "generatedAt": "2026-09-09T21:24:27.033Z",
   "mode": "AZURE",
   "freshness": {
     "state": "fresh",
     "ageMinutes": 0,
-    "lastSuccessfulCollection": "2026-09-07T23:16:28.476Z",
+    "lastSuccessfulCollection": "2026-09-09T21:24:27.033Z",
     "nextScheduledCollection": "Tuesday / Friday 06:00 JST"
   },
   "scope": {
@@ -22,7 +22,8 @@
     {
       "source": "Cost Management",
       "availability": "unavailable",
-      "message": "Current Cost Management period is unavailable; billing scope or role access may be required."
+      "message": "要求数制限により収集できませんでした。時間を置いて再収集してください。",
+      "reason": "throttled"
     },
     {
       "source": "Resource Health",
@@ -37,12 +38,24 @@
     {
       "source": "Activity Log",
       "availability": "available",
-      "message": "7 recent Activity Log events were collected without actor or resource detail."
+      "message": "5 recent Activity Log events were collected without actor or resource detail."
     },
     {
       "source": "Defender for Cloud",
-      "availability": "unavailable",
-      "message": "Defender for Cloud returned no secure score and no assessments; Defender plans are likely disabled for this subscription."
+      "availability": "partial",
+      "message": "評価の読み取り成功: 0 件。 セキュア スコアは返されませんでした。 アクティブなアラートの読み取り成功: 0 件。 空の結果から Defender プランの有効・無効は判定していません。",
+      "reason": "empty"
+    },
+    {
+      "source": "Azure Advisor",
+      "availability": "available",
+      "message": "Advisor の推奨事項をカテゴリと影響度で集計しました。タイトル・対象名は公開しません。"
+    },
+    {
+      "source": "Network topology",
+      "availability": "partial",
+      "message": "構成参照を一部収集しました。参照先が未収集・対象スコープ外、または一部プロパティが未取得です。線は通信状態を示しません。",
+      "reason": "partial-collection"
     },
     {
       "source": "Network inventory and metrics",
@@ -75,14 +88,25 @@
         ]
       },
       {
+        "label": "Defender recommendations",
+        "value": "0",
+        "change": "集計タイトルのみ",
+        "direction": "flat",
+        "severity": "info",
+        "points": [
+          0,
+          0
+        ]
+      },
+      {
         "label": "利用不可のソース",
-        "value": "2",
+        "value": "1",
         "change": "未収集を明示",
         "direction": "flat",
         "severity": "warning",
         "points": [
-          2,
-          2
+          1,
+          1
         ]
       }
     ],
@@ -93,7 +117,7 @@
         "timestamp": "現在のスナップショット",
         "severity": "warning",
         "title": "Azure データ収集が完了",
-        "detail": "82 件のリソースをサニタイズし、利用不可の任意ソースは 2 件でした。",
+        "detail": "82 件のリソースをサニタイズし、利用不可の任意ソースは 1 件でした。",
         "route": "/overview"
       },
       {
@@ -131,7 +155,7 @@
       {
         "id": "event-ff907070",
         "timestamp": "現在の収集期間",
-        "severity": "info",
+        "severity": "warning",
         "title": "Service Health イベントを検出",
         "detail": "影響を受けたサブスクリプションやリソースの詳細を除き、サービス単位の状態のみを表示します。",
         "route": "/reliability"
@@ -139,7 +163,7 @@
       {
         "id": "event-00907203",
         "timestamp": "現在の収集期間",
-        "severity": "warning",
+        "severity": "info",
         "title": "Service Health イベントを検出",
         "detail": "影響を受けたサブスクリプションやリソースの詳細を除き、サービス単位の状態のみを表示します。",
         "route": "/reliability"
@@ -164,6 +188,16 @@
     ]
   },
   "cost": {
+    "periodDiagnostics": {
+      "current": {
+        "availability": "unavailable",
+        "reason": "throttled"
+      },
+      "previous": {
+        "availability": "unavailable",
+        "reason": "throttled"
+      }
+    },
     "current": {
       "availability": "unavailable",
       "approximateAmount": null
@@ -1290,12 +1324,125 @@
     }
   },
   "security": {
+    "fieldAvailability": {
+      "secureScore": "unavailable",
+      "assessments": "available",
+      "activeAlerts": "available"
+    },
     "secureScore": null,
-    "activeAlerts": null,
+    "activeAlerts": 0,
     "recommendations": [],
     "compliance": []
   },
   "network": {
+    "topology": {
+      "availability": "partial",
+      "message": "構成参照を一部収集しました。参照先が未収集・対象スコープ外、または一部プロパティが未取得です。線は通信状態を示しません。",
+      "nodes": [
+        {
+          "id": "res-886334a2",
+          "type": "microsoft.network/loadbalancers",
+          "region": "japaneast",
+          "referenceOnly": false,
+          "scope": "inventory"
+        },
+        {
+          "id": "res-728d35fe",
+          "type": "microsoft.network/publicipaddresses",
+          "region": "japaneast",
+          "referenceOnly": false,
+          "scope": "inventory"
+        },
+        {
+          "id": "res-1dc325ca",
+          "type": "microsoft.network/loadbalancers/frontendipconfigurations",
+          "region": "japaneast",
+          "referenceOnly": false,
+          "scope": "inventory"
+        },
+        {
+          "id": "res-df85d243",
+          "type": "microsoft.network/loadbalancers/backendaddresspools",
+          "region": "japaneast",
+          "referenceOnly": false,
+          "scope": "inventory"
+        },
+        {
+          "id": "res-9ba63401",
+          "type": "microsoft.compute/virtualmachinescalesets/virtualmachines/networkinterfaces/ipconfigurations",
+          "referenceOnly": true,
+          "scope": "uncollected"
+        },
+        {
+          "id": "res-f2046462",
+          "type": "microsoft.compute/virtualmachinescalesets/virtualmachines/networkinterfaces/ipconfigurations",
+          "referenceOnly": true,
+          "scope": "uncollected"
+        },
+        {
+          "id": "res-360adff8",
+          "type": "microsoft.network/virtualnetworks",
+          "region": "japaneast",
+          "referenceOnly": false,
+          "scope": "inventory"
+        },
+        {
+          "id": "res-bd9730c9",
+          "type": "microsoft.network/virtualnetworks/subnets",
+          "region": "japaneast",
+          "referenceOnly": false,
+          "scope": "inventory"
+        }
+      ],
+      "edges": [
+        {
+          "source": "res-886334a2",
+          "target": "res-728d35fe",
+          "kind": "public-ip"
+        },
+        {
+          "source": "res-886334a2",
+          "target": "res-1dc325ca",
+          "kind": "frontend"
+        },
+        {
+          "source": "res-886334a2",
+          "target": "res-df85d243",
+          "kind": "backend"
+        },
+        {
+          "source": "res-df85d243",
+          "target": "res-9ba63401",
+          "kind": "backend"
+        },
+        {
+          "source": "res-df85d243",
+          "target": "res-f2046462",
+          "kind": "backend"
+        },
+        {
+          "source": "res-1dc325ca",
+          "target": "res-728d35fe",
+          "kind": "public-ip"
+        },
+        {
+          "source": "res-360adff8",
+          "target": "res-bd9730c9",
+          "kind": "contains"
+        },
+        {
+          "source": "res-f2046462",
+          "target": "res-bd9730c9",
+          "kind": "subnet"
+        },
+        {
+          "source": "res-9ba63401",
+          "target": "res-bd9730c9",
+          "kind": "subnet"
+        }
+      ],
+      "truncated": false
+    },
     "inventory": {
       "total": 10,
       "byType": [
@@ -1364,5 +1511,36 @@
       "flows": []
     }
   },
-  "aiInsights": []
+  "aiInsights": [],
+  "advisor": {
+    "availability": "available",
+    "message": "Advisor の推奨事項をカテゴリと影響度で集計しました。タイトル・対象名は公開しません。",
+    "recommendations": [
+      {
+        "category": "HighAvailability",
+        "impact": "High",
+        "count": 21
+      },
+      {
+        "category": "HighAvailability",
+        "impact": "Medium",
+        "count": 27
+      },
+      {
+        "category": "OperationalExcellence",
+        "impact": "Low",
+        "count": 1
+      },
+      {
+        "category": "OperationalExcellence",
+        "impact": "Medium",
+        "count": 1
+      },
+      {
+        "category": "Performance",
+        "impact": "Medium",
+        "count": 1
+      }
+    ]
+  }
 }
