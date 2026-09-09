@@ -3,8 +3,8 @@ import { fileURLToPath } from "node:url";
 import { resolve } from "node:path";
 
 const LOCK_PATH = resolve(".github/workflows/ai-insights.lock.yml");
-export const GH_AW_VERSION = "v0.82.14";
-export const GH_AW_SETUP_SHA = "b6d1443e05b8716267fa19425b99aa4f12006b4a";
+export const GH_AW_VERSION = "v0.88.7";
+export const GH_AW_SETUP_SHA = "5e508589e03a7757a7e05b26e834292f5445bfb6";
 const MANIFEST_PREFIX = "# gh-aw-manifest: ";
 const JOB_HEADER = /^ {2}[A-Za-z0-9_-]+:\s*$/;
 const STEP_HEADER = /^ {6}- /;
@@ -66,7 +66,7 @@ function getUploadBlocks(content: string): string[] {
   return blocks;
 }
 
-function removeLegacyCopilotSecretDeclaration(lines: string[]): void {
+function validateSecretDeclaration(lines: string[]): void {
   const manifestIndex = lines.findIndex((line) => line.startsWith(MANIFEST_PREFIX));
   if (manifestIndex === -1) throw new Error("Generated workflow is missing the gh-aw manifest");
 
@@ -76,31 +76,15 @@ function removeLegacyCopilotSecretDeclaration(lines: string[]): void {
   if (!Array.isArray(manifest.secrets)) {
     throw new Error("Generated workflow manifest must contain a secrets array");
   }
-  manifest.secrets = manifest.secrets.filter((secret) => secret !== "COPILOT_GITHUB_TOKEN");
-  lines[manifestIndex] = `${MANIFEST_PREFIX}${JSON.stringify(manifest)}`;
-
-  for (let index = lines.length - 1; index >= 0; index -= 1) {
-    if (
-      lines[index] === "#   - COPILOT_GITHUB_TOKEN" ||
-      lines[index]?.trim() === "COPILOT_GITHUB_TOKEN: ${{ secrets.COPILOT_GITHUB_TOKEN }}"
-    ) {
-      lines.splice(index, 1);
-    }
+  if (manifest.secrets.includes("COPILOT_GITHUB_TOKEN")) {
+    throw new Error("Generated workflow must not require a long-lived Copilot token");
   }
-}
-
-function removeLegacyCopilotSecretConclusionCheck(lines: string[]): void {
-  const staleCheck = "needs.activation.outputs.secret_verification_result == 'failed' || ";
-  const index = lines.findIndex((line) => line.includes(staleCheck));
-  if (index === -1) return;
-  lines[index] = lines[index]!.replace(staleCheck, "");
 }
 
 export function hardenAgentWorkflowLock(content: string): string {
   const lines = content.replace(/\r\n/g, "\n").replace(/\n$/, "").split("\n");
 
-  removeLegacyCopilotSecretDeclaration(lines);
-  removeLegacyCopilotSecretConclusionCheck(lines);
+  validateSecretDeclaration(lines);
   const uploadCount = enforceOneDayUploadRetention(lines);
 
   while (lines.at(-1) === "") lines.pop();
@@ -108,11 +92,10 @@ export function hardenAgentWorkflowLock(content: string): string {
   if (!hardened.includes(`"compiler_version":"${GH_AW_VERSION}"`)) {
     throw new Error(`AI workflow must be compiled with exact gh-aw ${GH_AW_VERSION}`);
   }
-  if (
-    !hardened.includes(
-      `github/gh-aw-actions/setup@${GH_AW_SETUP_SHA} # ${GH_AW_VERSION}`
-    )
-  ) {
+  const setupActions = [...hardened.matchAll(/^\s+uses: (github\/gh-aw-actions\/setup@.+)$/gm)];
+  if (setupActions.length === 0 || setupActions.some(
+    ([, action]) => action !== `github/gh-aw-actions/setup@${GH_AW_SETUP_SHA} # ${GH_AW_VERSION}`
+  )) {
     throw new Error(`AI workflow setup action must be pinned to gh-aw ${GH_AW_VERSION}`);
   }
   if (!hardened.includes("copilot-requests: write")) {
@@ -124,6 +107,8 @@ export function hardenAgentWorkflowLock(content: string): string {
 
   const forbidden = [
     "${{ secrets.COPILOT_GITHUB_TOKEN }}",
+    "needs.activation.outputs.secret_verification_result",
+    "GH_AW_DEFAULT_OTLP",
     "create_issue",
     "issues: write",
     "pull-requests: write",
@@ -133,6 +118,17 @@ export function hardenAgentWorkflowLock(content: string): string {
   for (const value of forbidden) {
     if (hardened.includes(value)) {
       throw new Error(`Compiled AI workflow still contains forbidden runtime content: ${value}`);
+    }
+  }
+  for (const setting of [
+    'GH_AW_NOOP_REPORT_AS_ISSUE: "false"',
+    'GH_AW_FAILURE_REPORT_AS_ISSUE: "false"',
+    'OTEL_EXPORTER_OTLP_ENDPOINT: ""',
+    'OTEL_EXPORTER_OTLP_HEADERS: ""',
+    'GH_AW_OTLP_ENDPOINTS: "[]"'
+  ]) {
+    if (!hardened.includes(setting)) {
+      throw new Error(`Compiled AI workflow must preserve its non-publishing policy: ${setting}`);
     }
   }
 

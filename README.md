@@ -1,7 +1,7 @@
 # Azure運用を、GitHub ActionsとAgentic Workflowsで自動化するデモ
 
 Azure Ops Pulse は、Azure の公開可能な運用情報を **GitHub Actions で定期収集**し、
-**GitHub Agentic Workflows で根拠付き分析**を作り、**人間のレビューを通してから
+**GitHub Agentic Workflows で根拠付き分析**を作り、**決定論的な再検証を通してから自動で
 GitHub Pages へ公開**する一連の流れを示す公開デモです。
 
 **ライブサイト:** <https://aktsmm.github.io/azure-ops-pulse-demo/>
@@ -14,11 +14,28 @@ GitHub Pages へ公開**する一連の流れを示す公開デモです。
 | --- | --- | --- |
 | Azure 運用担当 | Portal の確認と共有資料作成が分断される | 読み取り専用収集から公開用スナップショット作成までの自動化 |
 | セキュリティ・ガバナンス担当 | AI に渡るデータと権限が見えにくい | 匿名化、Schema、Privacy、根拠、権限分離の各ゲート |
-| 意思決定者 | 数値の出所と更新経路を短時間で把握しにくい | 7画面の公開ビューと、PR履歴で追跡できる更新プロセス |
-| GitHub / Platform 担当 | 決定論的 CI と AI reasoning の境界を設計したい | Actions、Agentic Workflow、人間承認、Pages の責務分離 |
+| 意思決定者 | 数値の出所と更新経路を短時間で把握しにくい | 7画面の公開ビューと、Actions実行・commit履歴で追跡できる更新プロセス |
+| GitHub / Platform 担当 | 決定論的 CI と AI reasoning の境界を設計したい | Actions、Agentic Workflow、trusted publisher、Pages の責務分離 |
 
 このサイトは Azure Portal の代替ではありません。公開可能な集計値だけを扱い、
 「何が分かるか」と同時に「何が未収集か」も表示します。
+
+## ダッシュボードの見方
+
+- **リソース**: `VM`、`NW`、`DB`、日本語の一般名、公開 ID、タグで検索できます。
+  カテゴリ・種別・リージョン・リソース グループ・Resource Health 状態を組み合わせて
+  絞り込み、カテゴリ・種別・リージョン・リソース グループでまとめて表示できます。
+- **ネットワーク**: VNet・サブネット・NIC・関連リソースの構成参照を相関図に表示します。
+  VNet の関連範囲を選択し、ノードの直接の関連を強調表示できます。点線は参照のみの
+  ノードです。線は通信経路・通信の許可・正常性を示すものではありません。
+- **セキュリティ**: Defender の取得状態を項目別に表示し、Advisor の推奨事項は
+  カテゴリ・影響度別に別集計します。両者の件数は合算しません。
+- **コスト・AI 分析**: 未収集を 0 円・問題なしとは扱いません。コストは現在期間と
+  前期間の理由コードを個別表示します。AI 分析がない場合は、生成した分析と混同しない
+  ように、既存スナップショットから確認できる事実を別枠で表示します。
+
+古い公開スナップショットには Advisor・相関図・診断理由が含まれないことがあります。
+UI の更新だけでは実データは増えず、更新後の収集ワークフローを実行する必要があります。
 
 ## 何が自動か
 
@@ -88,7 +105,7 @@ AI分析とPages配信を明示的に実行します。Agentic Workflowの権限
 
 GitHub Agentic Workflows（gh-aw）は、Markdown の宣言と指示から、AI coding agent を
 GitHub Actions 上で実行する hardened `.lock.yml` を生成する仕組みです。このリポジトリは
-`gh-aw v0.82.14` を固定し、strict compile と検証を行います。gh-aw は Public Preview
+`gh-aw v0.88.7` を固定し、strict compile と検証を行います。gh-aw は Public Preview
 として扱い、仕様変更を前提に固定versionと生成差分をレビューします。
 
 ### AI に渡す唯一の入力
@@ -109,10 +126,10 @@ commit history、外部サービスは分析対象にしません。入力はす
 Agent job は repository write 権限を持ちません。候補は1日保持・1MiB以下・単一の
 `snapshot.json` artifact に限定されます。別workflowの trusted publisher が最新
 default branchをfresh checkoutし、JSON Schema、runtime schema、日本語、数値根拠、
-baseline差分、privacyを再検証します。write権限は検証後のPR作成jobだけにあります。
+baseline差分、privacyを再検証します。repositoryのwrite権限は検証後の公開jobだけにあります。
 
-人間レビューを残す理由は、構造検証が通っても、運用上の優先度、説明の妥当性、
-公開タイミングまでは機械だけで決めないためです。
+公開更新に毎回の人間承認は挟みません。ただし、分析が提案する運用上の優先度や
+対処の妥当性は人間が判断し、Azureへの変更を自動実行することはありません。
 
 ## セットアップ
 
@@ -131,11 +148,91 @@ workflow が OIDC token を取得するため `id-token: write` が必要です�
 sourceに必要な最小read roleから始めます。例は subscriptionの `Reader`、
 cost用の `Cost Management Reader`、組織承認済みのDefender read roleです。
 
+#### 任意データの収集結果と診断
+
+`collect-azure.ts` は任意ソースの失敗を、認証・読み取り拒否・要求数制限・
+請求スコープ/契約種別・非対応API・応答形式不正・原因不明の定型文に分類します。
+CLI の stderr、例外本文、トークン、請求識別子は公開しません。
+分類は応答に基づくもので、アクセス権や契約状態を推測して断定するものではありません。
+
+UIの診断表示には `sources[].reason?` の固定コードを使用し、`.message` をそのまま描画しません。
+コードは `authentication | forbidden | throttled | billing-scope | unsupported |
+invalid-response | unknown | empty | unsupported-columns | currency-mismatch |
+invalid-rows | partial-collection | not-collected` のみです。
+後方互換な任意フィールド `cost.periodDiagnostics?` は
+`{ current: { availability, reason? }, previous: { availability, reason? } }` で、
+期間ごとの `availability` は `available | unavailable`、公開金額の状態と一致します。
+利用不可の期間は原因コードを必須とし、成功した期間ではコードを省略します。
+例えば現在が取得済みで前期間だけ読み取り拒否の場合、前期間に `forbidden` を保持し、
+現在の金額を非表示にしません。古いスナップショットでコードがない場合は原因未特定として扱い、
+自由文から原因を推測して確定しません。
+
+- **Cost Management**: 現在/前期間を独立して取得します。空の成功応答は費用ゼロではなく未取得です。
+  API は既存の `2025-03-01` を維持し、ページ継続の完了・列順・全行の JPY と有限の金額を
+  検証します。通貨混在/欠落、未知の列、壊れた金額、不完全なページでは総額を公開しません。
+  為替換算は行わず、従来の概算表示・少額非開示・比較値の制限を維持します。
+- **Defender for Cloud**: 評価、セキュア スコア、アクティブなアラートを独立して読み取ります。
+  成功した空の評価/ゼロアラートと読み取りエラーを区別し、空の結果からプラン無効を推定しません。
+  一部失敗時も読めたフィールドだけ公開します。セキュア スコアを規制コンプライアンスの
+  達成率として流用しません。
+- **Azure Advisor**: `AdvisorResources` のカテゴリ・影響度別件数のみを公開します。
+  推奨タイトル、対象名/ID、削減見込額は取得結果に追加せず、未知の分類は
+  `Other` / `Unknown` に集約します。成功して0件だった結果は読み取り失敗と区別します。
+- **Network topology**: ARG の構成プロパティに明示された参照だけを使用します。
+  VNet/サブネット、NIC/VM、Private Endpoint、ピアリング、NSG、ルートテーブル、
+  NAT Gateway、Load Balancer/Application Gateway のフロントエンド/バックエンド参照を対象にします。
+  グループ/リージョン一致やARMパスの類似から線を生成しません。
+  ルート規則、IP/FQDNだけのバックエンド、NSGの許可判定、通信経路/正常性は収集対象外です。
+  一部のネットワーク製品や構成参照は未対応であり、Azure 全体の完全な接続図ではありません。
+  公開上限は400ノード/800辺で、重複を除去し、欠けた端点への辺は公開しません。
+  上限による省略、未取得の構成、参照だけの端点がある場合は `partial` です。
+
+これらは公開スキーマ **1.4.0 の後方互換な任意フィールド**です。
+古いスナップショットでフィールドがない場合は「未収集」であり、「正常」「0件」ではありません。
+
+```text
+advisor?: {
+  availability, message,
+  recommendations: [{ category, impact, count }]
+}
+network.topology?: {
+  availability, message, truncated,
+  nodes: [{ id, type, region?, referenceOnly, scope }],
+  edges: [{ source, target, kind }]
+}
+security.fieldAvailability?: { secureScore, assessments, activeAlerts }
+```
+
+`availability` は `available | partial | unavailable`、
+Advisor の `category` は `Cost | HighAvailability | Performance | Security |
+OperationalExcellence | Other`、`impact` は `High | Medium | Low | Unknown` です。
+トポロジーの `scope` は `inventory | external | uncollected`。
+`inventory` はインベントリまたは埋め込み構成で存在を確認できたノードを指します。
+同一スコープで参照しか取得できない端点は `uncollected`、別サブスクリプションの参照は
+`external` とし、いずれも `referenceOnly: true`、未取得リージョンは省略します。
+ID は既存インベントリと同じ `res-<stableHash>` で、ARM参照は大文字小文字を無視して照合します。
+生のARM ID/名前/構成はメモリ内だけに保ち、JSONには書き出しません。
+辺の `kind` は `contains | subnet | virtual-machine | peering | network-security-group |
+route-table | nat-gateway | backend | frontend | public-ip | private-link` です。
+ZodとJSON Schemaは未知フィールドを拒否し、Zodは端点整合・重複・ソース状態も検証します。
+AIの数値根拠は引き続き実在する値と利用可能なソースを必須とし、
+Advisorの件数は `advisor.recommendations.<index>.count` を参照できます。
+
+再収集には既存の認証情報、対象スコープの読み取り権限、利用可能な請求データが必要です。
+この拡張は Azure への書き込み、Defenderプランの有効化、ロール付与、課金設定変更を行いません。
+日本リージョン固有の提供可否を推定せず、選択したサブスクリプションから実際に読めた構成のみを扱います。
+
+公式根拠（日本語URL、2026-09-09確認）:
+
+- [ARG のカテゴリ別クエリ（Advisor・ネットワーク）](https://learn.microsoft.com/ja-jp/azure/governance/resource-graph/samples/samples-by-category)
+- [Defender for Cloud の ARG クエリ](https://learn.microsoft.com/ja-jp/azure/defender-for-cloud/resource-graph-samples)
+- [Cost Management Query API 2025-03-01](https://learn.microsoft.com/ja-jp/rest/api/cost-management/query/usage?view=rest-cost-management-2025-03-01)
+
 ### 2. GitHub repository
 
-1. **Settings → Actions → General** でworkflowによるPull Request作成を許可します。
+1. 収集・trusted publisherの公開jobが、検証済み差分をdefault branchへpushできるようにします。
 2. **Settings → Pages** でsourceに **GitHub Actions** を選びます。
-3. branch protectionでCI成功と人間レビューを必須にします。
+3. コード変更のPRにはCI成功と人間レビューを要求し、検証済みデータの自動公開経路とは分離します。
 4. Agentic Workflowを使うorganizationでは、Copilot billing/policyを確認します。
 
 ### 3. gh-aw Preview prerequisites
@@ -308,8 +405,8 @@ environment、base path検証を確認してください。
   <https://github.github.com/gh-aw/introduction/architecture/>
 - GitHub Agentic Workflows - safe outputs:
   <https://github.github.com/gh-aw/reference/safe-outputs/>
-- gh-aw v0.82.14 release:
-  <https://github.com/github/gh-aw/releases/tag/v0.82.14>
+- gh-aw v0.88.7 release:
+  <https://github.com/github/gh-aw/releases/tag/v0.88.7>
 
 ## License
 

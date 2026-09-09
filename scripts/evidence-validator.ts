@@ -29,6 +29,10 @@ function requireAvailableEvidenceSource(snapshot: unknown, sourcePath: string): 
 
   const requiredSource = sourcePath.startsWith("security.")
     ? "Defender for Cloud"
+    : sourcePath.startsWith("advisor.")
+      ? "Azure Advisor"
+      : sourcePath.startsWith("network.topology.")
+        ? "Network topology"
     : sourcePath === "overview.postureScore" || sourcePath === "reliability.incidents"
       ? "Resource Health"
       : null;
@@ -43,6 +47,17 @@ function requireAvailableEvidenceSource(snapshot: unknown, sourcePath: string): 
   );
   if (status?.availability !== "available") {
     throw new Error(`Evidence source ${requiredSource} is not available for ${sourcePath}`);
+  }
+  if (sourcePath.startsWith("security.")) {
+    const security = (snapshot as { security?: { fieldAvailability?: Record<string, string> } }).security;
+    const field = sourcePath.startsWith("security.recommendations.") ? "assessments" : sourcePath.split(".")[1];
+    if (security?.fieldAvailability && security.fieldAvailability[field] !== "available") {
+      throw new Error(`Defender field is not available for ${sourcePath}`);
+    }
+  }
+  if ((sourcePath.startsWith("advisor.") && valueAtPath(snapshot, "advisor.availability") !== "available") ||
+      (sourcePath.startsWith("network.topology.") && valueAtPath(snapshot, "network.topology.availability") !== "available")) {
+    throw new Error(`Collection is not available for ${sourcePath}`);
   }
   if (
     sourcePath === "reliability.incidents" &&

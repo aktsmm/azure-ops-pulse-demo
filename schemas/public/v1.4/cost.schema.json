@@ -6,6 +6,20 @@
   "type": "object",
   "required": ["current", "previous", "deltaPercent", "forecast", "budget", "normalizedTrend", "categories"],
   "$defs": {
+    "periodDiagnostic": {
+      "type": "object",
+      "required": ["availability"],
+      "properties": {
+        "availability": { "enum": ["available", "unavailable"] },
+        "reason": { "$ref": "./source-reason.schema.json" }
+      },
+      "allOf": [{
+        "if": { "properties": { "availability": { "const": "available" } } },
+        "then": { "properties": { "reason": false } },
+        "else": { "required": ["reason"] }
+      }],
+      "additionalProperties": false
+    },
     "amount": {
       "type": "object",
       "required": ["availability", "approximateAmount"],
@@ -31,6 +45,15 @@
   "properties": {
     "current": { "$ref": "#/$defs/amount" },
     "previous": { "$ref": "#/$defs/amount" },
+    "periodDiagnostics": {
+      "type": "object",
+      "required": ["current", "previous"],
+      "properties": {
+        "current": { "$ref": "#/$defs/periodDiagnostic" },
+        "previous": { "$ref": "#/$defs/periodDiagnostic" }
+      },
+      "additionalProperties": false
+    },
     "deltaPercent": { "type": ["number", "null"] },
     "forecast": { "$ref": "#/$defs/amount" },
     "budget": {
@@ -76,6 +99,16 @@
     }
   },
   "allOf": [
+    {
+      "if": { "properties": { "current": { "type": "object", "properties": { "availability": { "const": "available" } } } } },
+      "then": { "properties": { "periodDiagnostics": { "type": "object", "properties": { "current": { "type": "object", "properties": { "availability": { "const": "available" } } } } } } },
+      "else": { "properties": { "periodDiagnostics": { "type": "object", "properties": { "current": { "type": "object", "properties": { "availability": { "const": "unavailable" } } } } } } }
+    },
+    {
+      "if": { "properties": { "previous": { "type": "object", "properties": { "availability": { "const": "available" } } } } },
+      "then": { "properties": { "periodDiagnostics": { "type": "object", "properties": { "previous": { "type": "object", "properties": { "availability": { "const": "available" } } } } } } },
+      "else": { "properties": { "periodDiagnostics": { "type": "object", "properties": { "previous": { "type": "object", "properties": { "availability": { "const": "unavailable" } } } } } } }
+    },
     {
       "if": {
         "type": "object",

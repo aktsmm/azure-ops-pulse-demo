@@ -14,6 +14,8 @@ import {
   maskResourceName,
   resourceAliasLabel,
   sanitizeSnapshot,
+  sanitizeTopology,
+  stableHash,
   sanitizeTags
 } from "./sanitize";
 
@@ -46,6 +48,35 @@ function derivedPartOf(alias: string, label: string): string {
 }
 
 describe("public sanitization boundary", () => {
+  it("deduplicates graph references and keeps inventory aliases stable across ARM casing", () => {
+    const rawId = "/subscriptions/synthetic/resourceGroups/private-rg/providers/Microsoft.Network/virtualNetworks/private-vnet";
+    const childId = `${rawId}/subnets/private-child`;
+    const inventory = [{
+      id: rawId, name: "private-vnet", resourceGroup: "private-rg",
+      type: "microsoft.network/virtualnetworks"
+    }];
+    const result = sanitizeTopology({
+      availability: "partial", message: "構成参照を一部取得しました。", truncated: false,
+      nodes: [
+        { id: rawId.toUpperCase(), type: inventory[0]!.type, scope: "inventory", referenceOnly: false },
+        { id: childId, type: "microsoft.network/virtualnetworks/subnets", scope: "uncollected", referenceOnly: true },
+        { id: childId.toUpperCase(), type: "microsoft.network/virtualnetworks/subnets", scope: "uncollected", referenceOnly: true }
+      ],
+      edges: [
+        { source: rawId, target: childId, kind: "contains" },
+        { source: rawId.toUpperCase(), target: childId.toUpperCase(), kind: "contains" }
+      ]
+    }, inventory);
+    expect(result.nodes).toHaveLength(2);
+    expect(result.edges).toEqual([{
+      source: `res-${stableHash(rawId)}`,
+      target: `res-${stableHash(childId.toLowerCase())}`,
+      kind: "contains"
+    }]);
+    expect(result.truncated).toBe(false);
+    expect(JSON.stringify(result)).not.toContain("private-");
+  });
+
   it("reveals exactly the first and last eight GUID hex characters", () => {
     const masked = maskGuid(["01234567", "89ab", "cdef", "0123", "456789abcdef"].join("-"));
     expect(masked).toBe("01234567-****-****-****-****89abcdef");

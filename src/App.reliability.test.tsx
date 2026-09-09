@@ -215,13 +215,15 @@ describe("Network page", () => {
 });
 
 describe("Security page", () => {
-  it("explains the disabled Defender plans rather than showing four empty metrics", async () => {
+  it("does not infer a disabled paid plan from unavailable Defender data", async () => {
     renderAt("/security", withDefenderUnavailable(reliabilityFixture({ supported: 4, evaluated: 4 })));
 
     expect(await screen.findByText("Defender for Cloud は未収集です")).toBeInTheDocument();
     expect(
-      screen.getByRole("link", { name: /Defender for Cloud のプランを有効にする/ })
+      screen.getByRole("link", { name: /基礎 CSPM と Defender CSPM の違い/ })
     ).toBeInTheDocument();
     expect(document.body.textContent).not.toContain("未実装");
+    expect(document.body.textContent).not.toContain("プランが有効ではないため");
+    expect(document.body.textContent).toContain("いずれかを断定できません");
   });
 });

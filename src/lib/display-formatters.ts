@@ -3,6 +3,7 @@ import type {
   PublicSnapshotV1,
   ResourceItem,
   Severity,
+  SourceReason,
   SourceStatus
 } from "../data/contracts";
 import { isWithheldJpyAmount } from "./jpy-disclosure";
@@ -199,6 +200,7 @@ export function formatActivityTitle(title: string): string {
 export function formatSourceName(source: string): string {
   const names: Record<string, string> = {
     "Network inventory and metrics": "ネットワーク インベントリとメトリック",
+    "Network topology": "ネットワーク構成の関連情報",
     "Cost Management prior period": "Cost Management（前期間）"
   };
   return names[source] ?? source;
@@ -221,6 +223,27 @@ export function formatEndpointLabel(destination: string): string {
     "Unclassified service endpoint": "分類できないエンドポイント"
   };
   return names[destination] ?? destination;
+}
+
+export function formatSourceReason(reason?: SourceReason): string {
+  const reasons: Record<SourceReason, string> = {
+    authentication: "認証に失敗しました。収集ワークフローの認証設定と実行 ID を確認してください。",
+    forbidden: "アクセスが拒否されました。対象スコープと実行 ID の読み取り権限を確認してください。",
+    throttled: "要求が制限されました。時間を空けて収集を再実行してください。",
+    "billing-scope": "課金スコープに関するエラーです。収集対象と利用可能な課金スコープを確認してください。",
+    unsupported: "この操作または対象は収集 API でサポートされていません。実行結果で対象を確認してください。",
+    "invalid-response": "収集 API の応答形式を検証できませんでした。実行結果を確認してください。",
+    unknown: "収集処理で原因を分類できませんでした。収集ワークフローの実行結果を確認してください。",
+    empty: "応答に対象データがありませんでした。対象範囲・期間を確認してください。未取得の値を 0 としては扱いません。",
+    "unsupported-columns": "コスト応答に集計に必要な列がありませんでした。実行結果で応答形式を確認してください。",
+    "currency-mismatch": "コスト応答の通貨が公開対象の JPY と一致しません。円への読み替え・換算は行いません。",
+    "invalid-rows": "コスト応答に集計できない行がありました。不正な値を 0 円としては扱いません。",
+    "partial-collection": "収集範囲の一部が欠けています。未収集の項目や収集上限を確認してください。",
+    "not-collected": "この情報は今回の収集対象に含まれていません。"
+  };
+  return reason && Object.hasOwn(reasons, reason)
+    ? reasons[reason]
+    : "具体的な理由は記録されていません。収集ワークフローの実行結果を確認してください。";
 }
 
 export function formatSourceMessage(source: SourceStatus): string {
@@ -260,6 +283,16 @@ export function formatSourceMessage(source: SourceStatus): string {
       partial: "Defender for Cloud の一部の集計シグナルを収集しました。",
       unavailable: "Defender for Cloud データを収集できませんでした。"
     },
+    "Azure Advisor": {
+      available: "Azure Advisor の推奨事項をカテゴリ・影響度別に集計しました。",
+      partial: "Azure Advisor の推奨事項の一部を集計しました。",
+      unavailable: "Azure Advisor の推奨事項を収集できませんでした。"
+    },
+    "Network topology": {
+      available: "構成参照からネットワークの関連情報を収集しました。",
+      partial: "構成の関連情報は一部収集です。参照のみの端点や収集上限による省略を確認してください。",
+      unavailable: "ネットワーク構成の関連情報を収集できませんでした。"
+    },
     "Network inventory and metrics": {
       available: "ネットワーク インベントリと対応メトリックを収集しました。",
       partial:
@@ -267,7 +300,7 @@ export function formatSourceMessage(source: SourceStatus): string {
       unavailable: "ネットワーク インベントリとメトリックを収集できませんでした。"
     }
   };
-  return (
+  const summary = (
     messages[source.source]?.[source.availability] ??
     (source.availability === "available"
       ? "このソースの公開可能なデータを収集しました。"
@@ -275,4 +308,7 @@ export function formatSourceMessage(source: SourceStatus): string {
         ? "このソースは一部の公開可能なデータのみ収集できました。"
         : "このソースのデータは利用できません。")
   );
+  return source.reason && source.availability !== "available"
+    ? `${summary} ${formatSourceReason(source.reason)}`
+    : summary;
 }

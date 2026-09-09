@@ -6,12 +6,14 @@ import {
   formatEventTimestamp,
   formatSourceMessage,
   formatSourceName,
+  formatSourceReason,
   metricWhenSourcePublished,
   resourceStatusLabel,
   resourceStatusSeverity,
   summarizeResourceHealth
 } from "./display-formatters";
 import { classifyEndpoint } from "./sanitize";
+import { SOURCE_REASONS } from "../data/contracts";
 
 describe("activity title rendering", () => {
   it("passes the collected Japanese title through untouched", () => {
@@ -97,6 +99,22 @@ describe("Japanese display formatters", () => {
 });
 
 describe("source presentation", () => {
+  it.each(SOURCE_REASONS)("renders safe Japanese guidance for %s", (reason) => {
+    const message = formatSourceReason(reason);
+    expect(message).toMatch(/[ぁ-んァ-ヶ一-龯]/u);
+    expect(message).not.toBe(formatSourceReason());
+  });
+
+  it("keeps raw diagnostics private while presenting a classified failure", () => {
+    const message = formatSourceMessage({
+      source: "Cost Management", availability: "unavailable",
+      reason: "forbidden", message: "SENTINELDIAGNOSTICSTRING"
+    });
+    expect(message).toContain("アクセスが拒否");
+    expect(message).not.toContain("SENTINELDIAGNOSTICSTRING");
+    expect(formatSourceReason()).toContain("具体的な理由は記録されていません");
+  });
+
   it("translates descriptive source identifiers but keeps Azure product names", () => {
     expect(formatSourceName("Network inventory and metrics")).toBe(
       "ネットワーク インベントリとメトリック"

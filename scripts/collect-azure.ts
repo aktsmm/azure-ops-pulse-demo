@@ -4,10 +4,6 @@ import { dirname, resolve } from "node:path";
 import type { AiInsight, RawResource, RawSnapshot, SourceStatus } from "../src/data/contracts";
 import { sanitizeSnapshot } from "../src/lib/sanitize";
 import {
-  summarizeAssessments,
-  type DefenderAssessmentRow
-} from "../src/lib/defender-recommendations";
-import {
   classifyResourceHealth,
   indexAvailabilityStatuses,
   resourceHealthReport,
@@ -41,6 +37,11 @@ import {
 } from "./azure-metrics";
 import { collectSource, countReport } from "./source-status";
 import { publicSnapshotSchema } from "./public-schema";
+import { CollectionError, classifyCollectionFailure, safeCollectionFailure } from "./collection-diagnostics";
+import { collectDefender } from "./defender-collection";
+import { ADVISOR_QUERY, summarizeAdvisor, type AdvisorRow } from "./advisor";
+import { TOPOLOGY_QUERY, buildNetworkTopology, type TopologyRow } from "./network-topology";
+import { costPeriodDiagnostics } from "./cost-diagnostics";
 
 interface GraphResponse<T> {
   data?: T[];
@@ -51,14 +52,15 @@ interface GraphResponse<T> {
   skip_token?: string;
 }
 
-class AzureCliError extends Error {
+class AzureCliError extends CollectionError {
   readonly unsupportedMetricNamespace: boolean;
 
   constructor(operation: string, diagnostic: string) {
     // Diagnostics are classified locally and never included in the message that can reach output.
-    super(`Azure CLI ${operation} failed; response content was intentionally suppressed`);
+    super(classifyCollectionFailure(diagnostic));
     this.name = "AzureCliError";
     this.unsupportedMetricNamespace = isUnsupportedMetricNamespaceError(diagnostic);
+    void operation;
   }
 }
 
@@ -121,7 +123,8 @@ function graphQuery<T>(subscriptionId: string, query: string): T[] {
     ];
     if (skipToken) args.push("--skip-token", skipToken);
     const response = runAzJson<GraphResponse<T>>(args);
-    rows.push(...(response.data ?? []));
+    if (!Array.isArray(response.data)) throw new CollectionError("invalid-response");
+    rows.push(...response.data);
     const nextToken = response.skipToken ?? response.skip_token;
     const totalRecords = response.totalRecords ?? response.total_records;
     if (!nextToken) {
@@ -138,21 +141,11 @@ function graphQuery<T>(subscriptionId: string, query: string): T[] {
   throw new Error("Azure Resource Graph exceeded the 100-page safety limit");
 }
 
-function percent(value: unknown, fallback = 0): number {
-  const number = Number(value);
-  return Number.isFinite(number) ? number : fallback;
-}
-
-function optionalNumber(value: unknown): number | null {
-  const number = Number(value);
-  return value !== null && value !== undefined && Number.isFinite(number) ? number : null;
-}
-
 const COST_API_VERSION = "2025-03-01";
 
 /**
  * Cost Management query results are paged through `properties.nextLink`.
- * https://learn.microsoft.com/rest/api/cost-management/query/usage
+ * https://learn.microsoft.com/ja-jp/rest/api/cost-management/query/usage?view=rest-cost-management-2025-03-01
  */
 function queryCostPeriod(
   subscriptionId: string,
@@ -171,7 +164,10 @@ function queryCostPeriod(
   });
   const pages: CostQueryProperties[] = [];
   let url = `https://management.azure.com/subscriptions/${subscriptionId}/providers/Microsoft.CostManagement/query?api-version=${COST_API_VERSION}`;
+  const seen = new Set<string>();
   for (let page = 0; page < 50; page += 1) {
+    if (seen.has(url)) throw new CollectionError("invalid-response");
+    seen.add(url);
     const result = runAzJsonAllowingEmpty<{ properties?: CostQueryProperties }>([
       "rest",
       "--method",
@@ -181,14 +177,28 @@ function queryCostPeriod(
       "--body",
       body
     ]);
-    const properties = result?.properties;
-    if (!properties) break;
+    if (result === null) {
+      if (pages.length) throw new CollectionError("invalid-response");
+      return null;
+    }
+    const properties = result.properties;
+    if (!properties || !Array.isArray(properties.rows) || !Array.isArray(properties.columns)) {
+      throw new CollectionError("invalid-response");
+    }
     pages.push(properties);
     const nextLink = properties.nextLink;
-    if (!nextLink || nextLink === url) break;
-    url = nextLink;
+    if (!nextLink) return mergeCostPages(pages);
+    let next: URL;
+    try { next = new URL(nextLink, "https://management.azure.com"); }
+    catch { throw new CollectionError("invalid-response"); }
+    const expectedPath = `/subscriptions/${subscriptionId}/providers/Microsoft.CostManagement/query`;
+    if (next.origin !== "https://management.azure.com" ||
+        next.pathname.toLowerCase() !== expectedPath.toLowerCase() || next.username || next.password) {
+      throw new CollectionError("invalid-response");
+    }
+    url = next.href;
   }
-  return mergeCostPages(pages);
+  throw new CollectionError("invalid-response");
 }
 
 const RESOURCE_HEALTH_API_VERSION = "2025-05-01";
@@ -302,65 +312,29 @@ const activity = collectSource(
   "Activity Log is unavailable or the current role cannot read it."
 );
 
-const security = collectSource(
-  "Defender for Cloud",
-  () => {
-    const assessments = graphQuery<DefenderAssessmentRow>(
-      subscriptionId,
-      "SecurityResources | where type =~ 'microsoft.security/assessments' | project properties"
-    );
-    const subassessmentCount = graphQuery<{ count_: number }>(
-      subscriptionId,
-      "SecurityResources | where type contains 'subassessments' | summarize count_ = count()"
-    )[0]?.count_;
-    // Secure score is published per subscription; averaging control percentages is not the score.
-    // https://learn.microsoft.com/azure/defender-for-cloud/resource-graph-samples
-    const scores = graphQuery<{ percentageRatio?: number }>(
-      subscriptionId,
-      "SecurityResources | where type =~ 'microsoft.security/securescores' | project percentageRatio=todouble(properties.score.percentage)"
-    );
-    const alertCount = graphQuery<{ count_: number }>(
-      subscriptionId,
-      "SecurityResources | where type =~ 'microsoft.security/locations/alerts' | where properties.Status =~ 'Active' | summarize count_ = count()"
-    )[0]?.count_;
-    const regulatoryCount = graphQuery<{ count_: number }>(
-      subscriptionId,
-      "SecurityResources | where type contains 'regulatorycompliance' | summarize count_ = count()"
-    )[0]?.count_;
-    return {
-      assessments,
-      subassessmentCount: optionalNumber(subassessmentCount),
-      scores,
-      alertCount: optionalNumber(alertCount),
-      regulatoryCount: optionalNumber(regulatoryCount)
-    };
-  },
-  (value) => {
-    if (!value.scores.length && !value.assessments.length) {
-      return {
-        availability: "unavailable",
-        message:
-          "Defender for Cloud returned no secure score and no assessments; Defender plans are likely disabled for this subscription."
-      };
-    }
-    if (!value.scores.length) {
-      return {
-        availability: "partial",
-        message: `Defender for Cloud returned ${value.assessments.length} assessments but no secure score.`
-      };
-    }
-    if (!value.assessments.length) {
-      return {
-        availability: "partial",
-        message: "Defender for Cloud returned a secure score but no assessments."
-      };
-    }
-    return {
-      availability: "available",
-      message: `Defender for Cloud returned a secure score and ${value.assessments.length} assessments in aggregate.`
-    };
-  },
-  "Defender data is unavailable; plans may be disabled or permissions may be insufficient."
+const security = collectDefender(<T>(query: string) => graphQuery<T>(subscriptionId, query));
+const advisor = collectSource(
+  "Azure Advisor",
+  () => summarizeAdvisor(graphQuery<AdvisorRow>(subscriptionId, ADVISOR_QUERY)),
+  (value) => ({
+    ...value,
+    ...(value.availability === "partial" ? { reason: "partial-collection" as const }
+      : value.recommendations.length === 0 ? { reason: "empty" as const } : {})
+  }),
+  safeCollectionFailure
+);
+const topology = collectSource(
+  "Network topology",
+  () => buildNetworkTopology(
+    graphQuery<TopologyRow>(subscriptionId, TOPOLOGY_QUERY).map((row) => ({ ...row, properties: row })),
+    rawResources, subscriptionId
+  ),
+  (value) => ({
+    ...value,
+    ...(value.availability === "partial" ? { reason: "partial-collection" as const }
+      : value.nodes.length === 0 ? { reason: "empty" as const } : {})
+  }),
+  safeCollectionFailure
 );
 
 const costPeriods = comparableCostPeriods(new Date());
@@ -370,22 +344,24 @@ const currentCost = collectSource(
   () => queryCostPeriod(subscriptionId, costPeriods.current.start, costPeriods.current.end),
   (properties) => ({
     availability: properties ? "available" : "unavailable",
+    ...(!properties ? { reason: "empty" as const } : {}),
     message: properties
       ? "Current Cost Management period was collected."
       : "Cost Management returned no content for the current period."
   }),
-  "Current Cost Management period is unavailable; billing scope or role access may be required."
+  safeCollectionFailure
 );
 const previousCost = collectSource(
   "Cost Management prior period",
   () => queryCostPeriod(subscriptionId, costPeriods.previous.start, costPeriods.previous.end),
   (properties) => ({
     availability: properties ? "available" : "unavailable",
+    ...(!properties ? { reason: "empty" as const } : {}),
     message: properties
       ? "Prior comparable Cost Management period was collected."
       : "Cost Management returned no content for the prior comparable period."
   }),
-  "Prior comparable Cost Management period is unavailable."
+  safeCollectionFailure
 );
 
 /**
@@ -502,6 +478,7 @@ const healthStatus: SourceStatus =
 const serviceHealthSummary = summarizeServiceHealth(serviceHealth.value, serviceHealth.status);
 
 const costData = transformComparableCost(currentCost.value, previousCost.value);
+const costDiagnostics = costPeriodDiagnostics(costData, currentCost.status, previousCost.status);
 // The source status must track the value that is actually published, not merely whether the query
 // returned rows. A period whose columns or currency could not be interpreted has no total to show.
 const currentCostUsable =
@@ -512,6 +489,7 @@ const costStatus: SourceStatus = !currentCostUsable
   ? {
       source: "Cost Management",
       availability: "unavailable",
+      reason: costDiagnostics.current.reason,
       message:
         currentCost.status.availability === "unavailable"
           ? currentCost.status.message
@@ -521,6 +499,7 @@ const costStatus: SourceStatus = !currentCostUsable
     ? {
         source: "Cost Management",
         availability: "partial",
+        reason: costDiagnostics.previous.reason,
         message: `Current rounded JPY cost was collected from ${costData.currentRowCount} records; ${
           previousCost.status.availability === "unavailable"
             ? previousCost.status.message
@@ -533,20 +512,15 @@ const costStatus: SourceStatus = !currentCostUsable
         message: `Current and prior comparable rounded JPY periods were collected from ${costData.currentRowCount} and ${costData.previousRowCount} records.`
       };
 
-const recommendations = summarizeAssessments(security.value?.assessments ?? []);
-// `properties.score.percentage` is a 0-1 ratio, not a 0-100 percentage.
-// https://learn.microsoft.com/rest/api/defenderforcloud/secure-scores/list
-const secureScoreRatio = security.value?.scores?.[0]?.percentageRatio;
-const secureScore: number | null =
-  secureScoreRatio === undefined || !Number.isFinite(Number(secureScoreRatio))
-    ? null
-    : Math.max(0, Math.min(100, Math.round(percent(secureScoreRatio) * 100)));
+const recommendations = security.security.recommendations;
 
 const unavailableCount = [
   healthStatus,
   serviceHealth.status,
   activity.status,
   security.status,
+  advisor.status,
+  topology.status,
   costStatus,
   networkStatus
 ].filter((item) => item.availability === "unavailable").length;
@@ -572,6 +546,8 @@ const raw: RawSnapshot = {
     serviceHealth.status,
     activity.status,
     security.status,
+    advisor.status,
+    topology.status,
     networkStatus
   ],
   metrics: [
@@ -597,7 +573,7 @@ const raw: RawSnapshot = {
       severity: costStatus.availability === "available" ? "healthy" : "warning",
       points: [1, 1]
     },
-    ...(security.status.availability !== "unavailable"
+    ...(security.security.fieldAvailability?.assessments !== "unavailable"
       ? [
           {
             label: "Defender recommendations",
@@ -683,6 +659,7 @@ const raw: RawSnapshot = {
       return { region, score, status };
     }),
   exactCostJpy: costData.currentTotalJpy,
+  costPeriodDiagnostics: costDiagnostics,
   exactPreviousCostJpy: costData.previousTotalJpy,
   forecastCostJpy: null,
   budgetLimitJpy: null,
@@ -699,17 +676,13 @@ const raw: RawSnapshot = {
     services: [],
     serviceHealth: serviceHealthSummary
   },
-  security: {
-    secureScore,
-    activeAlerts: security.value?.alertCount ?? null,
-    recommendations,
-    compliance:
-      security.value &&
-      security.value.regulatoryCount !== null &&
-      security.value.regulatoryCount > 0 &&
-      secureScore !== null
-        ? [{ framework: "規制コンプライアンスの集計", score: secureScore }]
-        : []
+  security: security.security,
+  advisor: advisor.value ?? {
+    availability: "unavailable", message: advisor.status.message, recommendations: []
+  },
+  networkTopology: topology.value ?? {
+    availability: "unavailable", message: topology.status.message,
+    nodes: [], edges: [], truncated: false
   },
   networkInventory: (network.value?.inventory ?? []).map((item) => ({
     id: item.id,

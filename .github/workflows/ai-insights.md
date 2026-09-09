@@ -13,6 +13,12 @@ strict: true
 timeout-minutes: 20
 max-ai-credits: 1000
 
+# Do not inherit a new external telemetry destination or secret during compiler upgrades.
+env:
+  OTEL_EXPORTER_OTLP_ENDPOINT: ""
+  OTEL_EXPORTER_OTLP_HEADERS: ""
+  GH_AW_OTLP_ENDPOINTS: "[]"
+
 tools:
   bash:
     # Read-only commands, plus the npm command stem used for the single analysis check. The check
@@ -98,8 +104,10 @@ safe-outputs:
   missing-tool: false
   missing-data: false
   noop:
+    report-as-issue: false
   report-incomplete: false
   report-failure-as-issue: false
+  report-failed-jobs: false
   threat-detection: false
 
 ---

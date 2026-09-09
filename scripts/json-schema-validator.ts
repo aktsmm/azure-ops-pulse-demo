@@ -13,6 +13,9 @@ const schemaFiles = [
   "health-activity.schema.json",
   "defender.schema.json",
   "network.schema.json",
+  "advisor.schema.json",
+  "topology.schema.json",
+  "source-reason.schema.json",
   "ai-insights.schema.json"
 ];
 

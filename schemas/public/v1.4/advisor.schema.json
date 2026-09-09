@@ -1,0 +1,33 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://aktsmm.github.io/azure-ops-pulse-demo/schemas/public/v1.4/advisor.schema.json",
+  "title": "Azure Advisor privacy-safe category and impact aggregates",
+  "type": "object",
+  "required": ["availability", "message", "recommendations"],
+  "properties": {
+    "availability": { "enum": ["available", "partial", "unavailable"] },
+    "message": { "type": "string" },
+    "recommendations": {
+      "type": "array",
+      "maxItems": 24,
+      "uniqueItems": true,
+      "items": {
+        "type": "object",
+        "required": ["category", "impact", "count"],
+        "properties": {
+          "category": { "enum": ["Cost", "HighAvailability", "Performance", "Security", "OperationalExcellence", "Other"] },
+          "impact": { "enum": ["High", "Medium", "Low", "Unknown"] },
+          "count": { "type": "integer", "minimum": 1, "maximum": 9007199254740991 }
+        },
+        "additionalProperties": false
+      }
+    }
+  },
+  "allOf": [
+    {
+      "if": { "properties": { "availability": { "const": "unavailable" } } },
+      "then": { "properties": { "recommendations": { "type": "array", "maxItems": 0 } } }
+    }
+  ],
+  "additionalProperties": false
+}

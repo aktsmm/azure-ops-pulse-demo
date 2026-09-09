@@ -1,5 +1,11 @@
 export type Severity = "critical" | "warning" | "healthy" | "info";
 export type Availability = "available" | "partial" | "unavailable";
+export const SOURCE_REASONS = [
+  "authentication", "forbidden", "throttled", "billing-scope", "unsupported",
+  "invalid-response", "unknown", "empty", "unsupported-columns", "currency-mismatch",
+  "invalid-rows", "partial-collection", "not-collected"
+] as const;
+export type SourceReason = typeof SOURCE_REASONS[number];
 
 /**
  * `NotApplicable` means Azure Resource Health never evaluates this resource type (対象外).
@@ -17,6 +23,17 @@ export interface SourceStatus {
   source: string;
   availability: Availability;
   message: string;
+  reason?: SourceReason;
+}
+
+export interface CostPeriodDiagnostic {
+  availability: "available" | "unavailable";
+  reason?: SourceReason;
+}
+
+export interface CostPeriodDiagnostics {
+  current: CostPeriodDiagnostic;
+  previous: CostPeriodDiagnostic;
 }
 
 export interface TrendMetric {
@@ -128,6 +145,41 @@ export interface NetworkInventoryItem {
   location?: string | null;
 }
 
+export interface AdvisorSummary {
+  availability: Availability;
+  message: string;
+  recommendations: Array<{
+    category: "Cost" | "HighAvailability" | "Performance" | "Security" | "OperationalExcellence" | "Other";
+    impact: "High" | "Medium" | "Low" | "Unknown";
+    count: number;
+  }>;
+}
+
+export type TopologyEdgeKind =
+  | "contains" | "subnet" | "virtual-machine" | "peering"
+  | "network-security-group" | "route-table" | "nat-gateway"
+  | "backend" | "frontend" | "public-ip" | "private-link";
+
+export interface NetworkTopology {
+  availability: Availability;
+  message: string;
+  nodes: Array<{
+    id: string;
+    type: string;
+    region?: string;
+    referenceOnly: boolean;
+    scope: "inventory" | "external" | "uncollected";
+  }>;
+  edges: Array<{ source: string; target: string; kind: TopologyEdgeKind }>;
+  truncated: boolean;
+}
+
+export interface DefenderFieldAvailability {
+  secureScore: Availability;
+  assessments: Availability;
+  activeAlerts: Availability;
+}
+
 export interface AiInsight {
   id: string;
   severity: Severity;
@@ -168,6 +220,7 @@ export interface PublicSnapshotV1 {
     regionalHealth: Array<{ region: string; score: number; status: Severity }>;
   };
   cost: {
+    periodDiagnostics?: CostPeriodDiagnostics;
     current: CostAmount;
     previous: CostAmount;
     deltaPercent: number | null;
@@ -192,12 +245,14 @@ export interface PublicSnapshotV1 {
     serviceHealth: ServiceHealthSummary;
   };
   security: {
+    fieldAvailability?: DefenderFieldAvailability;
     secureScore: number | null;
     activeAlerts: number | null;
     recommendations: SecurityRecommendation[];
     compliance: Array<{ framework: string; score: number }>;
   };
   network: {
+    topology?: NetworkTopology;
     inventory: {
       total: number;
       byType: Array<{ label: string; count: number }>;
@@ -218,6 +273,7 @@ export interface PublicSnapshotV1 {
     };
   };
   aiInsights: AiInsight[];
+  advisor?: AdvisorSummary;
 }
 
 export interface RawResource {
@@ -244,6 +300,7 @@ export interface RawSnapshot {
   events: ActivityEvent[];
   regionalHealth: Array<{ region: string; score: number; status: Severity }>;
   exactCostJpy: number | null;
+  costPeriodDiagnostics?: CostPeriodDiagnostics;
   exactPreviousCostJpy: number | null;
   forecastCostJpy: number | null;
   budgetLimitJpy: number | null;
@@ -254,6 +311,9 @@ export interface RawSnapshot {
   security: PublicSnapshotV1["security"];
   networkInventory: NetworkInventoryItem[];
   networkMetricCoverage: NetworkMetricCoverage | null;
+  /** Private ARM IDs are retained only until sanitizeSnapshot runs. */
+  networkTopology?: NetworkTopology;
+  advisor?: AdvisorSummary;
   networkTelemetry: {
     availability: Availability;
     message: string;

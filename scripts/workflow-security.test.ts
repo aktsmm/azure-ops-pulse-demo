@@ -325,6 +325,8 @@ describe("AI insight publication gate", () => {
     expect(source).toContain("staged: true");
     expect(source).toContain("activation-comments: false");
     expect(source).toContain("report-failure-as-issue: false");
+    expect(source).toContain("report-failed-jobs: false");
+    expect(source).toMatch(/noop:\r?\n\s+report-as-issue: false/);
     expect(source).toContain("report-incomplete: false");
     expect(source).toMatch(/permissions:\r?\n\s+contents: read\r?\n\s+copilot-requests: write/);
     expect(lock).toContain("copilot-requests: write");
@@ -363,6 +365,65 @@ describe("AI insight publication gate", () => {
     expect(source).toContain("Do not inspect Azure, workflow secrets,");
     expect(source).toContain("logs, artifacts, commit history, or external services");
     expect(hardenAgentWorkflowLock(lock)).toBe(lock.replace(/\r\n/g, "\n"));
+  });
+
+  it("keeps the upgraded runtime read-only for the agent and isolated from external telemetry", () => {
+    const lock = readFileSync(".github/workflows/ai-insights.lock.yml", "utf8");
+    const agent = getJob(lock, "agent");
+    const conclusion = getJob(lock, "conclusion");
+
+    expect(agent).toMatch(/permissions:\r?\n {6}contents: read\r?\n {6}copilot-requests: write\r?\n {4}\S/);
+    expect(getJob(lock, "safe_outputs")).toContain("permissions: {}");
+    // The compiler grants only the isolated conclusion job cache-write access for the daily
+    // credit guardrail; the agent must never inherit it or gain repository publication rights.
+    expect(conclusion).toMatch(/permissions:\r?\n {6}actions: write\r?\n {4}\S/);
+    expect(conclusion).toContain("name: Save daily AIC usage cache");
+    expect(conclusion).not.toContain("actions/checkout@");
+    expect(lock.match(/actions: write/g)).toHaveLength(1);
+    expect(conclusion).toContain('GH_AW_NOOP_REPORT_AS_ISSUE: "false"');
+    expect(conclusion).toContain('GH_AW_FAILURE_REPORT_AS_ISSUE: "false"');
+    expect(conclusion).not.toContain("report_failed_jobs.cjs");
+    expect(lock).not.toContain("GH_AW_DEFAULT_OTLP");
+    expect(lock).toContain('OTEL_EXPORTER_OTLP_ENDPOINT: ""');
+    expect(lock).toContain('OTEL_EXPORTER_OTLP_HEADERS: ""');
+    expect(lock).toContain('GH_AW_OTLP_ENDPOINTS: "[]"');
+
+    const activation = getJob(lock, "activation");
+    expect(activation).toContain('GH_AW_COMPILED_VERSION: "' + GH_AW_VERSION + '"');
+    expect(activation).toContain("generate_aw_info.cjs");
+    expect(activation).toContain("check_workflow_timestamp_api.cjs");
+    expect(activation).toContain("check_version_updates.cjs");
+    expect(activation).toContain("daily-effective-workflow-guardrail");
+    expect(agent).toContain("determine_automatic_lockdown.cjs");
+    expect(agent).toContain("--exclude-env COPILOT_GITHUB_TOKEN");
+    expect(agent).toContain("--exclude-env GITHUB_MCP_SERVER_TOKEN");
+  });
+
+  it("hardens retention without silently repairing unexpected security or compiler drift", () => {
+    const lock = readFileSync(".github/workflows/ai-insights.lock.yml", "utf8").replace(/\r\n/g, "\n");
+    expect(hardenAgentWorkflowLock(lock.replace("retention-days: 1", "retention-days: 30"))).toBe(lock);
+    expect(() => hardenAgentWorkflowLock(lock.replace(
+      "retention-days: 1", "retention-days: 1\n          retention-days: 30"
+    ))).toThrow("multiple retention-days");
+    expect(() => hardenAgentWorkflowLock(lock.replace(
+      `"compiler_version":"${GH_AW_VERSION}"`, '"compiler_version":"v0.0.0"'
+    ))).toThrow("exact gh-aw");
+    expect(() => hardenAgentWorkflowLock(lock.replace(
+      `uses: github/gh-aw-actions/setup@${GH_AW_SETUP_SHA}`,
+      "uses: github/gh-aw-actions/setup@0000000000000000000000000000000000000000"
+    ))).toThrow("setup action must be pinned");
+    expect(() => hardenAgentWorkflowLock(lock.replace(
+      '"secrets":[', '"secrets":["COPILOT_GITHUB_TOKEN",'
+    ))).toThrow("long-lived Copilot token");
+    for (const forbidden of ["contents: write", "issues: write", "GH_AW_DEFAULT_OTLP_HEADERS"]) {
+      expect(() => hardenAgentWorkflowLock(`${lock}# ${forbidden}\n`)).toThrow("forbidden runtime content");
+    }
+    expect(() => hardenAgentWorkflowLock(lock.replace(
+      'GH_AW_NOOP_REPORT_AS_ISSUE: "false"', 'GH_AW_NOOP_REPORT_AS_ISSUE: "true"'
+    ))).toThrow("non-publishing policy");
+    expect(() => hardenAgentWorkflowLock(lock.replace(
+      "name: validated-ai-insights", "name: untrusted-ai-insights"
+    ))).toThrow("trusted handoff artifact");
   });
 
   it("derives the deterministic insight fields instead of asking the analysis for them", () => {

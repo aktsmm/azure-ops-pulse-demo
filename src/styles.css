@@ -1344,6 +1344,284 @@ td small {
   color: var(--cp-link);
 }
 
+.category-filters {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 20px;
+}
+
+.category-filters button {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  border: 1px solid var(--cp-border);
+  border-radius: 10px;
+  background: var(--cp-surface);
+  color: var(--cp-text-muted);
+  font: inherit;
+  cursor: pointer;
+}
+
+.category-filters button[aria-pressed="true"] {
+  border-color: var(--cp-accent);
+  background: var(--cp-accent-soft);
+  color: var(--cp-accent);
+}
+
+.category-filters button span {
+  font-weight: 700;
+}
+
+.resource-filters {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
+  gap: 12px;
+}
+
+.resource-filters .select-label,
+.resource-filters select {
+  min-width: 0;
+  width: 100%;
+}
+
+.resource-results,
+.resource-pagination {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin: 16px 0;
+  color: var(--cp-text-muted);
+  font-size: 12px;
+}
+
+.resource-pagination {
+  justify-content: flex-end;
+  margin-bottom: 0;
+}
+
+.resource-pagination > span:first-child {
+  margin-right: auto;
+}
+
+button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.resource-group {
+  overflow: hidden;
+  margin-bottom: 12px;
+  border: 1px solid var(--cp-border);
+  border-radius: 10px;
+}
+
+.resource-group summary {
+  padding: 12px 16px;
+  background: var(--cp-surface-soft);
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.resource-group summary > span {
+  margin-left: 12px;
+  color: var(--cp-text-muted);
+  font-size: 12px;
+  font-weight: 400;
+}
+
+.resource-table td {
+  padding: 12px;
+}
+
+.resource-identity {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.resource-type-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  flex-shrink: 0;
+  border: 1px solid var(--cp-border);
+  border-radius: 10px;
+  background: var(--cp-surface-soft);
+  color: var(--cp-accent);
+}
+
+.resource-table small,
+.resource-group-cell {
+  color: var(--cp-text-muted);
+  font-size: 11px;
+}
+
+.topology-scroll {
+  max-height: 640px;
+  overflow: auto;
+  border: 1px solid var(--cp-border);
+  border-radius: 10px;
+  background: var(--cp-bg-elevated);
+}
+
+.topology-stage {
+  position: relative;
+}
+
+.topology-column-title {
+  position: absolute;
+  top: 16px;
+  color: var(--cp-text-muted);
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.topology-lines {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+
+.topology-lines path {
+  fill: none;
+  stroke: var(--cp-border-strong);
+  stroke-width: 2;
+}
+
+.topology-lines path.highlighted {
+  stroke: var(--cp-accent);
+  stroke-width: 3;
+}
+
+.topology-node {
+  position: absolute;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px;
+  border: 1px solid var(--cp-border-strong);
+  border-radius: 10px;
+  background: var(--cp-surface);
+  color: var(--cp-text);
+  text-align: left;
+  cursor: pointer;
+}
+
+.topology-node > svg {
+  color: var(--cp-accent);
+  flex-shrink: 0;
+}
+
+.topology-node > span {
+  min-width: 0;
+}
+
+.topology-node strong,
+.topology-node small {
+  display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.topology-node small {
+  color: var(--cp-text-muted);
+  font-size: 11px;
+}
+
+.topology-node.reference-only {
+  border-style: dashed;
+}
+
+.topology-node.selected {
+  border: 2px solid var(--cp-accent);
+  background: var(--cp-accent-soft);
+}
+
+.topology-node.dimmed {
+  opacity: 0.6;
+}
+
+.topology-selection {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-top: 16px;
+  padding: 12px;
+  background: var(--cp-surface-soft);
+  border-radius: 10px;
+}
+
+.topology-selection p,
+.advisor-footnote {
+  margin: 4px 0 0;
+  color: var(--cp-text-muted);
+  font-size: 12px;
+}
+
+.topology-relations {
+  margin-top: 16px;
+}
+
+.topology-relations summary {
+  color: var(--cp-accent);
+  cursor: pointer;
+}
+
+.advisor-metrics {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 12px;
+  margin: 16px 0;
+}
+
+.advisor-metrics article {
+  padding: 16px;
+  border: 1px solid var(--cp-border);
+  border-radius: 10px;
+  background: var(--cp-surface-soft);
+}
+
+.advisor-metrics small {
+  display: block;
+  color: var(--cp-text-muted);
+}
+
+.advisor-metrics strong {
+  display: block;
+  margin-top: 4px;
+  font-size: 22px;
+}
+
+.advisor-unavailable {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 16px;
+  margin-bottom: 12px;
+  border: 1px dashed var(--cp-border-strong);
+  border-radius: 10px;
+  background: var(--cp-surface-soft);
+}
+
+.advisor-unavailable > svg {
+  flex-shrink: 0;
+  color: var(--cp-text-muted);
+}
+
+.advisor-unavailable p {
+  margin: 4px 0 0;
+  color: var(--cp-text-muted);
+}
+
 .state-card,
 .loading-state,
 .error-state {
@@ -2186,7 +2464,15 @@ td small {
   }
 
   .metric-grid.four {
-    grid-template-columns: 1fr;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .metric-grid.four .metric-card {
+    padding: 12px;
+  }
+
+  .metric-grid.four .metric-card strong {
+    font-size: 21px;
   }
 
   .metric-grid.two,

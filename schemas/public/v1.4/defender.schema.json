@@ -6,10 +6,42 @@
   "type": "object",
   "required": ["secureScore", "activeAlerts", "recommendations", "compliance"],
   "properties": {
+    "fieldAvailability": {
+      "type": "object",
+      "required": ["secureScore", "assessments", "activeAlerts"],
+      "properties": {
+        "secureScore": { "enum": ["available", "partial", "unavailable"] },
+        "assessments": { "enum": ["available", "partial", "unavailable"] },
+        "activeAlerts": { "enum": ["available", "partial", "unavailable"] }
+      },
+      "additionalProperties": false
+    },
     "secureScore": { "type": ["number", "null"], "minimum": 0, "maximum": 100 },
     "activeAlerts": { "type": ["integer", "null"], "minimum": 0 },
     "recommendations": { "type": "array" },
     "compliance": { "type": "array" }
   },
+  "allOf": [
+    {
+      "if": { "required": ["fieldAvailability"], "properties": { "fieldAvailability": { "type": "object", "properties": { "secureScore": { "const": "unavailable" } } } } },
+      "then": { "properties": { "secureScore": { "type": "null" } } }
+    },
+    {
+      "if": { "required": ["fieldAvailability"], "properties": { "fieldAvailability": { "type": "object", "properties": { "activeAlerts": { "const": "unavailable" } } } } },
+      "then": { "properties": { "activeAlerts": { "type": "null" } } }
+    },
+    {
+      "if": { "required": ["fieldAvailability"], "properties": { "fieldAvailability": { "type": "object", "properties": { "assessments": { "const": "unavailable" } } } } },
+      "then": { "properties": { "recommendations": { "type": "array", "maxItems": 0 } } }
+    },
+    {
+      "if": { "required": ["fieldAvailability"], "properties": { "fieldAvailability": { "type": "object", "properties": { "secureScore": { "enum": ["available", "partial"] } } } } },
+      "then": { "properties": { "secureScore": { "type": "number" } } }
+    },
+    {
+      "if": { "required": ["fieldAvailability"], "properties": { "fieldAvailability": { "type": "object", "properties": { "activeAlerts": { "enum": ["available", "partial"] } } } } },
+      "then": { "properties": { "activeAlerts": { "type": "integer" } } }
+    }
+  ],
   "additionalProperties": false
 }

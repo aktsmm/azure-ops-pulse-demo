@@ -35,7 +35,7 @@
             "value": { "type": "string" },
             "source": {
               "type": "string",
-              "pattern": "^(overview|cost|inventory|reliability|security|network)(\\.[A-Za-z0-9_-]+)+$"
+              "pattern": "^(overview|cost|inventory|reliability|security|network|advisor)(\\.[A-Za-z0-9_-]+)+$"
             }
           },
           "additionalProperties": false

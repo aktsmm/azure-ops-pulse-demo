@@ -31,6 +31,7 @@ export interface UiLanguageLeak {
  */
 const PRODUCT_NAMES = [
   "Azure Resource Graph",
+  "Azure Advisor",
   "Azure Monitor",
   "Azure Front Door",
   "Azure Portal",

@@ -170,7 +170,7 @@ describe("Cost page period-over-period change", () => {
     expect(await screen.findByText("期間差")).toBeInTheDocument();
     const card = screen.getByText("期間差").closest(".metric-card");
     expect(card).toHaveTextContent("比較不可");
-    expect(card).toHaveTextContent("比較できる前期間のデータがありません");
+    expect(card).toHaveTextContent("現在期間と前期間の比較可能な公開値がそろっていません");
   });
 
   it("keeps the portfolio change once both period totals are published", async () => {
