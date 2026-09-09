@@ -51,7 +51,8 @@
         "properties": {
           "source": { "type": "string" },
           "availability": { "enum": ["available", "partial", "unavailable"] },
-          "message": { "type": "string" }
+          "message": { "type": "string" },
+          "reason": { "$ref": "./source-reason.schema.json" }
         },
         "additionalProperties": false
       }
@@ -62,6 +63,7 @@
     "reliability": { "$ref": "./health-activity.schema.json" },
     "security": { "$ref": "./defender.schema.json" },
     "network": { "$ref": "./network.schema.json" },
+    "advisor": { "$ref": "./advisor.schema.json" },
     "aiInsights": { "$ref": "./ai-insights.schema.json" }
   },
   "allOf": [

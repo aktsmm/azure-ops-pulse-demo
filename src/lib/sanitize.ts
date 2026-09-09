@@ -1,12 +1,17 @@
 import type {
   AiInsight,
   NetworkFlow,
+  NetworkTopology,
+  AdvisorSummary,
+  CostPeriodDiagnostic,
+  SourceReason,
   PublicSnapshotV1,
   RawResource,
   RawSnapshot,
   ResourceHealthStatus,
   SecurityRecommendation
 } from "../data/contracts";
+import { SOURCE_REASONS } from "../data/contracts";
 import {
   JPY_DISCLOSURE_FLOOR,
   WITHHELD_JPY_AMOUNT_LABEL,
@@ -18,6 +23,17 @@ import { WITHHELD_RECOMMENDATION_TITLE } from "./defender-recommendations";
 const GUID_PATTERN =
   /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const ALLOWED_TAGS = new Set(["environment", "team", "workload", "criticality"]);
+const sourceReasons: ReadonlySet<string> = new Set(SOURCE_REASONS);
+
+function sanitizeSourceReason(reason: unknown): SourceReason {
+  return typeof reason === "string" && sourceReasons.has(reason) ? reason as SourceReason : "unknown";
+}
+
+function sanitizeCostDiagnostic(value: CostPeriodDiagnostic): CostPeriodDiagnostic {
+  return value.availability === "available" ? { availability: "available" } : {
+    availability: "unavailable", reason: sanitizeSourceReason(value.reason)
+  };
+}
 const DEFENDER_METRIC_LABELS = new Set(["Defender recommendations", "Open alerts"]);
 const ALLOWED_TAG_VALUES = new Set([
   "production",
@@ -368,8 +384,11 @@ export function sanitizeSnapshot(raw: RawSnapshot): PublicSnapshotV1 {
     raw.reliability.incidentAvailability === "available" &&
     raw.reliability.incidents !== null;
   const defenderPublishable =
-    raw.sources.find((source) => source.source === "Defender for Cloud")?.availability !==
-    "unavailable";
+    ["available", "partial"].includes(
+      raw.sources.find((source) => source.source === "Defender for Cloud")?.availability ?? "unavailable"
+    );
+  const fieldPublishable = (field: "secureScore" | "assessments" | "activeAlerts") =>
+    defenderPublishable && raw.security.fieldAvailability?.[field] !== "unavailable";
   if (raw.costCategories.some((item) => !Number.isFinite(item.amountJpy))) {
     throw new Error("Cost categories contain a non-finite amount");
   }
@@ -427,11 +446,16 @@ export function sanitizeSnapshot(raw: RawSnapshot): PublicSnapshotV1 {
       subscriptionId: maskGuid(raw.subscriptionId),
       tenantId: maskGuid(raw.tenantId)
     },
-    sources: raw.sources,
+    sources: raw.sources.map(({ source, availability, message, reason }) => ({
+      source, availability, message,
+      ...(reason !== undefined ? { reason: sanitizeSourceReason(reason) } : {})
+    })),
     overview: {
-      metrics: defenderPublishable
-        ? raw.metrics
-        : raw.metrics.filter((metric) => !DEFENDER_METRIC_LABELS.has(metric.label)),
+      metrics: raw.metrics.filter((metric) =>
+        (!DEFENDER_METRIC_LABELS.has(metric.label) || defenderPublishable) &&
+        (metric.label !== "Defender recommendations" || fieldPublishable("assessments")) &&
+        (metric.label !== "Open alerts" || fieldPublishable("activeAlerts"))
+      ),
       postureScore: resourceHealthPublishable ? raw.postureScore : null,
       eventTimeline: raw.events.map((event) => ({
         ...event,
@@ -440,6 +464,12 @@ export function sanitizeSnapshot(raw: RawSnapshot): PublicSnapshotV1 {
       regionalHealth: raw.regionalHealth
     },
     cost: {
+      ...(raw.costPeriodDiagnostics ? {
+        periodDiagnostics: {
+          current: sanitizeCostDiagnostic(raw.costPeriodDiagnostics.current),
+          previous: sanitizeCostDiagnostic(raw.costPeriodDiagnostics.previous)
+        }
+      } : {}),
       current: costAmount(raw.exactCostJpy),
       previous: costAmount(raw.exactPreviousCostJpy),
       deltaPercent: deltaPercent(raw.exactCostJpy, raw.exactPreviousCostJpy),
@@ -494,9 +524,16 @@ export function sanitizeSnapshot(raw: RawSnapshot): PublicSnapshotV1 {
       coverage: reliabilityCoverage
     },
     security: {
-      secureScore: defenderPublishable ? raw.security.secureScore : null,
-      activeAlerts: defenderPublishable ? raw.security.activeAlerts : null,
-      recommendations: defenderPublishable
+      ...(raw.security.fieldAvailability ? {
+        fieldAvailability: defenderPublishable ? { ...raw.security.fieldAvailability } : {
+          secureScore: "unavailable" as const,
+          assessments: "unavailable" as const,
+          activeAlerts: "unavailable" as const
+        }
+      } : {}),
+      secureScore: fieldPublishable("secureScore") ? raw.security.secureScore : null,
+      activeAlerts: fieldPublishable("activeAlerts") ? raw.security.activeAlerts : null,
+      recommendations: fieldPublishable("assessments")
         ? raw.security.recommendations.map((recommendation) =>
             sanitizeRecommendation(recommendation, withheldIdentifiers)
           )
@@ -504,6 +541,7 @@ export function sanitizeSnapshot(raw: RawSnapshot): PublicSnapshotV1 {
       compliance: defenderPublishable ? raw.security.compliance : []
     },
     network: {
+      ...(raw.networkTopology ? { topology: sanitizeTopology(raw.networkTopology, raw.resources) } : {}),
       inventory: {
         total: raw.networkInventory.length,
         byType: networkByType,
@@ -525,6 +563,58 @@ export function sanitizeSnapshot(raw: RawSnapshot): PublicSnapshotV1 {
         flows: networkFlows
       }
     },
-    aiInsights: raw.aiInsights.map(sanitizeInsight)
+    aiInsights: raw.aiInsights.map(sanitizeInsight),
+    ...(raw.advisor ? { advisor: sanitizeAdvisor(raw.advisor) } : {})
+  };
+}
+
+function sanitizeAdvisor(value: AdvisorSummary): AdvisorSummary {
+  const categories = new Set(["Cost", "HighAvailability", "Performance", "Security", "OperationalExcellence", "Other"]);
+  const impacts = new Set(["High", "Medium", "Low", "Unknown"]);
+  return {
+    availability: value.availability,
+    message: value.message,
+    recommendations: value.availability === "unavailable" ? [] : value.recommendations.map((row) => ({
+      category: categories.has(row.category) ? row.category : "Other",
+      impact: impacts.has(row.impact) ? row.impact : "Unknown",
+      count: row.count
+    }))
+  };
+}
+
+export function sanitizeTopology(value: NetworkTopology, inventory: readonly RawResource[]): NetworkTopology {
+  if (value.availability === "unavailable") {
+    return { availability: "unavailable", message: value.message, nodes: [], edges: [], truncated: false };
+  }
+  const originalIds = new Map(inventory.map((resource) => [resource.id.toLowerCase(), resource.id]));
+  const aliases = new Map<string, string>();
+  const owners = new Map(inventory.map((resource) => [`res-${stableHash(resource.id)}`, resource.id.toLowerCase()]));
+  const uniqueNodes = [...new Map(value.nodes.map((node) => [node.id.toLowerCase(), node])).values()];
+  const nodes = uniqueNodes.slice(0, 400).map((node) => {
+    const rawId = originalIds.get(node.id.toLowerCase()) ?? node.id.toLowerCase();
+    const id = `res-${stableHash(rawId)}`;
+    const owner = owners.get(id);
+    if (owner && owner !== node.id.toLowerCase()) throw new Error("Topology resource id alias collision");
+    owners.set(id, node.id.toLowerCase());
+    aliases.set(node.id.toLowerCase(), id);
+    return {
+      id, type: node.type,
+      ...(node.region ? { region: node.region } : {}),
+      referenceOnly: node.referenceOnly, scope: node.scope
+    };
+  });
+  const uniqueEdges = [...new Map(value.edges.map((edge) => [
+    `${edge.source.toLowerCase()}|${edge.target.toLowerCase()}|${edge.kind}`, edge
+  ])).values()];
+  const edges = uniqueEdges.slice(0, 800).flatMap((edge) => {
+    const source = aliases.get(edge.source.toLowerCase());
+    const target = aliases.get(edge.target.toLowerCase());
+    return source && target ? [{ source, target, kind: edge.kind }] : [];
+  });
+  const truncated = value.truncated || uniqueNodes.length > 400 || uniqueEdges.length > 800 || edges.length < Math.min(uniqueEdges.length, 800);
+  return {
+    availability: truncated ? "partial" : value.availability,
+    message: truncated ? "構成参照の公開上限または未収集の接続先により、一部を省略しました。" : value.message,
+    nodes, edges, truncated
   };
 }

@@ -2,7 +2,6 @@ import { spawnSync } from "node:child_process";
 import { createHash } from "node:crypto";
 import { existsSync } from "node:fs";
 import { chmod, mkdir, readFile, rename, rm, writeFile } from "node:fs/promises";
-import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
 import {
   hardenAgentWorkflowLock,
@@ -19,11 +18,11 @@ const RELEASE_BASE = `https://github.com/github/gh-aw/releases/download/${GH_AW_
 const RELEASE_ASSETS: Partial<Record<`${NodeJS.Platform}-${string}`, ReleaseAsset>> = {
   "linux-x64": {
     name: "linux-amd64",
-    sha256: "299df4ffdbbadfd18ed61ea2483b7cc93d0a2292cfca7ab82afc1bc72572e5a8"
+    sha256: "37faaaa95f622b910568bc878452f6036f01e951380fdfc41441944a95da43bf"
   },
   "win32-x64": {
     name: "windows-amd64.exe",
-    sha256: "12964e72cc0c1a75c1b9508ece438e630af42d8fb77ec86b64495898ebd9eb92"
+    sha256: "8d88047c1e162f16a01e1920124092c80a8bdf98c1635357067a0ac34c00d4c7"
   }
 };
 
@@ -44,7 +43,7 @@ async function getCompilerPath(): Promise<string> {
     );
   }
 
-  const cacheDir = join(tmpdir(), "azure-ops-pulse-gh-aw", GH_AW_VERSION);
+  const cacheDir = resolve(".candidate", "azure-ops-pulse-gh-aw", GH_AW_VERSION);
   const binaryPath = join(cacheDir, asset.name);
   await mkdir(cacheDir, { recursive: true });
 

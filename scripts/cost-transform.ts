@@ -1,4 +1,5 @@
 import { isComparableJpyChange } from "../src/lib/jpy-disclosure";
+import { CollectionError } from "./collection-diagnostics";
 
 export interface CostQueryProperties {
   rows?: unknown[][];
@@ -6,7 +7,7 @@ export interface CostQueryProperties {
   nextLink?: string | null;
 }
 
-export type CostPeriodOutcome = "empty" | "unsupported-columns" | "currency-mismatch" | "ok";
+export type CostPeriodOutcome = "empty" | "unsupported-columns" | "currency-mismatch" | "invalid-rows" | "ok";
 
 interface ParsedCostPeriod {
   currencyVerifiedJpy: boolean;
@@ -37,8 +38,18 @@ export function mergeCostPages(
 ): CostQueryProperties | null {
   const present = pages.filter((page): page is CostQueryProperties => page !== null);
   if (!present.length) return null;
+  if (present.some((page) => page.columns !== undefined &&
+      (!Array.isArray(page.columns) || page.columns.some((column) => !column || typeof column.name !== "string")))) {
+    throw new CollectionError("invalid-response");
+  }
+  const columns = present.find((page) => (page.columns ?? []).length > 0)?.columns ?? [];
+  const signature = JSON.stringify(columns.map((column) => column.name?.toLowerCase()));
+  if (present.some((page) => page.columns?.length &&
+      JSON.stringify(page.columns.map((column) => column.name?.toLowerCase())) !== signature)) {
+    throw new CollectionError("invalid-response");
+  }
   return {
-    columns: present.find((page) => (page.columns ?? []).length > 0)?.columns ?? [],
+    columns,
     rows: present.flatMap((page) => page.rows ?? [])
   };
 }
@@ -90,6 +101,12 @@ export function parseCostPeriod(properties: CostQueryProperties | null): ParsedC
     };
   }
 
+  if (!Array.isArray(properties.rows) || !Array.isArray(properties.columns) ||
+      properties.rows.some((row) => !Array.isArray(row)) ||
+      properties.columns.some((column) => !column || typeof column.name !== "string")) {
+    return { currencyVerifiedJpy: false, totalJpy: null, rowCount: 0, outcome: "invalid-rows", categories: [] };
+  }
+
   const rows = properties.rows ?? [];
   const columns = (properties.columns ?? []).map((column) => column.name?.toLowerCase() ?? "");
   const costIndex = ["cost", "pretaxcost", "totalcost"]
@@ -102,7 +119,9 @@ export function parseCostPeriod(properties: CostQueryProperties | null): ParsedC
       .map((row) => (currencyIndex >= 0 ? String(row[currencyIndex] ?? "").toUpperCase() : ""))
       .filter(Boolean)
   );
-  const currencyVerifiedJpy = currencies.size === 1 && currencies.has("JPY");
+  const currencyVerifiedJpy = currencies.size === 1 && currencies.has("JPY") &&
+    rows.every((row) => typeof row[currencyIndex] === "string" &&
+      String(row[currencyIndex]).toUpperCase() === "JPY");
 
   if (rows.length === 0) {
     return {
@@ -136,7 +155,11 @@ export function parseCostPeriod(properties: CostQueryProperties | null): ParsedC
   let totalJpy = 0;
   for (const row of rows) {
     const amount = Number(row[costIndex]);
-    if (!Number.isFinite(amount)) continue;
+    if ((typeof row[costIndex] !== "number" && typeof row[costIndex] !== "string") ||
+        String(row[costIndex]).trim() === "" || !Number.isFinite(amount) ||
+        !Number.isFinite(totalJpy + amount)) {
+      return { currencyVerifiedJpy, totalJpy: null, rowCount: rows.length, outcome: "invalid-rows", categories: [] };
+    }
     totalJpy += amount;
     const name = String(serviceIndex >= 0 ? row[serviceIndex] ?? "Other" : "Other");
     categoryTotals.set(name, (categoryTotals.get(name) ?? 0) + amount);
@@ -187,7 +210,8 @@ export function costPeriodMessage(outcome: CostPeriodOutcome, rowCount: number):
     return `Cost Management returned ${rowCount} records without a recognizable cost column.`;
   }
   if (outcome === "currency-mismatch") {
-    return `Cost Management returned ${rowCount} records in a currency other than JPY; no unverified conversion was published.`;
+    return `Cost Management returned ${rowCount} records with currency other than JPY or missing currency; no unverified conversion was published.`;
   }
+  if (outcome === "invalid-rows") return "Cost Management returned an invalid amount schema; no incomplete total was published.";
   return `Cost Management returned ${rowCount} rounded JPY records.`;
 }

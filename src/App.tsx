@@ -15,7 +15,6 @@ import {
   MapPin,
   Menu,
   Network,
-  Search,
   Server,
   ShieldCheck,
   Sparkles,
@@ -35,9 +34,14 @@ import type {
   PublicSnapshotV1,
   ResourceItem,
   Severity,
-  SourceStatus
+  SourceStatus,
+  TopologyEdgeKind
 } from "./data/contracts";
 import { ThemeToggle } from "./components/ThemeToggle";
+import { ResourceExplorer } from "./components/ResourceExplorer";
+import { AdvisorPanel } from "./components/AdvisorPanel";
+import { TopologyGraph } from "./components/TopologyGraph";
+import { resourceTypeLabel } from "./lib/resource-catalog";
 import { useSnapshot } from "./hooks/useSnapshot";
 import {
   availabilityLabel,
@@ -51,6 +55,7 @@ import {
   formatEventTimestamp,
   formatSnapshotAge,
   formatSourceMessage,
+  formatSourceReason,
   formatSourceName,
   metricWhenSourcePublished,
   modeLabel,
@@ -77,8 +82,22 @@ const RESOURCE_HEALTH_TYPES_DOC =
   "https://learn.microsoft.com/azure/service-health/resource-health-checks-resource-types";
 const RESOURCE_HEALTH_OVERVIEW_DOC =
   "https://learn.microsoft.com/azure/service-health/resource-health-overview";
-const DEFENDER_PLANS_DOC =
-  "https://learn.microsoft.com/azure/defender-for-cloud/enable-all-plans";
+const DEFENDER_CSPM_DOC =
+  "https://learn.microsoft.com/ja-jp/azure/defender-for-cloud/concept-cloud-security-posture-management";
+const ACTIONS_URL = "https://github.com/aktsmm/azure-ops-pulse-demo/actions";
+const TOPOLOGY_RELATIONS: Record<TopologyEdgeKind, string> = {
+  contains: "サブネットを含む",
+  subnet: "サブネット参照",
+  "virtual-machine": "仮想マシン参照",
+  peering: "ピアリング参照",
+  "network-security-group": "NSG 関連付け",
+  "route-table": "ルート テーブル参照",
+  "nat-gateway": "NAT ゲートウェイ参照",
+  backend: "バックエンド参照",
+  frontend: "フロントエンド参照",
+  "public-ip": "パブリック IP 参照",
+  "private-link": "Private Link 参照"
+};
 
 const NAV_ITEMS = [
   { path: "/overview", label: "概要", icon: Gauge },
@@ -128,7 +147,7 @@ const TITLES: Record<string, { title: string; subtitle: string }> = {
   },
   "/security": {
     title: "セキュリティ",
-    subtitle: "Defender for Cloud の集計値だけを表示し、資産や脆弱性の詳細は公開しません。"
+    subtitle: "Defender for Cloud と Azure Advisor の推奨事項を集計し、未収集の範囲も明示します。"
   },
   "/network": {
     title: "ネットワーク",
@@ -400,7 +419,7 @@ function OverviewPage({ data }: { data: PublicSnapshotV1 }) {
   };
   const coverage = data.reliability.coverage;
   const defenderSource = data.sources.find((source) => source.source === "Defender for Cloud");
-  const defenderRecommendationCount = metricWhenSourcePublished(
+  const defenderRecommendationCount = data.security.fieldAvailability?.assessments === "unavailable" ? null : metricWhenSourcePublished(
     defenderSource,
     data.security.recommendations.length
   );
@@ -802,6 +821,7 @@ function OverviewPage({ data }: { data: PublicSnapshotV1 }) {
 }
 
 function CostPage({ data }: { data: PublicSnapshotV1 }) {
+  const currentAvailable = data.cost.current.availability === "available";
   // The browser never revalidates snapshot.json, so a change is only rendered when the amount it was
   // measured against is itself published. The other two buckets are named in a footnote rather than
   // dropped silently, so a missing percentage reads as a stated rule instead of a gap.
@@ -847,12 +867,12 @@ function CostPage({ data }: { data: PublicSnapshotV1 }) {
         <MetricCard
           label="現在期間"
           value={data.cost.current.approximateAmount ?? "未収集"}
-          note={formatCostDelta(totalDeltaPercent)}
+          note={currentAvailable ? formatCostDelta(totalDeltaPercent) : "取得できていないため、支出ゼロとは判断できません"}
         />
         <MetricCard
           label="前期間"
           value={data.cost.previous.approximateAmount ?? "未収集"}
-          note="現在期間と同じ日数で比較した概算値"
+          note={data.cost.previous.availability === "available" ? "現在期間と同じ日数で比較した概算値" : "前期間の取得結果も個別に確認してください"}
         />
         <MetricCard
           label="期間差"
@@ -863,17 +883,39 @@ function CostPage({ data }: { data: PublicSnapshotV1 }) {
           }
           note={
             totalDeltaPercent === null
-              ? "比較できる前期間のデータがありません"
+              ? "現在期間と前期間の比較可能な公開値がそろっていません"
               : "同じ日数の前期間との比較"
           }
           severity={totalDeltaPercent !== null && totalDeltaPercent > 0 ? "warning" : "info"}
         />
         <MetricCard
           label="対象サービス"
-          value={`${numberFormatter.format(data.cost.categories.length)} 件`}
+          value={currentAvailable ? `${numberFormatter.format(data.cost.categories.length)} 件` : "未収集"}
           note="概算額を公開できたサービス数"
         />
       </section>
+      {(!currentAvailable || data.cost.previous.availability === "unavailable") && (
+        <Panel title="コストが表示されない理由" description="現在期間と前期間の取得状態を分けて確認できます。収集不能を支出 0 円として扱いません。">
+          <div className="source-list">
+            {([
+              ["現在期間", data.cost.current, data.cost.periodDiagnostics?.current],
+              ["前期間", data.cost.previous, data.cost.periodDiagnostics?.previous]
+            ] as const).map(([label, period, diagnostic]) => (
+              <article className="source-row" key={label}>
+                <Info size={18} aria-hidden="true" />
+                <div><strong>{label}</strong><p>{period.availability === "available"
+                  ? "この期間の概算 JPY データを収集しました。"
+                  : formatSourceReason(diagnostic?.reason)}</p></div>
+                <StatusBadge severity={availabilitySeverity(period.availability)}>{availabilityLabel(period.availability)}</StatusBadge>
+              </article>
+            ))}
+          </div>
+          <p className="muted">収集先スコープ・実行 ID の読み取り権限・課金データの対象期間を確認してください。公開金額は JPY のみで、他通貨からの換算は行いません。</p>
+          <a className="text-button" href={`${ACTIONS_URL}/workflows/collect-azure.yml`} target="_blank" rel="noreferrer">
+            収集ワークフローの結果を確認 <ExternalLink size={14} aria-hidden="true" />
+          </a>
+        </Panel>
+      )}
       <div className="content-grid">
         <Panel
           title="サービス別コスト構成"
@@ -1018,9 +1060,17 @@ function ResourceDrawer({
           <StatusBadge severity={resourceStatusSeverity(resource.status)}>
             {resourceStatusLabel(resource.status)}
           </StatusBadge>
-          <span>{resource.type}</span>
+          <span>{resourceTypeLabel(resource.type)}</span>
         </div>
         <dl className="detail-list">
+          <div>
+            <dt>Azure リソース種別</dt>
+            <dd>{resource.type}</dd>
+          </div>
+          <div>
+            <dt>公開 ID</dt>
+            <dd>{resource.id}</dd>
+          </div>
           <div>
             <dt>リソース グループ</dt>
             <dd>{resource.resourceGroup}</dd>
@@ -1064,21 +1114,8 @@ function ResourceDrawer({
 }
 
 function ResourcesPage({ data }: { data: PublicSnapshotV1 }) {
-  const [query, setQuery] = useState("");
-  const [status, setStatus] = useState<"all" | ResourceItem["status"]>("all");
   const [selected, setSelected] = useState<ResourceItem | null>(null);
   const coverage = data.reliability.coverage;
-  const filtered = useMemo(
-    () =>
-      data.inventory.resources.filter(
-        (resource) =>
-          (status === "all" || resource.status === status) &&
-          `${resource.name} ${resource.type} ${resource.region} ${resource.resourceGroup}`
-            .toLocaleLowerCase("ja-JP")
-            .includes(query.toLocaleLowerCase("ja-JP"))
-      ),
-    [data.inventory.resources, query, status]
-  );
 
   return (
     <div className="page-stack">
@@ -1109,94 +1146,16 @@ function ResourcesPage({ data }: { data: PublicSnapshotV1 }) {
           }
           note={
             data.inventory.byType.length
-              ? [...data.inventory.byType].sort((a, b) => b.count - a.count)[0]!.label
+              ? resourceTypeLabel([...data.inventory.byType].sort((a, b) => b.count - a.count)[0]!.label)
               : "公開できるリソース種別がありません"
           }
         />
       </section>
       <Panel
         title="リソース一覧"
-        description="フィルターは表示中のサニタイズ済みデータだけに適用されます。"
+        description="VM・NW・DB などの一般名で探し、カテゴリや配置でまとめて確認できます。名前と ID は匿名化された公開値です。"
       >
-        <div className="table-toolbar">
-          <label className="search-control">
-            <Search size={17} aria-hidden="true" />
-            <span className="sr-only">リソースを検索</span>
-            <input
-              value={query}
-              onChange={(event) => setQuery(event.target.value)}
-              placeholder="名前、タイプ、リージョンで検索"
-            />
-          </label>
-          <label className="select-label">
-            <span>Resource Health 状態</span>
-            <select
-              value={status}
-              onChange={(event) =>
-                setStatus(event.target.value as "all" | ResourceItem["status"])
-              }
-            >
-              <option value="all">すべて</option>
-              <option value="Healthy">正常</option>
-              <option value="Degraded">低下</option>
-              <option value="Unavailable">利用不可</option>
-              <option value="Unknown">未評価</option>
-              <option value="NotApplicable">対象外</option>
-            </select>
-          </label>
-          <span className="result-count" aria-live="polite">
-            {filtered.length} 件
-          </span>
-        </div>
-        {filtered.length ? (
-          <div className="table-scroll">
-            <table>
-              <thead>
-                <tr>
-                  <th>名前</th>
-                  <th>タイプ</th>
-                  <th>リージョン</th>
-                  <th>Resource Health</th>
-                  <th>所有者</th>
-                  <th aria-label="詳細を開く" />
-                </tr>
-              </thead>
-              <tbody>
-                {filtered.map((resource) => (
-                  <tr key={resource.id}>
-                    <td>
-                      <button
-                        type="button"
-                        className="resource-link"
-                        onClick={() => setSelected(resource)}
-                        aria-label={`${resource.name}の詳細を開く`}
-                      >
-                        <strong>{resource.name}</strong>
-                        <small>{resource.resourceGroup}</small>
-                      </button>
-                    </td>
-                    <td>{resource.type}</td>
-                    <td>{resource.region}</td>
-                    <td>
-                      <StatusBadge severity={resourceStatusSeverity(resource.status)}>
-                        {resourceStatusLabel(resource.status)}
-                      </StatusBadge>
-                    </td>
-                    <td>{resource.owner}</td>
-                    <td aria-hidden="true">
-                      <ChevronRight size={17} />
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        ) : (
-          <EmptyState
-            title="条件に一致するリソースはありません"
-            detail="検索文字列または Resource Health 状態フィルターを変更してください。"
-          />
-        )}
+        <ResourceExplorer resources={data.inventory.resources} onSelect={setSelected} />
       </Panel>
       <ResourceDrawer resource={selected} onClose={() => setSelected(null)} />
     </div>
@@ -1564,15 +1523,16 @@ function ReliabilityPage({ data }: { data: PublicSnapshotV1 }) {
 function SecurityPage({ data }: { data: PublicSnapshotV1 }) {
   const defenderSource = data.sources.find((source) => source.source === "Defender for Cloud");
   const defenderPublished = defenderSource !== undefined && defenderSource.availability !== "unavailable";
-  const secureScore = metricWhenSourcePublished(defenderSource, data.security.secureScore);
-  const activeAlerts = metricWhenSourcePublished(defenderSource, data.security.activeAlerts);
-  const openRecommendations = metricWhenSourcePublished(
+  const secureScore = data.security.fieldAvailability?.secureScore === "unavailable" ? null : metricWhenSourcePublished(defenderSource, data.security.secureScore);
+  const activeAlerts = data.security.fieldAvailability?.activeAlerts === "unavailable" ? null : metricWhenSourcePublished(defenderSource, data.security.activeAlerts);
+  const assessmentsPublished = defenderPublished && data.security.fieldAvailability?.assessments !== "unavailable";
+  const openRecommendations = !assessmentsPublished ? null : metricWhenSourcePublished(
     defenderSource,
     data.security.recommendations.filter((item) => item.status !== "Resolved").length
   );
   const complianceCount = metricWhenSourcePublished(
     defenderSource,
-    data.security.compliance.length
+    data.security.compliance.length || null
   );
   const unavailableNote = defenderSource
     ? formatSourceMessage(defenderSource)
@@ -1581,10 +1541,17 @@ function SecurityPage({ data }: { data: PublicSnapshotV1 }) {
   const managementEvents = data.overview.eventTimeline.filter(
     (event) => event.id !== "collection-complete"
   );
+  const advisorSource = data.sources.find((source) => source.source === "Azure Advisor");
+  const advisorPanel = <AdvisorPanel
+    availability={data.advisor?.availability}
+    recommendations={data.advisor?.recommendations}
+    diagnosis={advisorSource ? formatSourceMessage(advisorSource) : undefined}
+  />;
 
   if (!defenderPublished) {
     return (
       <div className="page-stack">
+        {advisorPanel}
         <div className="notice muted">
           <ShieldCheck size={18} aria-hidden="true" />
           <span>{unavailableNote}</span>
@@ -1596,9 +1563,9 @@ function SecurityPage({ data }: { data: PublicSnapshotV1 }) {
         </div>
         <Panel
           title="Defender for Cloud は未収集です"
-          description="このサブスクリプションでは Defender のプランが有効ではないため、集計値を公開していません。0 件や 0% として表示することはしません。"
+          description="公開できる Defender データがありません。応答が空であることだけでは、プラン未有効・権限不足・評価待ちのいずれかを断定できません。"
         >
-          <div className="pending-metric-grid" aria-label="有効化すると公開される指標">
+          <div className="pending-metric-grid" aria-label="未収集のセキュリティ指標">
             {[
               { label: "Secure score", detail: "推奨事項の達成率（0〜100）" },
               { label: "アクティブ アラート", detail: "未解決のセキュリティ アラート件数" },
@@ -1615,11 +1582,11 @@ function SecurityPage({ data }: { data: PublicSnapshotV1 }) {
           <p className="source-footnote">
             <Info size={14} aria-hidden="true" />
             <span>
-              Defender for Cloud のプランを有効にすると、次回の収集からこれらの集計値が公開されます。
+              基礎 CSPM のセキュリティ推奨事項とセキュリティ スコアには無料機能があります。有料プランの有効化だけを解決策とせず、スコープ・アクセス権・評価状況を確認してください。
             </span>
           </p>
-          <LearnLink href={DEFENDER_PLANS_DOC}>
-            Defender for Cloud のプランを有効にする（Microsoft Learn）
+          <LearnLink href={DEFENDER_CSPM_DOC}>
+            基礎 CSPM と Defender CSPM の違い（Microsoft Learn）
           </LearnLink>
         </Panel>
         <Panel
@@ -1690,6 +1657,7 @@ function SecurityPage({ data }: { data: PublicSnapshotV1 }) {
 
   return (
     <div className="page-stack">
+      {advisorPanel}
       {defenderSource && (
         <div className="notice">
           <ShieldCheck size={18} aria-hidden="true" />
@@ -1739,7 +1707,7 @@ function SecurityPage({ data }: { data: PublicSnapshotV1 }) {
           description="タイトル、重要度、影響件数、対応状態だけを公開します。"
           className="span-8"
         >
-          {data.security.recommendations.length ? (
+          {assessmentsPublished && data.security.recommendations.length ? (
             <div className="recommendation-list">
               {data.security.recommendations.map((item) => (
                 <article className="recommendation-row" key={item.title}>
@@ -1756,8 +1724,8 @@ function SecurityPage({ data }: { data: PublicSnapshotV1 }) {
             </div>
           ) : (
             <EmptyState
-              title="公開できる推奨事項はありません"
-              detail="推奨事項が 0 件でも安全だとは判断しません。この収集ウィンドウで公開できる推奨事項がなかった状態です。"
+              title={assessmentsPublished ? "公開できる推奨事項はありません" : "Defender 推奨事項は未収集です"}
+              detail={assessmentsPublished ? "推奨事項が 0 件でも安全だとは判断しません。この収集ウィンドウで公開できる推奨事項がなかった状態です。" : "評価データが取得できていないため、推奨事項の件数を 0 件とは表示しません。"}
             />
           )}
         </Panel>
@@ -1798,6 +1766,7 @@ function SecurityPage({ data }: { data: PublicSnapshotV1 }) {
 
 function NetworkPage({ data }: { data: PublicSnapshotV1 }) {
   const [filter, setFilter] = useState<"all" | "Allowed" | "Degraded" | "Blocked">("all");
+  const [selectedResource, setSelectedResource] = useState<ResourceItem | null>(null);
   const telemetry = data.network.telemetry;
   const metricCoverage = data.network.metricCoverage;
   const networkSource = data.sources.find(
@@ -1806,7 +1775,7 @@ function NetworkPage({ data }: { data: PublicSnapshotV1 }) {
   const rows = telemetry.flows.filter((flow) => filter === "all" || flow.status === filter);
   const telemetryPublished = telemetry.availability !== "unavailable";
   const networkResources = data.inventory.resources.filter((resource) =>
-    resource.type.startsWith("microsoft.network/")
+    resource.type.toLowerCase().startsWith("microsoft.network/")
   );
   const networkInInventory = networkResources.length;
   const networkBlindSpot = networkResources.filter(
@@ -1817,6 +1786,8 @@ function NetworkPage({ data }: { data: PublicSnapshotV1 }) {
     telemetry.availability === "partial"
       ? "フロー テレメトリは一部のみ収集されています。範囲外の接続は評価しません。"
       : "収集済みフロー テレメトリの集計値です。";
+  const topology = data.network.topology;
+  const resourceIndex = new Map(data.inventory.resources.map((resource) => [resource.id, resource]));
 
   return (
     <div className="page-stack">
@@ -1855,14 +1826,40 @@ function NetworkPage({ data }: { data: PublicSnapshotV1 }) {
           />
         )}
       </section>
+      {topology && topology.availability !== "unavailable" ? (
+        <TopologyGraph
+          key={data.generatedAt}
+          nodes={topology.nodes.map((node) => ({
+            id: node.id,
+            type: node.type,
+            label: resourceIndex.get(node.id)?.name ?? node.id,
+            region: node.region ?? "",
+            referenceOnly: node.referenceOnly || !resourceIndex.has(node.id),
+            scope: node.scope
+          }))}
+          edges={topology.edges.map((edge) => ({ ...edge, label: TOPOLOGY_RELATIONS[edge.kind] }))}
+          partial={topology.availability === "partial" || topology.truncated}
+          onSelect={(id) => setSelectedResource(resourceIndex.get(id) ?? null)}
+        />
+      ) : (
+        <Panel title="ネットワーク構成相関図" description="VNet → サブネット → NIC・VM などの構成参照を可視化します。">
+          <div className="advisor-unavailable">
+            <Network size={20} aria-hidden="true" />
+            <div><strong>構成の関連情報は未収集です</strong><p>このスナップショットに関連データがないため、同じリージョンやリソース グループにあるという理由だけで線を結びません。新しい収集処理の実行結果を確認してください。</p></div>
+          </div>
+          <a className="text-button" href={`${ACTIONS_URL}/workflows/collect-azure.yml`} target="_blank" rel="noreferrer">構成情報の収集結果を確認 <ExternalLink size={14} aria-hidden="true" /></a>
+        </Panel>
+      )}
       <div className="content-grid">
         <Panel
           title="ネットワーク リソース種別"
-          description="Azure のリソース種別名は原文のまま表示します。"
+          description="VNet・ロード バランサーなどの一般名で表示します。正式なリソース種別は詳細から確認できます。"
           className="span-6"
         >
           <DistributionList
-            items={data.network.inventory.byType}
+            items={data.network.inventory.byType.map((item) => ({
+              ...item, label: resourceTypeLabel(item.label.includes("/") ? item.label : `microsoft.network/${item.label}`)
+            }))}
             emptyTitle="ネットワーク インベントリは未収集"
             emptyDetail="対応するネットワーク リソースは収集されていません。"
           />
@@ -1996,6 +1993,10 @@ function NetworkPage({ data }: { data: PublicSnapshotV1 }) {
         </p>
       )}
       <SourceFootnote sources={networkSource ? [networkSource] : []} />
+      <Panel title="ネットワーク リソース一覧" description="VNet・NIC・NSG など、公開インベントリに含まれるリソースを検索できます。関連リソースの構成図と通信の実測状態は別の情報です。">
+        <ResourceExplorer resources={networkResources} onSelect={setSelectedResource} />
+      </Panel>
+      <ResourceDrawer resource={selectedResource} onClose={() => setSelectedResource(null)} />
     </div>
   );
 }
@@ -2099,17 +2100,28 @@ function AiInsightsPage({ data }: { data: PublicSnapshotV1 }) {
             </article>
             <article>
               <ShieldCheck size={22} aria-hidden="true" />
-              <strong>3. 人がレビューして公開</strong>
-              <p>Pull Request でレビューされた分析だけが、このページに公開されます。</p>
+              <strong>3. 検証を通過した候補を公開</strong>
+              <p>独立した公開処理がスキーマ・数値根拠・プライバシーを再検証し、合格した候補だけを公開します。</p>
             </article>
           </div>
           <p className="source-footnote">
             <Info size={14} aria-hidden="true" />
             <span>
               最終収集は {formatDateTimeJa(data.generatedAt)}（{formatSnapshotAge(data.generatedAt)}
-              ）です。次回の分析ワークフローで候補が作成されます。
+              ）です。候補なし・生成失敗・検証不合格のどれかは、このスナップショットだけでは特定できません。
             </span>
           </p>
+          <a className="text-button" href={`${ACTIONS_URL}/workflows/ai-insights.lock.yml`} target="_blank" rel="noreferrer">
+            AI 分析ワークフローの実行結果を確認 <ExternalLink size={14} aria-hidden="true" />
+          </a>
+        </Panel>
+        <Panel title="スナップショットから確認できる事実" description="以下は収集済みデータの集計であり、AI が生成した分析ではありません。">
+          <div className="metric-grid four">
+            <MetricCard label="リソース" value={`${numberFormatter.format(data.inventory.total)} 件`} note="公開インベントリの件数" />
+            <MetricCard label="Resource Health 未評価" value={`${numberFormatter.format(data.reliability.coverage.unevaluatedResources)} 件`} note="対応種別のうち評価結果がないリソース" />
+            <MetricCard label="ネットワーク" value={`${numberFormatter.format(data.network.inventory.total)} 件`} note="リソース件数であり接続数ではありません" />
+            <MetricCard label="利用不可のソース" value={`${data.sources.filter((source) => source.availability === "unavailable").length} 件`} note="未取得と障害を混同せず収集経路を確認" />
+          </div>
         </Panel>
       </div>
     );

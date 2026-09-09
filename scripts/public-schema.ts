@@ -1,6 +1,7 @@
 import { z } from "zod";
 import { WITHHELD_JPY_AMOUNT_LABEL, isWithheldJpyAmount } from "../src/lib/jpy-disclosure";
 import { resourceAliasLabel } from "../src/lib/sanitize";
+import { SOURCE_REASONS } from "../src/data/contracts";
 
 const severity = z.enum(["critical", "warning", "healthy", "info"]);
 const statusBadge = z.enum([
@@ -11,6 +12,63 @@ const statusBadge = z.enum([
   "NotApplicable"
 ]);
 const availability = z.enum(["available", "partial", "unavailable"]);
+const sourceReason = z.enum(SOURCE_REASONS);
+const costPeriodDiagnosticSchema = z.object({
+  availability: z.enum(["available", "unavailable"]),
+  reason: sourceReason.optional()
+}).strict().superRefine((value, context) => {
+  if ((value.availability === "unavailable") !== (value.reason !== undefined)) {
+    context.addIssue({ code: z.ZodIssueCode.custom, message: "Only unavailable cost periods require a reason code" });
+  }
+});
+const advisorSchema = z.object({
+  availability,
+  message: z.string(),
+  recommendations: z.array(z.object({
+    category: z.enum(["Cost", "HighAvailability", "Performance", "Security", "OperationalExcellence", "Other"]),
+    impact: z.enum(["High", "Medium", "Low", "Unknown"]),
+    count: z.number().int().positive().max(Number.MAX_SAFE_INTEGER)
+  }).strict()).max(24)
+}).strict().superRefine((value, context) => {
+  const keys = value.recommendations.map((row) => `${row.category}:${row.impact}`);
+  if ((value.availability === "unavailable" && keys.length) || new Set(keys).size !== keys.length) {
+    context.addIssue({ code: z.ZodIssueCode.custom, message: "Advisor unavailable data must be empty and aggregates unique" });
+  }
+});
+const topologySchema = z.object({
+  availability,
+  message: z.string(),
+  nodes: z.array(z.object({
+    id: z.string().regex(/^res-[0-9a-f]{8}$/),
+    type: z.string().regex(/^microsoft\.[a-z0-9]+(?:\/[a-z][a-z0-9]*)+$/i),
+    region: z.string().regex(/^[a-z0-9-]+$/i).optional(),
+    referenceOnly: z.boolean(),
+    scope: z.enum(["inventory", "external", "uncollected"])
+  }).strict()).max(400),
+  edges: z.array(z.object({
+    source: z.string().regex(/^res-[0-9a-f]{8}$/),
+    target: z.string().regex(/^res-[0-9a-f]{8}$/),
+    kind: z.enum(["contains", "subnet", "virtual-machine", "peering", "network-security-group",
+      "route-table", "nat-gateway", "backend", "frontend", "public-ip", "private-link"])
+  }).strict()).max(800),
+  truncated: z.boolean()
+}).strict().superRefine((value, context) => {
+  const ids = new Set(value.nodes.map((node) => node.id));
+  const edgeIds = new Set(value.edges.map((edge) => `${edge.source}|${edge.target}|${edge.kind}`));
+  if (ids.size !== value.nodes.length || edgeIds.size !== value.edges.length ||
+      value.edges.some((edge) => !ids.has(edge.source) || !ids.has(edge.target))) {
+    context.addIssue({ code: z.ZodIssueCode.custom, message: "Topology must have unique nodes/edges and no dangling endpoints" });
+  }
+  if (value.nodes.some((node) => node.referenceOnly !== (node.scope !== "inventory"))) {
+    context.addIssue({ code: z.ZodIssueCode.custom, message: "Topology reference-only scope is inconsistent" });
+  }
+  if ((value.truncated || value.nodes.some((node) => node.referenceOnly)) && value.availability !== "partial") {
+    context.addIssue({ code: z.ZodIssueCode.custom, message: "Truncated or reference-only topology must be partial" });
+  }
+  if (value.availability === "unavailable" && (value.nodes.length || value.edges.length || value.truncated)) {
+    context.addIssue({ code: z.ZodIssueCode.custom, message: "Unavailable topology must not contain nodes or edges" });
+  }
+});
 const publishableAvailability = new Set(["available", "partial"]);
 const reliabilityCoverageSchema = z
   .object({
@@ -152,7 +210,7 @@ export const insightSchema = z
             value: z.string().min(1).max(40),
             source: z
               .string()
-              .regex(/^(overview|cost|inventory|reliability|security|network)(\.[A-Za-z0-9_-]+)+$/)
+              .regex(/^(overview|cost|inventory|reliability|security|network|advisor)(\.[A-Za-z0-9_-]+)+$/)
           })
           .strict()
       )
@@ -198,7 +256,8 @@ export const publicSnapshotSchema = z
         .object({
           source: z.string(),
           availability: z.enum(["available", "partial", "unavailable"]),
-          message: z.string()
+          message: z.string(),
+          reason: sourceReason.optional()
         })
         .strict()
     ),
@@ -236,6 +295,10 @@ export const publicSnapshotSchema = z
       .strict(),
     cost: z
       .object({
+        periodDiagnostics: z.object({
+          current: costPeriodDiagnosticSchema,
+          previous: costPeriodDiagnosticSchema
+        }).strict().optional(),
         current: costAmountSchema,
         previous: costAmountSchema,
         deltaPercent: z.number().nullable(),
@@ -255,6 +318,15 @@ export const publicSnapshotSchema = z
       })
       .strict()
       .superRefine((value, context) => {
+        for (const period of ["current", "previous"] as const) {
+          if (value.periodDiagnostics && value.periodDiagnostics[period].availability !== value[period].availability) {
+            context.addIssue({
+              code: z.ZodIssueCode.custom,
+              path: ["periodDiagnostics", period],
+              message: "Cost period diagnosis must match amount availability"
+            });
+          }
+        }
         // Amounts below the publication rounding unit are withheld, so a percentage measured against
         // them cannot be grounded in anything the reader can see. Real collections produced
         // "+38,537.8%" for a service reported as 約¥1千未満 in both periods.
@@ -350,6 +422,11 @@ export const publicSnapshotSchema = z
       }),
     security: z
       .object({
+        fieldAvailability: z.object({
+          secureScore: availability,
+          assessments: availability,
+          activeAlerts: availability
+        }).strict().optional(),
         secureScore: z.number().min(0).max(100).nullable(),
         activeAlerts: z.number().nonnegative().nullable(),
         recommendations: z.array(
@@ -366,9 +443,19 @@ export const publicSnapshotSchema = z
           z.object({ framework: z.string(), score: z.number().min(0).max(100) }).strict()
         )
       })
-      .strict(),
+      .strict()
+      .superRefine((value, context) => {
+        const fields = value.fieldAvailability;
+        if (!fields) return;
+        if ((fields.secureScore === "unavailable") !== (value.secureScore === null) ||
+            (fields.activeAlerts === "unavailable") !== (value.activeAlerts === null) ||
+            (fields.assessments === "unavailable" && value.recommendations.length)) {
+          context.addIssue({ code: z.ZodIssueCode.custom, message: "Defender field availability must gate its values independently" });
+        }
+      }),
     network: z
       .object({
+        topology: topologySchema.optional(),
         inventory: z
           .object({
             total: z.number().nonnegative(),
@@ -423,10 +510,27 @@ export const publicSnapshotSchema = z
           })
       })
       .strict(),
-    aiInsights: z.array(insightSchema)
+    aiInsights: z.array(insightSchema),
+    advisor: advisorSchema.optional()
   })
   .strict()
   .superRefine((snapshot, context) => {
+    for (const [name, value] of [
+      ["Azure Advisor", snapshot.advisor],
+      ["Network topology", snapshot.network.topology]
+    ] as const) {
+      if (!value) continue;
+      const source = snapshot.sources.find((item) => item.source === name);
+      if (!source || source.availability !== value.availability) {
+        context.addIssue({ code: z.ZodIssueCode.custom, message: `${name} status must match its collected source` });
+      }
+    }
+    const fields = snapshot.security.fieldAvailability;
+    if (fields && snapshot.overview.metrics.some((metric) =>
+      (metric.label === "Defender recommendations" && fields.assessments === "unavailable") ||
+      (metric.label === "Open alerts" && fields.activeAlerts === "unavailable"))) {
+      context.addIssue({ code: z.ZodIssueCode.custom, message: "Defender metric lacks field-level evidence" });
+    }
     const resourceHealth = snapshot.sources.find((source) => source.source === "Resource Health");
     // `partial` is a real collection outcome (some supported resources evaluated), so it may
     // publish aggregates; only `unavailable` and a missing source must stay empty.

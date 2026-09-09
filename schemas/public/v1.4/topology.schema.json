@@ -1,0 +1,64 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://aktsmm.github.io/azure-ops-pulse-demo/schemas/public/v1.4/topology.schema.json",
+  "title": "Sanitized explicit network configuration references",
+  "type": "object",
+  "required": ["availability", "message", "nodes", "edges", "truncated"],
+  "properties": {
+    "availability": { "enum": ["available", "partial", "unavailable"] },
+    "message": { "type": "string" },
+    "nodes": {
+      "type": "array",
+      "maxItems": 400,
+      "uniqueItems": true,
+      "items": {
+        "type": "object",
+        "required": ["id", "type", "referenceOnly", "scope"],
+        "properties": {
+          "id": { "type": "string", "pattern": "^res-[0-9a-f]{8}$" },
+          "type": { "type": "string", "pattern": "^[Mm][Ii][Cc][Rr][Oo][Ss][Oo][Ff][Tt]\\.[a-zA-Z0-9]+(/[a-zA-Z][a-zA-Z0-9]*)+$" },
+          "region": { "type": "string", "pattern": "^[a-zA-Z0-9-]+$" },
+          "referenceOnly": { "type": "boolean" },
+          "scope": { "enum": ["inventory", "external", "uncollected"] }
+        },
+        "allOf": [{
+          "if": { "properties": { "referenceOnly": { "const": true } } },
+          "then": { "properties": { "scope": { "enum": ["external", "uncollected"] } } },
+          "else": { "properties": { "scope": { "const": "inventory" } } }
+        }],
+        "additionalProperties": false
+      }
+    },
+    "edges": {
+      "type": "array",
+      "maxItems": 800,
+      "uniqueItems": true,
+      "items": {
+        "type": "object",
+        "required": ["source", "target", "kind"],
+        "properties": {
+          "source": { "type": "string", "pattern": "^res-[0-9a-f]{8}$" },
+          "target": { "type": "string", "pattern": "^res-[0-9a-f]{8}$" },
+          "kind": { "enum": ["contains", "subnet", "virtual-machine", "peering", "network-security-group", "route-table", "nat-gateway", "backend", "frontend", "public-ip", "private-link"] }
+        },
+        "additionalProperties": false
+      }
+    },
+    "truncated": { "type": "boolean" }
+  },
+  "allOf": [
+    {
+      "if": { "properties": { "availability": { "const": "unavailable" } } },
+      "then": { "properties": { "nodes": { "type": "array", "maxItems": 0 }, "edges": { "type": "array", "maxItems": 0 }, "truncated": { "const": false } } }
+    },
+    {
+      "if": { "properties": { "truncated": { "const": true } } },
+      "then": { "properties": { "availability": { "const": "partial" } } }
+    },
+    {
+      "if": { "properties": { "nodes": { "type": "array", "contains": { "type": "object", "required": ["referenceOnly"], "properties": { "referenceOnly": { "const": true } } } } } },
+      "then": { "properties": { "availability": { "const": "partial" } } }
+    }
+  ],
+  "additionalProperties": false
+}

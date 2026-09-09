@@ -1,11 +1,12 @@
 import "@testing-library/jest-dom/vitest";
-import { cleanup, render, screen, waitFor } from "@testing-library/react";
+import { cleanup, render, screen, waitFor, within } from "@testing-library/react";
 import { HashRouter } from "react-router-dom";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import type { PublicSnapshotV1 } from "./data/contracts";
 import { publicSnapshotSchema } from "../scripts/public-schema";
 import { buildDemoSnapshot } from "../scripts/build-demo-snapshot";
 import { publishedSnapshot } from "./test/reliability-fixtures";
+import { costFixture } from "./test/cost-fixtures";
 import App from "./App";
 
 const ROUTES = [
@@ -32,7 +33,9 @@ const SENTINEL = "SENTINELDIAGNOSTICSTRING";
  * record to a child component all keep the text on screen while the string search passes.
  */
 const DIAGNOSTIC_FIELDS = [
+  "advisor.message",
   "network.telemetry.message",
+  "network.topology.message",
   "reliability.serviceHealth.message",
   "sources[].message"
 ] as const;
@@ -57,15 +60,22 @@ function messagePaths(value: unknown, path = ""): string[] {
 function withDiagnosticSentinels(snapshot: PublicSnapshotV1): PublicSnapshotV1 {
   return {
     ...snapshot,
+    cost: { ...snapshot.cost },
+    advisor: { availability: "unavailable", recommendations: [], message: SENTINEL },
     reliability: {
       ...snapshot.reliability,
       serviceHealth: { ...snapshot.reliability.serviceHealth, message: SENTINEL }
     },
     network: {
       ...snapshot.network,
+      topology: { availability: "unavailable", message: SENTINEL, nodes: [], edges: [], truncated: false },
       telemetry: { ...snapshot.network.telemetry, message: SENTINEL }
     },
-    sources: snapshot.sources.map((source) => ({ ...source, message: SENTINEL }))
+    sources: [
+      ...snapshot.sources.filter((source) => !["Azure Advisor", "Network topology"].includes(source.source)).map((source) => ({ ...source, message: SENTINEL })),
+      { source: "Azure Advisor", availability: "unavailable", message: SENTINEL },
+      { source: "Network topology", availability: "unavailable", message: SENTINEL }
+    ]
   };
 }
 
@@ -96,6 +106,37 @@ afterEach(() => {
 });
 
 describe("Operator diagnostics stay out of the rendered page", () => {
+  it("shows separate cost-period reasons without exposing raw diagnostic text", async () => {
+    const snapshot = withDiagnosticSentinels(publishedSnapshot);
+    snapshot.cost.periodDiagnostics = {
+      current: { availability: "unavailable", reason: "currency-mismatch" },
+      previous: { availability: "unavailable", reason: "forbidden" }
+    };
+    await renderAt("/cost", snapshot);
+    const panel = screen.getByText("コストが表示されない理由").closest("section")!;
+    expect(within(panel).getByText(/通貨が公開対象の JPY と一致しません/)).toBeInTheDocument();
+    expect(within(panel).getByText(/アクセスが拒否されました/)).toBeInTheDocument();
+    expect(document.body.innerHTML).not.toContain(SENTINEL);
+  });
+
+  it("does not blame the current period for a previous-period failure", async () => {
+    const snapshot = costFixture([{ name: "Compute", amountJpy: 140_000 }]);
+    snapshot.cost.periodDiagnostics = {
+      current: { availability: "available" },
+      previous: { availability: "unavailable", reason: "forbidden" }
+    };
+    await renderAt("/cost", snapshot);
+    const rows = screen.getByText("コストが表示されない理由").closest("section")!.querySelectorAll(".source-row");
+    expect(rows[0]).toHaveTextContent("現在期間この期間の概算 JPY データを収集しました。");
+    expect(rows[0]).not.toHaveTextContent("アクセスが拒否");
+    expect(rows[1]).toHaveTextContent("アクセスが拒否");
+  });
+
+  it("does not infer a reason from an old snapshot without reason codes", async () => {
+    await renderAt("/cost", publishedSnapshot);
+    expect(screen.getAllByText(/具体的な理由は記録されていません/)).toHaveLength(2);
+  });
+
   it.each(ROUTES)("does not print collector diagnostics on %s", async (route) => {
     await renderAt(route, withDiagnosticSentinels(publishedSnapshot));
 
@@ -113,6 +154,7 @@ describe("Operator diagnostics stay out of the rendered page", () => {
     const paths = [
       ...new Set([
         ...messagePaths(publishedSnapshot),
+        ...messagePaths(withDiagnosticSentinels(publishedSnapshot)),
         ...messagePaths(buildDemoSnapshot("2026-08-05T13:00:00.000Z"))
       ])
     ].sort();

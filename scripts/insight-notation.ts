@@ -27,7 +27,7 @@
 
 /** Mirrors `numericEvidence[].source` in the published JSON Schema; `insight-notation.test.ts` fails if they drift apart. */
 export const EVIDENCE_SOURCE_PATTERN =
-  /^(overview|cost|inventory|reliability|security|network)(\.[A-Za-z0-9_-]+)+$/;
+  /^(overview|cost|inventory|reliability|security|network|advisor)(\.[A-Za-z0-9_-]+)+$/;
 
 /** Mirrors the `severity` enum in the published JSON Schema. */
 export const INSIGHT_SEVERITIES = ["critical", "warning", "healthy", "info"] as const;

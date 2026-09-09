@@ -151,6 +151,32 @@ describe("Cost Management transform", () => {
 
 
 describe("Cost Management source honesty", () => {
+  it("rejects missing currency in even one otherwise JPY row", () => {
+    const response = costResponse([100, 200]);
+    response.rows![1]![2] = null;
+    expect(parseCostPeriod(response)).toMatchObject({
+      outcome: "currency-mismatch", totalJpy: null, categories: []
+    });
+  });
+
+  it.each([null, "", "unreadable", Number.NaN, Number.POSITIVE_INFINITY])(
+    "rejects invalid amount %s rather than silently dropping its row",
+    (amount) => {
+      const response = costResponse([100, 200]);
+      response.rows![1]![0] = amount;
+      expect(parseCostPeriod(response)).toMatchObject({
+        outcome: "invalid-rows", totalJpy: null, categories: []
+      });
+    }
+  );
+
+  it("rejects a changed paginated column order rather than computing the wrong total", () => {
+    expect(() => mergeCostPages([costResponse([100]), {
+      columns: [{ name: "Currency" }, { name: "Cost" }, { name: "ServiceName" }],
+      rows: [["JPY", 200, "Other"]]
+    }])).toThrow("応答形式");
+  });
+
   it("reports a JPY-verified period with unreadable columns as having no total", () => {
     const result = parseCostPeriod({
       columns: [{ name: "UnexpectedAggregate" }, { name: "Currency" }],

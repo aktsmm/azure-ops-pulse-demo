@@ -1,0 +1,10 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://aktsmm.github.io/azure-ops-pulse-demo/schemas/public/v1.4/source-reason.schema.json",
+  "title": "Closed collection diagnostic codes, never Azure-authored text",
+  "enum": [
+    "authentication", "forbidden", "throttled", "billing-scope", "unsupported",
+    "invalid-response", "unknown", "empty", "unsupported-columns", "currency-mismatch",
+    "invalid-rows", "partial-collection", "not-collected"
+  ]
+}

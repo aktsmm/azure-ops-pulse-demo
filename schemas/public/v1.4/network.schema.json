@@ -5,6 +5,7 @@
   "type": "object",
   "required": ["inventory", "metricCoverage", "telemetry"],
   "properties": {
+    "topology": { "$ref": "./topology.schema.json" },
     "inventory": {
       "type": "object",
       "required": ["total", "byType", "byRegion"],

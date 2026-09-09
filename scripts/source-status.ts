@@ -1,4 +1,5 @@
-import type { Availability, SourceStatus } from "../src/data/contracts";
+import type { Availability, SourceReason, SourceStatus } from "../src/data/contracts";
+import { collectionFailureReason } from "./collection-diagnostics";
 
 export interface CollectedSource<T> {
   value: T | null;
@@ -8,6 +9,7 @@ export interface CollectedSource<T> {
 export interface CollectionReport {
   availability: Availability;
   message: string;
+  reason?: SourceReason;
 }
 
 /**
@@ -19,21 +21,26 @@ export function collectSource<T>(
   source: string,
   operation: () => T,
   report: (value: T) => CollectionReport,
-  unavailableMessage: string
+  unavailableMessage: string | ((error: unknown) => string)
 ): CollectedSource<T> {
   let value: T;
   try {
     value = operation();
-  } catch {
+  } catch (error) {
     return {
       value: null,
-      status: { source, availability: "unavailable", message: unavailableMessage }
+      status: {
+        source,
+        availability: "unavailable",
+        reason: collectionFailureReason(error),
+        message: typeof unavailableMessage === "function" ? unavailableMessage(error) : unavailableMessage
+      }
     };
   }
-  const { availability, message } = report(value);
+  const { availability, message, reason } = report(value);
   return {
     value: availability === "unavailable" ? null : value,
-    status: { source, availability, message }
+    status: { source, availability, message, ...(reason ? { reason } : {}) }
   };
 }
 
@@ -51,7 +58,7 @@ export function countReport(
   }
 ): CollectionReport {
   if (count <= 0) {
-    return { availability: messages.emptyAvailability ?? "unavailable", message: messages.empty };
+    return { availability: messages.emptyAvailability ?? "unavailable", message: messages.empty, reason: "empty" };
   }
   return { availability: "available", message: messages.collected(count) };
 }
