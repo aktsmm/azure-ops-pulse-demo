@@ -85,21 +85,53 @@ describe("new insight admission quality", () => {
     expect(() => validateInsightQuality([candidate])).not.toThrow();
   });
 
-  it("directs Advisor-only analysis to the actual category selector", () => {
+  it("rejects the reported category-count-only Advisor priority, even with cost padding", () => {
     const candidate = insight("advisor.recommendations.0.count", "advisor.recommendations.1.count");
-    expect(() => validateInsightQuality([{ ...candidate, route: "/reliability" }]))
-      .toThrow("Advisor category/impact counts are displayed only at /security");
-    expect(() => validateInsightQuality([{ ...candidate, route: "/security" }])).not.toThrow();
+    expect(() => validateInsightQuality([{ ...candidate, route: "/recommendations" }]))
+      .toThrow("mapped recommendation content group");
     expect(() => validateInsightQuality([{
-      ...candidate, route: "/security", recommendedAction: "信頼性ダッシュボードで確認してください。"
-    }])).toThrow("Advisor category/impact counts");
+      ...candidate, numericEvidence: [...candidate.numericEvidence, { source: "cost.deltaPercent", value: "1", label: "変化率" }]
+    }])).toThrow("mapped recommendation content group");
   });
 
-  it("rejects cost actions asking for usage information the dashboard does not provide", () => {
+  it("allows a concrete mapped recommendation with one count instead of padded evidence", () => {
+    const candidate = { ...insight("advisor.details.groups.0.count"), route: "/recommendations" };
+    const snapshot = {
+      advisor: { availability: "available", details: {
+        availability: "available", groups: [{ contentStatus: "mapped", count: 1 }]
+      } }
+    };
+    expect(() => validateInsightQuality([candidate], snapshot)).not.toThrow();
+    snapshot.advisor.details.availability = "partial";
+    expect(() => validateInsightQuality([candidate], snapshot)).not.toThrow();
+    expect(() => validateInsightQuality([{ ...candidate, route: "/security" }], snapshot))
+      .toThrow("belongs at /recommendations");
+    for (const contentStatus of ["withheld", "unknown"]) {
+      const unknown = structuredClone(snapshot);
+      unknown.advisor.details.groups[0]!.contentStatus = contentStatus;
+      expect(() => validateInsightQuality([candidate], unknown)).toThrow("mapped recommendation content group");
+    }
+    expect(() => validateInsightQuality([candidate])).toThrow("mapped recommendation content group");
+    snapshot.advisor.details.availability = "unavailable";
+    expect(() => validateInsightQuality([candidate], snapshot)).toThrow("mapped recommendation content group");
+  });
+
+  it("allows a specific external follow-up instead of blocking the word usage", () => {
     const candidate = insight("cost.categories.0.sharePercent", "cost.deltaPercent");
     expect(() => validateInsightQuality([{
-      ...candidate, recommendedAction: "コストダッシュボードで使用量の変化が原因か判断してください。"
-    }])).toThrow("not usage data");
+      ...candidate, recommendedAction: "この画面でカテゴリを比較し、原因の調査は Azure portal のコスト分析で対象カテゴリの使用量を確認してください。使用量はこの画面にはありません。"
+    }])).not.toThrow();
+  });
+
+  it.each([
+    ["security.activeAlerts", { security: { activeAlerts: 1 } }],
+    ["reliability.coverage.degradedResources", { reliability: { coverage: { degradedResources: 1 } } }],
+    ["network.telemetry.blockedFlows", { network: { telemetry: { blockedFlows: 1 } } }]
+  ])("does not demand a second unrelated metric for the observed condition %s", (source, snapshot) => {
+    expect(() => validateInsightQuality([insight(source)], snapshot)).not.toThrow();
+    expect(() => validateInsightQuality([insight(source)])).toThrow("at least two distinct");
+    expect(() => validateInsightQuality([insight("security.activeAlerts")], { security: { activeAlerts: 0 } }))
+      .toThrow("at least two distinct");
   });
 
   it("does not count duplicate sources as independent evidence", () => {

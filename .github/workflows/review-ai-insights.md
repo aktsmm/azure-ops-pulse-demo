@@ -142,6 +142,12 @@ the specific claim and gives an operator a useful next decision. Assess ALL cite
 related available snapshot context, including contradictory or qualifying observations; do not
 cherry-pick two matching paths or accept a claim simply because it cites at least two paths.
 
+This is an operator-facing demo. Reject unsupported claims, not useful specificity. Approved
+recommendation content, products and anonymous configuration relationships should remain visible.
+Do not demand missing production requirements before accepting clearly conditional improvement
+or deferral guidance. A brief, relevant uncertainty is sufficient; repeated generic disclaimers
+are not a quality requirement.
+
 Judge four booleans:
 - `grounded`: each claim is actually supported by the cited observations, with comparable periods,
   populations and denominators. No invented causes, savings, timelines or thresholds. Reject
@@ -152,23 +158,49 @@ Judge four booleans:
   counts, repeated identical evidence, generic prose decorated with numbers, coverage-only warnings,
   isolated event/recommendation summaries, and tautological dashboard restatements.
   Adding unrelated cost evidence to a collection-coverage warning does not make it relevant.
+  Advisor category/impact totals alone are insufficient even if they show concentration. Demand
+  mapped recommendation content and a decision that depends on the actual concern, not "more
+  records, therefore review first". One numeric citation is sufficient for a concrete mapped
+  recommendation with meaningful conditional guidance; do not demand padding with another count.
+  One positive observed active-alert, degraded/unavailable-resource, blocked-flow or degraded-
+  connection count can also support a concrete triage decision without invented impact or cause.
 - `actionable`: the action names the observed category/condition, a concrete comparison/check and
   the decision it informs. It is feasible from the named route and available data, not generic advice.
+  A specifically named external follow-up is feasible when the insight distinguishes the missing
+  evidence and where a human should obtain it from what is already observed in the dashboard.
 - `bounded`: consequences, confidence, scope and priority do not exceed the observations. Aggregate
   counts do not establish affected resources, causation or customer impact; category concentration
   proves neither waste nor outage. Distinguish a human-review priority from a remediation mandate.
   NotApplicable is not outage or misconfiguration. Decrease is not deterioration. Missing prior data
-  cannot prove recurrence, anomaly, worsening or duration. Never prescribe Azure mutations.
+  cannot prove recurrence, anomaly, worsening or duration. Never execute Azure mutations.
+  Concrete improvement options are allowed when their applicability, trade-offs and human decision
+  are explicit; do not reject them simply because the next step is outside this read-only dashboard.
+  Low impact or a small count does NOT justify ignoring a recommendation. Conditional deferral
+  requires explicit conditions to confirm, not assumptions about workload use or risk tolerance.
+  Catalog guidance is a reviewed rule, not measured evidence that the suggested consequence has
+  occurred. Unknown/unclassified recommendation content cannot support a specific issue or fix.
 
 The dashboard capabilities are part of this trusted rubric:
 - `/cost`: category share, approximate category cost, category change and overall change; NO usage
   quantities, resource-level billing/pricing, or causes within a category. Comparing named category
-  and overall changes to select a review priority is feasible; investigating unavailable usage is not.
-- `/security`: Defender summaries AND Advisor category selector; HighAvailability is 「信頼性」.
-  Rows display impact but there is NO impact selector. Category counts are not distinct resources.
-  Demand actual UI terminology: reject an action asking for a "category/impact selector"; the
-  available control is the category dropdown, and impact is information shown in rows.
-- `/reliability`: Resource Health and Service Health, NOT Advisor.
+  and overall changes to select a review priority is feasible. A named human follow-up in Azure
+  portal Cost Analysis is allowed; claiming the dashboard already contains usage or causes is not.
+- `/recommendations`: Advisor content cards, category and impact filters, reviewed conditional
+  confirmation guides. HighAvailability is 「信頼性」. Advisor-only insights belong here.
+  Category counts and content-group counts are records, not incidents or distinct resources.
+  Only an explicit affectedResourceCount is a deduplicated resource count; null is unknown.
+  The legacy `advisor.recommendations` total includes all lifecycle states, including completed,
+  dismissed and postponed records. `details.excludedRecommendationCount` records those exclusions;
+  `details.groups` contains only eligible records. Unknown lifecycle is NOT proven active.
+  Overall Advisor collection must be available, but `details.availability: partial` may reflect
+  withheld types or unknown total resource counts: an individually mapped group's observed
+  count and reviewed guide remain usable. Do not extrapolate its content to withheld groups.
+- `/security`: Defender summaries and only Advisor's Security category. Withheld Defender titles
+  do not establish the actual issue. Assessment-record counts are not deduplicated resource counts.
+  Explicitly available Defender fields remain usable when other fields make the source partial.
+- `/reliability`: Resource Health and Service Health, with a link to Advisor's reliability category.
+  Positive observed degraded/unavailable resource counts are usable under partial collection; they
+  do not establish whole-estate health, unobserved customer impact or an all-clear.
 - `/network`: anonymous configuration topology and collection scope, NOT traffic or outage proof.
 
 Output JSON only in `review-output/verdict.json`:
@@ -180,7 +212,7 @@ Independently evaluate EVERY case in `review-input/calibration.json` using the s
 rubric and only that case's own supplied evidence/context. These are fixed invented public-safe
 examples, NOT observations about the actual candidate or environment. Never mix their numbers,
 claims or actions into the candidate review. The `calibration` array is REQUIRED and must include
-exactly one boolean `acceptable` decision for each of the five neutral IDs case-01..case-05.
+exactly one boolean `acceptable` decision for each of the nine neutral IDs case-01..case-09.
 Set acceptable to true only when the case satisfies all four review dimensions; otherwise false.
 Do not assume cases all pass or fail, infer an answer pattern from their IDs, or search for expected
 answers. Evaluate the meaning yourself. The trusted publisher tests these judgments against frozen
@@ -195,7 +227,7 @@ booleans are true, reasonCodes must be empty. Any false boolean requires one or 
 `unusable-action`, `overstated-priority`. Reject when evidence is inadequate; do not repair or silently
 drop a weak insight. A negative verdict is a successful review, not an execution error.
 
-Zero insights is a valid author outcome: write `"reviews":[]` and still evaluate all five cases
+Zero insights is a valid author outcome: write `"reviews":[]` and still evaluate all nine cases
 in the required `calibration` array and complete the review artifact. Missing output never means
 approval. After writing the verdict call noop to
 finish without an issue, comment, or repository mutation.

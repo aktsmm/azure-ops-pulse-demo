@@ -2,6 +2,7 @@ import { z } from "zod";
 import { WITHHELD_JPY_AMOUNT_LABEL, isWithheldJpyAmount } from "../src/lib/jpy-disclosure";
 import { resourceAliasLabel } from "../src/lib/sanitize";
 import { SOURCE_REASONS } from "../src/data/contracts";
+import { ADVISOR_CATEGORIES, ADVISOR_IMPACTS, ADVISOR_CATALOG, ADVISOR_RESOURCE_TYPES, ADVISOR_DETAILS_MESSAGE, advisorContent } from "../src/lib/advisor-catalog";
 
 const severity = z.enum(["critical", "warning", "healthy", "info"]);
 const statusBadge = z.enum([
@@ -21,6 +22,37 @@ const costPeriodDiagnosticSchema = z.object({
     context.addIssue({ code: z.ZodIssueCode.custom, message: "Only unavailable cost periods require a reason code" });
   }
 });
+const advisorCount = z.number().int().nonnegative().max(Number.MAX_SAFE_INTEGER);
+const advisorGroupSchema = z.object({
+  id: z.string(),
+  category: z.enum(ADVISOR_CATEGORIES),
+  contentStatus: z.enum(["mapped", "withheld"]),
+  count: advisorCount.positive(),
+  impacts: z.object({ High: advisorCount, Medium: advisorCount, Low: advisorCount, Unknown: advisorCount }).strict(),
+  affectedResourceCount: advisorCount.positive().nullable(),
+  resourceTypes: z.array(z.object({
+    type: z.string().refine((type) => ADVISOR_RESOURCE_TYPES.includes(type)),
+    count: advisorCount.positive()
+  }).strict()).min(1).max(ADVISOR_RESOURCE_TYPES.length),
+  title: z.string(), description: z.string(), recommendedAction: z.string(),
+  deferWhen: z.string(), caveat: z.string(), sourceUrl: z.string()
+}).strict().superRefine((group, context) => {
+  const content = advisorContent(group.contentStatus === "mapped" ? group.id : "", group.category);
+  if (Object.entries(content).some(([key, text]) => group[key as keyof typeof content] !== text) ||
+      Object.values(group.impacts).reduce((sum, count) => sum + count, 0) !== group.count ||
+      group.resourceTypes.reduce((sum, item) => sum + item.count, 0) !== group.count ||
+      new Set(group.resourceTypes.map((item) => item.type)).size !== group.resourceTypes.length ||
+      (group.affectedResourceCount !== null && group.affectedResourceCount > group.count)) {
+    context.addIssue({ code: z.ZodIssueCode.custom, message: "Advisor content must match the closed catalog and reconcile record counts" });
+  }
+});
+const advisorDetailsSchema = z.object({
+  availability, message: z.literal(ADVISOR_DETAILS_MESSAGE),
+  mappedRecommendationCount: advisorCount, withheldRecommendationCount: advisorCount,
+  excludedRecommendationCount: advisorCount, lifecycleUnknownCount: advisorCount,
+  affectedResourceCount: advisorCount.nullable(),
+  groups: z.array(advisorGroupSchema).max(ADVISOR_CATALOG.length + ADVISOR_CATEGORIES.length)
+}).strict();
 const advisorSchema = z.object({
   availability,
   message: z.string(),
@@ -28,11 +60,39 @@ const advisorSchema = z.object({
     category: z.enum(["Cost", "HighAvailability", "Performance", "Security", "OperationalExcellence", "Other"]),
     impact: z.enum(["High", "Medium", "Low", "Unknown"]),
     count: z.number().int().positive().max(Number.MAX_SAFE_INTEGER)
-  }).strict()).max(24)
+  }).strict()).max(24),
+  details: advisorDetailsSchema.optional()
 }).strict().superRefine((value, context) => {
   const keys = value.recommendations.map((row) => `${row.category}:${row.impact}`);
-  if ((value.availability === "unavailable" && keys.length) || new Set(keys).size !== keys.length) {
+  if ((value.availability === "unavailable" && keys.length) || new Set(keys).size !== keys.length ||
+      !Number.isSafeInteger(value.recommendations.reduce((sum, row) => sum + row.count, 0))) {
     context.addIssue({ code: z.ZodIssueCode.custom, message: "Advisor unavailable data must be empty and aggregates unique" });
+  }
+  const details = value.details;
+  if (!details) return;
+  const fail = () => context.addIssue({ code: z.ZodIssueCode.custom, message: "Advisor details availability, lifecycle and totals must reconcile" });
+  if (details.availability === "unavailable") {
+    if (details.groups.length || details.mappedRecommendationCount || details.withheldRecommendationCount ||
+        details.excludedRecommendationCount || details.lifecycleUnknownCount || details.affectedResourceCount !== null) fail();
+    return;
+  }
+  const included = details.groups.reduce((sum, group) => sum + group.count, 0);
+  const total = value.recommendations.reduce((sum, row) => sum + row.count, 0);
+  if (!Number.isSafeInteger(total) || value.availability === "unavailable" ||
+      new Set(details.groups.map((group) => group.id)).size !== details.groups.length ||
+      details.groups.filter((group) => group.contentStatus === "mapped").reduce((sum, group) => sum + group.count, 0) !== details.mappedRecommendationCount ||
+      details.groups.filter((group) => group.contentStatus === "withheld").reduce((sum, group) => sum + group.count, 0) !== details.withheldRecommendationCount ||
+      included + details.excludedRecommendationCount !== total || details.lifecycleUnknownCount > included ||
+      (details.affectedResourceCount !== null && (details.groups.some((group) => group.affectedResourceCount === null) ||
+        details.affectedResourceCount > details.groups.reduce((sum, group) => sum + (group.affectedResourceCount ?? 0), 0) ||
+        details.groups.some((group) => (group.affectedResourceCount ?? 0) > details.affectedResourceCount!))) ||
+      (details.availability === "available" && (details.withheldRecommendationCount > 0 || details.lifecycleUnknownCount > 0 ||
+        details.affectedResourceCount === null || value.availability !== "available"))) fail();
+  for (const category of ADVISOR_CATEGORIES) {
+    for (const impact of ADVISOR_IMPACTS) {
+      const detailCount = details.groups.filter((group) => group.category === category).reduce((sum, group) => sum + group.impacts[impact], 0);
+      if (detailCount > (value.recommendations.find((row) => row.category === category && row.impact === impact)?.count ?? 0)) fail();
+    }
   }
 });
 const topologySchema = z.object({
@@ -225,6 +285,7 @@ export const insightSchema = z
       "/resources",
       "/reliability",
       "/security",
+      "/recommendations",
       "/network",
       "/ai-insights"
     ])

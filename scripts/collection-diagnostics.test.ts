@@ -97,11 +97,12 @@ describe("independent Defender fields", () => {
 });
 
 describe("Advisor closed-vocabulary aggregates", () => {
-  it("queries no recommendation names, IDs, savings, or titles", () => {
+  it("queries private deduplication IDs but no recommendation names, savings, or titles", () => {
     expect(ADVISOR_QUERY).toContain("AdvisorResources");
     expect(ADVISOR_QUERY).toContain("properties.category");
     expect(ADVISOR_QUERY).toContain("properties.impact");
-    expect(ADVISOR_QUERY).not.toMatch(/resourceId|shortDescription|savings|displayName/);
+    expect(ADVISOR_QUERY).toContain("resourceMetadata.resourceId");
+    expect(ADVISOR_QUERY).not.toMatch(/shortDescription|savings|displayName/);
   });
 
   it("merges categories case insensitively and masks unknown terms", () => {

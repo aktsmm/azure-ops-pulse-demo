@@ -11,6 +11,7 @@ import { createDemoRawSnapshot } from "./demo-data";
 import { sanitizeSnapshot } from "../src/lib/sanitize";
 import { withheldRecommendationTitle } from "../src/lib/defender-recommendations";
 import type { PublicSnapshotV1 } from "../src/data/contracts";
+import { ADVISOR_CATALOG, ADVISOR_DETAILS_MESSAGE } from "../src/lib/advisor-catalog";
 
 const demo = () => buildDemoSnapshot("2026-08-05T13:00:00.000Z");
 
@@ -35,6 +36,54 @@ function withFirstMetricChange(change: string): PublicSnapshotV1 {
 }
 
 describe("UI language audit", () => {
+  it("accepts every reviewed Advisor guide, not just the last published subset", () => {
+    const snapshot = demo();
+    snapshot.advisor = {
+      availability: "available", message: "Operator diagnostic.",
+      recommendations: [{ category: "HighAvailability", impact: "High", count: ADVISOR_CATALOG.length }],
+      details: {
+        availability: "partial", message: ADVISOR_DETAILS_MESSAGE,
+        mappedRecommendationCount: ADVISOR_CATALOG.length, withheldRecommendationCount: 0,
+        excludedRecommendationCount: 0, lifecycleUnknownCount: 0, affectedResourceCount: null,
+        groups: ADVISOR_CATALOG.map(({ resourceType, ...content }) => ({
+          ...content, count: 1, impacts: { High: 1, Medium: 0, Low: 0, Unknown: 0 },
+          affectedResourceCount: null, resourceTypes: [{ type: resourceType, count: 1 }]
+        }))
+      }
+    };
+    expect(findUiLanguageLeaks(snapshot)).toEqual([]);
+  });
+
+  it.each(["title", "description", "recommendedAction", "deferWhen", "caveat"] as const)(
+    "audits the newly rendered Advisor %s", (field) => {
+      const snapshot = demo();
+      snapshot.advisor = {
+        availability: "available", message: "Operator diagnostic.",
+        recommendations: [{ category: "HighAvailability", impact: "High", count: 1 }],
+        details: {
+          availability: "available", message: "Operator detail diagnostic.",
+          mappedRecommendationCount: 1, withheldRecommendationCount: 0,
+          excludedRecommendationCount: 0, lifecycleUnknownCount: 0, affectedResourceCount: 1,
+          groups: [{
+            id: "test-confirmation", category: "HighAvailability", contentStatus: "mapped",
+            count: 1, impacts: { High: 1, Medium: 0, Low: 0, Unknown: 0 },
+            affectedResourceCount: 1, resourceTypes: [],
+            title: "冗長化の確認", description: "停止許容の要件を確認します。",
+            recommendedAction: "運用担当者と構成を確認してください。",
+            deferWhen: "停止を許容する用途なら保留を検討できます。",
+            caveat: "現在の用途は未確認です。",
+            sourceUrl: "https://learn.microsoft.com/ja-jp/azure/advisor/advisor-overview"
+          }]
+        }
+      };
+      expect(findUiLanguageLeaks(snapshot)).toEqual([]);
+      snapshot.advisor.details!.groups[0]![field] = "Check this configuration before deciding what to do.";
+      const leaks = findUiLanguageLeaks(snapshot);
+      expect(leaks).toHaveLength(1);
+      expect(leaks[0]?.path).toBe(`advisor.details.groups[0].${field}`);
+    }
+  );
+
   it("accepts a snapshot whose rendered prose is Japanese", () => {
     expect(findUiLanguageLeaks(demo())).toEqual([]);
   });

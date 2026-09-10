@@ -1,17 +1,31 @@
 import type { AiInsight } from "../src/data/contracts";
-import { numericTokens } from "./evidence-validator";
+import { numericTokens, valueAtPath } from "./evidence-validator";
 
 // These values describe collection scope, not operational degradation. Actual degraded/unavailable
 // resource counts remain eligible evidence, even though they share the coverage object.
 const COLLECTION_ONLY_SOURCE =
   /^(?:network\.metricCoverage\.|network\.inventory\.total$|inventory\.total$|reliability\.coverage\.(?:totalResources|supportedResources|notApplicableResources|evaluatedResources|unevaluatedResources|supportedCoveragePercent)$)/u;
 
-export function insightQualityFindings(insights: readonly AiInsight[]): string[] {
+export function insightQualityFindings(insights: readonly AiInsight[], snapshot?: unknown): string[] {
   return insights.flatMap((insight, index) => {
     const sources = new Set(insight.numericEvidence.map((evidence) => evidence.source));
+    const advisorSources = [...sources].filter((source) => source.startsWith("advisor."));
+    const mappedAdvisorEvidence = advisorSources.some((source) => {
+      const group = /^(advisor\.details\.groups\.\d+)\./u.exec(source)?.[1];
+      return group !== undefined &&
+        valueAtPath(snapshot, "advisor.availability") === "available" &&
+        ["available", "partial"].includes(String(valueAtPath(snapshot, "advisor.details.availability"))) &&
+        valueAtPath(snapshot, `${group}.contentStatus`) === "mapped";
+    });
     const findings: string[] = [];
-    if (sources.size < 2) {
+    const observedOperationalEvidence = [...sources].some((source) =>
+      /^(?:security\.activeAlerts|reliability\.coverage\.(?:degradedResources|unavailableResources)|network\.telemetry\.(?:blockedFlows|degradedConnections))$/u.test(source) &&
+      typeof valueAtPath(snapshot, source) === "number" && Number(valueAtPath(snapshot, source)) > 0);
+    if (sources.size < 2 && !mappedAdvisorEvidence && !observedOperationalEvidence) {
       findings.push(`aiInsights.${index}: analytical claims require at least two distinct evidence paths; do not pad with duplicate evidence.`);
+    }
+    if (advisorSources.length && !mappedAdvisorEvidence) {
+      findings.push(`aiInsights.${index}: Advisor prioritization requires a cited mapped recommendation content group, not category/impact counts alone or unknown content. Explain the actual concern and conditional decision.`);
     }
     if ([...sources].every((source) => COLLECTION_ONLY_SOURCE.test(source))) {
       findings.push(`aiInsights.${index}: collection-scope-only evidence belongs in the deterministic diagnostics, not AI insights. Omit this candidate; unsupported does not mean unhealthy.`);
@@ -37,19 +51,15 @@ export function insightQualityFindings(insights: readonly AiInsight[]): string[]
         findings.push(`aiInsights.${index}.${field}: every numeric claim in prose must be present in this insight's numericEvidence. Omit unsupported numbers or add their actual scalar sources; do not invent savings, durations, thresholds or derived totals.`);
       }
     }
-    if (sources.size > 0 && [...sources].every((source) => source.startsWith("advisor.")) &&
-        (insight.route !== "/security" || /信頼性ダッシュボード/u.test(insight.recommendedAction))) {
-      findings.push(`aiInsights.${index}.route: Advisor category/impact counts are displayed only at /security. Direct the reader to the security dashboard's Advisor category selector, not the reliability dashboard.`);
-    }
-    if (sources.size > 0 && [...sources].every((source) => source.startsWith("cost.")) &&
-        /使用量|利用量|使用状況|利用状況/u.test(insight.recommendedAction)) {
-      findings.push(`aiInsights.${index}.recommendedAction: this snapshot has category shares and cost changes, not usage data. Recommend comparing the named category with overall and other category changes to decide review priority; do not ask the dashboard to determine usage causes.`);
+    if (advisorSources.length === sources.size && sources.size > 0 &&
+        insight.route !== "/recommendations") {
+      findings.push(`aiInsights.${index}.route: Advisor content analysis belongs at /recommendations. Direct the reader to the concrete recommendation card and its confirmation guide.`);
     }
     return findings;
   });
 }
 
-export function validateInsightQuality(insights: readonly AiInsight[]): void {
-  const findings = insightQualityFindings(insights);
+export function validateInsightQuality(insights: readonly AiInsight[], snapshot?: unknown): void {
+  const findings = insightQualityFindings(insights, snapshot);
   if (findings.length) throw new Error(`Insight quality gate failed:\n${findings.join("\n")}`);
 }

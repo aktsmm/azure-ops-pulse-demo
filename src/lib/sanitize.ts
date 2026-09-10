@@ -19,6 +19,10 @@ import {
 } from "./jpy-disclosure";
 import { summarizeReliabilityCoverage } from "./resource-health";
 import { WITHHELD_RECOMMENDATION_TITLE } from "./defender-recommendations";
+import {
+  ADVISOR_CATEGORIES, ADVISOR_IMPACTS, ADVISOR_RESOURCE_TYPES, ADVISOR_SUMMARY_MESSAGE,
+  ADVISOR_DETAILS_MESSAGE, advisorContent
+} from "./advisor-catalog";
 
 const GUID_PATTERN =
   /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
@@ -569,16 +573,62 @@ export function sanitizeSnapshot(raw: RawSnapshot): PublicSnapshotV1 {
 }
 
 function sanitizeAdvisor(value: AdvisorSummary): AdvisorSummary {
-  const categories = new Set(["Cost", "HighAvailability", "Performance", "Security", "OperationalExcellence", "Other"]);
-  const impacts = new Set(["High", "Medium", "Low", "Unknown"]);
+  const categories: ReadonlySet<string> = new Set(ADVISOR_CATEGORIES);
+  const impacts: ReadonlySet<string> = new Set(ADVISOR_IMPACTS);
+  const details = value.details;
+  const groups = details?.groups.map((group) => {
+    const category = categories.has(group.category) ? group.category : "Other";
+    const types = new Map<string, number>();
+    for (const item of group.resourceTypes) {
+      const type = ADVISOR_RESOURCE_TYPES.includes(item.type) ? item.type : "other";
+      types.set(type, (types.get(type) ?? 0) + item.count);
+    }
+    return {
+      ...advisorContent(group.contentStatus === "mapped" ? group.id : "", category),
+      count: group.count,
+      impacts: { High: group.impacts.High, Medium: group.impacts.Medium, Low: group.impacts.Low, Unknown: group.impacts.Unknown },
+      affectedResourceCount: group.affectedResourceCount,
+      resourceTypes: [...types].map(([type, count]) => ({ type, count })).sort((a, b) => a.type.localeCompare(b.type))
+    };
+  }) ?? [];
+  // Invalid/private slugs can collapse to the same withheld group. Combine counts, but never
+  // add distinct-resource counts: overlap cannot be recovered after private identities are discarded.
+  const uniqueGroups = new Map<string, (typeof groups)[number]>();
+  for (const group of groups) {
+    const current = uniqueGroups.get(group.id);
+    if (!current) { uniqueGroups.set(group.id, group); continue; }
+    current.count += group.count;
+    for (const impact of ADVISOR_IMPACTS) current.impacts[impact] += group.impacts[impact];
+    current.affectedResourceCount = null;
+    for (const item of group.resourceTypes) {
+      const existing = current.resourceTypes.find((row) => row.type === item.type);
+      if (existing) existing.count += item.count;
+      else current.resourceTypes.push({ ...item });
+    }
+  }
+  const cleanGroups = [...uniqueGroups.values()].sort((a, b) => a.id.localeCompare(b.id));
+  const mapped = cleanGroups.filter((group) => group.contentStatus === "mapped").reduce((sum, group) => sum + group.count, 0);
+  const withheld = cleanGroups.filter((group) => group.contentStatus === "withheld").reduce((sum, group) => sum + group.count, 0);
+  const unavailable = value.availability === "unavailable" || details?.availability === "unavailable";
   return {
     availability: value.availability,
-    message: value.message,
+    message: value.availability === "unavailable" ? "Advisor の読み取りは利用できません。" : ADVISOR_SUMMARY_MESSAGE,
     recommendations: value.availability === "unavailable" ? [] : value.recommendations.map((row) => ({
       category: categories.has(row.category) ? row.category : "Other",
       impact: impacts.has(row.impact) ? row.impact : "Unknown",
       count: row.count
-    }))
+    })),
+    ...(details ? { details: {
+      availability: unavailable ? "unavailable" as const : withheld || details.lifecycleUnknownCount || cleanGroups.some((group) => group.affectedResourceCount === null)
+        ? "partial" as const : details.availability,
+      message: ADVISOR_DETAILS_MESSAGE,
+      mappedRecommendationCount: unavailable ? 0 : mapped,
+      withheldRecommendationCount: unavailable ? 0 : withheld,
+      excludedRecommendationCount: unavailable ? 0 : details.excludedRecommendationCount,
+      lifecycleUnknownCount: unavailable ? 0 : details.lifecycleUnknownCount,
+      affectedResourceCount: unavailable || cleanGroups.some((group) => group.affectedResourceCount === null) ? null : details.affectedResourceCount,
+      groups: unavailable ? [] : cleanGroups
+    } } : {})
   };
 }
 

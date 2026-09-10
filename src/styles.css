@@ -1595,6 +1595,19 @@ button:disabled {
   color: var(--cp-text-muted);
 }
 
+.advisor-metrics article > span {
+  display: block;
+  margin-top: 8px;
+  font-size: 12px;
+  color: var(--cp-text-muted);
+}
+
+.advisor-rollup-disclosure > summary {
+  padding: 12px 0;
+  cursor: pointer;
+  color: var(--cp-text-muted);
+}
+
 .advisor-metrics strong {
   display: block;
   margin-top: 4px;
@@ -1620,6 +1633,138 @@ button:disabled {
 .advisor-unavailable p {
   margin: 4px 0 0;
   color: var(--cp-text-muted);
+}
+
+.advisor-table-scroll {
+  overflow-x: auto;
+  margin: 16px 0;
+}
+
+.advisor-panel .table-toolbar {
+  flex-wrap: wrap;
+}
+
+.advisor-rollup {
+  width: 100%;
+  border-collapse: collapse;
+  text-align: left;
+}
+
+.advisor-rollup caption {
+  padding-bottom: 12px;
+  text-align: left;
+  color: var(--cp-text-muted);
+  font-size: 12px;
+}
+
+.advisor-rollup th,
+.advisor-rollup td {
+  padding: 12px;
+  border-bottom: 1px solid var(--cp-border);
+}
+
+.advisor-rollup thead th {
+  background: var(--cp-surface-soft);
+  font-size: 12px;
+  white-space: nowrap;
+}
+
+.advisor-detail-coverage {
+  margin: 20px 0;
+  padding: 16px;
+  border: 1px solid var(--cp-border);
+  border-radius: 10px;
+  background: var(--cp-surface-soft);
+}
+
+.advisor-detail-coverage h3,
+.advisor-detail-card h3 {
+  margin: 0;
+}
+
+.advisor-detail-coverage p {
+  margin-bottom: 0;
+}
+
+.advisor-search {
+  display: grid;
+  gap: 8px;
+  flex: 1;
+  min-width: min(100%, 240px);
+  color: var(--cp-text-muted);
+  font-size: 12px;
+}
+
+.advisor-search input {
+  min-width: 0;
+  padding: 10px 12px;
+  border: 1px solid var(--cp-border-strong);
+  border-radius: 10px;
+  background: var(--cp-surface);
+  color: var(--cp-text);
+  font: inherit;
+}
+
+.advisor-detail-list {
+  display: grid;
+  gap: 16px;
+  margin: 16px 0;
+}
+
+.advisor-detail-card {
+  min-width: 0;
+  padding: 20px;
+  border: 1px solid var(--cp-border);
+  border-radius: 16px;
+  background: var(--cp-surface);
+  overflow-wrap: anywhere;
+}
+
+.advisor-detail-card > header,
+.advisor-detail-counts,
+.advisor-detail-links {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.advisor-detail-counts {
+  justify-content: flex-start;
+  margin: 16px 0;
+  font-size: 13px;
+}
+
+.advisor-detail-counts > span {
+  color: var(--cp-text-muted);
+}
+
+.advisor-guide {
+  display: grid;
+  gap: 12px;
+}
+
+.advisor-guide > div {
+  padding: 12px;
+  border-left: 3px solid var(--cp-border-strong);
+  background: var(--cp-surface-soft);
+}
+
+.advisor-guide dt {
+  margin-bottom: 4px;
+  font-weight: 600;
+}
+
+.advisor-guide dd {
+  margin: 0;
+  color: var(--cp-text-muted);
+  line-height: 1.7;
+}
+
+.advisor-detail-links {
+  justify-content: flex-start;
+  margin-top: 16px;
 }
 
 .state-card,

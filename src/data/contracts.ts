@@ -145,14 +145,51 @@ export interface NetworkInventoryItem {
   location?: string | null;
 }
 
+export type AdvisorCategory = "Cost" | "HighAvailability" | "Performance" | "Security" | "OperationalExcellence" | "Other";
+export type AdvisorImpact = "High" | "Medium" | "Low" | "Unknown";
+
+export interface AdvisorRecommendationGroup {
+  /** Closed catalog slug, never an Azure recommendation identifier. */
+  id: string;
+  category: AdvisorCategory;
+  contentStatus: "mapped" | "withheld";
+  /** Recommendation records, not resources. Completed/dismissed/postponed records are excluded. */
+  count: number;
+  impacts: Record<AdvisorImpact, number>;
+  /** Exact distinct ARM resource identities, or null if any identity is missing/non-resource scoped. */
+  affectedResourceCount: number | null;
+  /** Recommendation record counts by closed, public resource type. */
+  resourceTypes: Array<{ type: string; count: number }>;
+  title: string;
+  description: string;
+  recommendedAction: string;
+  deferWhen: string;
+  caveat: string;
+  sourceUrl: string;
+}
+
+export interface AdvisorDetails {
+  availability: Availability;
+  message: string;
+  mappedRecommendationCount: number;
+  withheldRecommendationCount: number;
+  excludedRecommendationCount: number;
+  /** Included records whose lifecycle was neither New nor InProgress. Not proven active. */
+  lifecycleUnknownCount: number;
+  affectedResourceCount: number | null;
+  groups: AdvisorRecommendationGroup[];
+}
+
 export interface AdvisorSummary {
   availability: Availability;
   message: string;
   recommendations: Array<{
-    category: "Cost" | "HighAvailability" | "Performance" | "Security" | "OperationalExcellence" | "Other";
-    impact: "High" | "Medium" | "Low" | "Unknown";
+    category: AdvisorCategory;
+    impact: AdvisorImpact;
     count: number;
   }>;
+  /** Legacy category/impact totals include all lifecycle states; details explain exclusions. */
+  details?: AdvisorDetails;
 }
 
 export type TopologyEdgeKind =

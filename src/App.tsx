@@ -23,11 +23,13 @@ import {
 } from "lucide-react";
 import {
   NavLink,
+  Link,
   Navigate,
   Route,
   Routes,
   useLocation,
-  useNavigate
+  useNavigate,
+  useSearchParams
 } from "react-router-dom";
 import type {
   AiInsight,
@@ -105,6 +107,7 @@ const NAV_ITEMS = [
   { path: "/resources", label: "リソース", icon: Boxes },
   { path: "/reliability", label: "信頼性", icon: Activity },
   { path: "/security", label: "セキュリティ", icon: ShieldCheck },
+  { path: "/recommendations", label: "推奨事項", icon: Layers },
   { path: "/network", label: "ネットワーク", icon: Network },
   { path: "/ai-insights", label: "AI 分析", icon: Sparkles }
 ];
@@ -143,11 +146,15 @@ const TITLES: Record<string, { title: string; subtitle: string }> = {
   },
   "/reliability": {
     title: "信頼性",
-    subtitle: "Azure Resource Health で監視できる範囲と、監視の死角を可視化します。"
+    subtitle: "Azure Resource Health の評価範囲を示します。対象外のリソースの既存監視は未確認です。"
   },
   "/security": {
     title: "セキュリティ",
-    subtitle: "Defender for Cloud と Azure Advisor の推奨事項を集計し、未収集の範囲も明示します。"
+    subtitle: "Defender for Cloud の評価グループと、Azure Advisor のセキュリティカテゴリを確認します。"
+  },
+  "/recommendations": {
+    title: "推奨事項",
+    subtitle: "Azure Advisor の全カテゴリを、推奨内容・影響度・確認ガイドから探せます。"
   },
   "/network": {
     title: "ネットワーク",
@@ -445,8 +452,8 @@ function OverviewPage({ data }: { data: PublicSnapshotV1 }) {
           <p className="eyebrow">GitHubでつなぐ Azure 運用</p>
           <h2 id="mission-title">Azure運用を、収集からAI分析・公開までシンプルに。</h2>
           <p>
-            読み取り専用の収集、公開前検証、根拠付き分析、人のレビュー、GitHub Pages
-            公開までを、監査できるワークフローとしてつなぎます。
+            読み取り専用の収集、公開前検証、根拠付き分析、独立した AI 内容審査、GitHub Pages
+            への自動公開を、監査できるワークフローとしてつなぎます。
           </p>
           <div className="hero-actions">
             <button
@@ -536,7 +543,7 @@ function OverviewPage({ data }: { data: PublicSnapshotV1 }) {
             <ShieldCheck size={21} aria-hidden="true" />
             <h3>公開前検証</h3>
             <p>匿名化・Schema・Privacyを確認</p>
-            <strong>構成: PR作成前に必須</strong>
+            <strong>構成: 公開前に必須</strong>
             <small>TypeScript / JSON Schema</small>
           </article>
           <article>
@@ -544,23 +551,23 @@ function OverviewPage({ data }: { data: PublicSnapshotV1 }) {
             <Bot size={21} aria-hidden="true" />
             <h3>根拠付きAI分析</h3>
             <p>公開JSONだけから分析候補を作成</p>
-            <strong>構成: snapshot merge後</strong>
+            <strong>構成: スナップショット更新後</strong>
             <small>gh-aw / Copilot</small>
           </article>
           <article>
             <span className="pipeline-number">4</span>
             <CircleCheck size={21} aria-hidden="true" />
-            <h3>人間レビュー</h3>
-            <p>差分と根拠を確認して公開を判断</p>
-            <strong>必須: 人がmerge</strong>
-            <small>Pull Request</small>
+            <h3>独立したAI内容審査</h3>
+            <p>数値の照合に加え、分析内容と根拠の整合を審査</p>
+            <strong>必須: 公開ゲート通過</strong>
+            <small>独立した意味内容レビュー</small>
           </article>
           <article>
             <span className="pipeline-number">5</span>
             <ExternalLink size={21} aria-hidden="true" />
             <h3>Pagesへ公開</h3>
-            <p>承認済みのmainから静的サイトを配信</p>
-            <strong>構成: merge後に自動</strong>
+            <p>検証済みの公開データを静的サイトへ配信</p>
+            <strong>構成: 検証・審査後に自動</strong>
             <small>GitHub Pages</small>
           </article>
         </div>
@@ -569,14 +576,14 @@ function OverviewPage({ data }: { data: PublicSnapshotV1 }) {
             <Bot size={18} aria-hidden="true" />
             <span>
               <strong>自動で行うこと</strong>
-              <small>収集・匿名化・検証・AI分析・PR作成・merge後のPages公開</small>
+              <small>収集・匿名化・検証・AI分析・独立した内容審査・Pages公開</small>
             </span>
           </div>
           <div>
             <ShieldCheck size={18} aria-hidden="true" />
             <span>
-              <strong>人間が承認すること</strong>
-              <small>snapshot PRとAI draft PRの内容確認・merge判断</small>
+              <strong>人間が判断・実施すること</strong>
+              <small>Azure の構成変更・修復の要否と実施、コード変更のレビュー</small>
             </span>
           </div>
         </div>
@@ -594,7 +601,7 @@ function OverviewPage({ data }: { data: PublicSnapshotV1 }) {
           note={formatCostDelta(publishedCostDeltaPercent(data.cost))}
         />
         <MetricCard
-          label="Defender 推奨事項"
+          label="Defender 公開評価グループ"
           value={
             defenderRecommendationCount === null
               ? "未収集"
@@ -603,7 +610,7 @@ function OverviewPage({ data }: { data: PublicSnapshotV1 }) {
           note={
             defenderRecommendationCount === null && defenderSource
               ? formatSourceMessage(defenderSource)
-              : "公開済みの集計タイトルのみ"
+              : "公開済みの評価グループ数。全評価レコード数ではありません"
           }
         />
         <MetricCard
@@ -863,6 +870,9 @@ function CostPage({ data }: { data: PublicSnapshotV1 }) {
           金額は公開用に丸めた概算値です。正確な Azure 請求額、未収集の予測、未収集の予算は推定しません。
         </span>
       </div>
+      <Link className="text-button" to="/recommendations?category=Cost">
+        コストの推奨事項を確認 <ChevronRight size={15} aria-hidden="true" />
+      </Link>
       <section className="metric-grid four" aria-label="コスト指標">
         <MetricCard
           label="現在期間"
@@ -1199,14 +1209,14 @@ function ReliabilityPage({ data }: { data: PublicSnapshotV1 }) {
           <p className="eyebrow">Azure Resource Health</p>
           <h2 id="coverage-hero-title">
             {numberFormatter.format(coverage.totalResources)} 件のうち{" "}
-            {numberFormatter.format(coverage.supportedResources)} 件が Resource Health で監視できます
+            {numberFormatter.format(coverage.supportedResources)} 件が Resource Health の評価対象です
           </h2>
           <p>
             Azure は種別ごとに可用性を公開します。残り{" "}
             {numberFormatter.format(coverage.notApplicableResources)} 件（
             {numberFormatter.format(blindSpots.types)} 種別）は Azure
-            が状態を公開しない「対象外」で、異常ではありません。ここが Azure Monitor
-            のメトリックやアラートで補うべき監視の死角です。
+            が状態を公開しない「対象外」です。既存監視の有無は未確認であり、障害や監視不足を意味しません。
+            用途に応じて別の観測を確認してください。
           </p>
           <LearnLink href={RESOURCE_HEALTH_TYPES_DOC}>
             対応リソース種別の一覧（Microsoft Learn）
@@ -1218,17 +1228,19 @@ function ReliabilityPage({ data }: { data: PublicSnapshotV1 }) {
           label="Resource Health の内訳"
         />
       </section>
+      <Link className="text-button" to="/recommendations?category=HighAvailability">
+        信頼性の推奨事項を確認 <ChevronRight size={15} aria-hidden="true" />
+      </Link>
 
       <section className="metric-grid four" aria-label="Resource Health サマリー">
         <MetricCard
-          label="監視できる範囲"
+          label="Resource Health 評価対象"
           value={`${numberFormatter.format(coverage.supportedResources)}/${numberFormatter.format(coverage.totalResources)} 件`}
           note={
             supportedShare === null
               ? "公開スナップショットにリソースがありません"
               : `インベントリの ${supportedShare}% が Resource Health の対応種別`
           }
-          severity={supportedShare && supportedShare >= 50 ? "healthy" : "info"}
         />
         <MetricCard
           label="状態を取得できた数"
@@ -1240,20 +1252,19 @@ function ReliabilityPage({ data }: { data: PublicSnapshotV1 }) {
                   healthyRate === null ? "" : `・うち正常 ${healthyRate}%`
                 }`
           }
-          severity={coverage.evaluatedResources ? "healthy" : "warning"}
         />
         <MetricCard
-          label="監視の死角"
+          label="Resource Health 対象外"
           value={`${numberFormatter.format(blindSpots.resources)} 件`}
-          note={`${numberFormatter.format(blindSpots.types)} 種別が Resource Health の対象外。Azure Monitor での代替監視が必要です`}
+          note={`${numberFormatter.format(blindSpots.types)} 種別が Resource Health の対象外。既存監視の有無は未確認です`}
         />
         <MetricCard
-          label="確認された障害"
+          label="状態低下・利用不可のリソース"
           value={failures === null ? "判定前" : `${numberFormatter.format(failures)} 件`}
           note={
             failures === null
-              ? "評価済みが 0 件のため、障害の有無は判定していません（0 件とは表示しません）"
-              : `低下 ${coverage.degradedResources} 件・利用不可 ${coverage.unavailableResources} 件`
+              ? "評価済みが 0 件のため、状態低下・利用不可の有無は判定していません（0 件とは表示しません）"
+              : `低下 ${coverage.degradedResources} 件・利用不可 ${coverage.unavailableResources} 件。業務影響や障害件数ではありません`
           }
           severity={failures ? "warning" : "info"}
         />
@@ -1351,8 +1362,8 @@ function ReliabilityPage({ data }: { data: PublicSnapshotV1 }) {
         </Panel>
 
         <Panel
-          title="監視の死角をどう埋めるか"
-          description="対象外の種別は Resource Health では監視できないため、別のシグナルで補います。"
+          title="用途に応じて別の観測を確認"
+          description="Resource Health 対象外でも、監視がないとは判断できません。既存のメトリック・ログ・アラート設定は未確認です。"
           className="span-12"
         >
           <div className="boundary-grid">
@@ -1360,16 +1371,15 @@ function ReliabilityPage({ data }: { data: PublicSnapshotV1 }) {
               <Gauge size={22} aria-hidden="true" />
               <strong>Azure Monitor のメトリック</strong>
               <p>
-                プラットフォーム メトリックを持つ種別は、しきい値アラートで可用性の代替監視ができます。
-                収集済みの取得状況はネットワーク ページで確認できます。
+                対応メトリックとアラートが用途に合うか確認してください。メトリック取得だけで可用性は保証できません。
+                この収集処理での取得状況はネットワーク ページで確認できます。
               </p>
             </article>
             <article>
               <Activity size={22} aria-hidden="true" />
               <strong>Activity Log とサービス正常性アラート</strong>
               <p>
-                管理操作とプラットフォーム側の障害は Activity Log と Service Health
-                で検知します。どちらもこのスナップショットの収集対象です。
+                管理操作やサービスイベントの収集状況を確認できます。アラート設定や実際の業務影響は収集していません。
               </p>
             </article>
             <article>
@@ -1388,19 +1398,18 @@ function ReliabilityPage({ data }: { data: PublicSnapshotV1 }) {
         {serviceHealth.availability !== "unavailable" ? (
           <Panel
             title="Service Health イベント"
-            description="サブスクリプションやリソースの詳細を除いた、サービス単位の集計だけを表示します。"
+            description="サービスイベントの集計です。影響リソース数や障害件数ではありません。実際の影響詳細は未収集です。"
             className="span-7"
           >
             <section className="metric-grid two" aria-label="Service Health サマリー">
               <MetricCard
                 label="継続中のイベント"
-                value={`${numberFormatter.format(serviceHealth.activeEvents ?? 0)} 件`}
+                value={serviceHealth.activeEvents === null ? "未確認" : `${numberFormatter.format(serviceHealth.activeEvents)} 件`}
                 note="収集ウィンドウ内で継続中と報告されたイベント"
-                severity={serviceHealth.activeEvents ? "warning" : "healthy"}
               />
               <MetricCard
                 label="解決済みのイベント"
-                value={`${numberFormatter.format(serviceHealth.resolvedEvents ?? 0)} 件`}
+                value={serviceHealth.resolvedEvents === null ? "未確認" : `${numberFormatter.format(serviceHealth.resolvedEvents)} 件`}
                 note="収集ウィンドウ内で解決済みと報告されたイベント"
               />
             </section>
@@ -1520,15 +1529,42 @@ function ReliabilityPage({ data }: { data: PublicSnapshotV1 }) {
   );
 }
 
+function RecommendationsPage({ data }: { data: PublicSnapshotV1 }) {
+  const [searchParams, setSearchParams] = useSearchParams();
+  const requested = searchParams.get("category") ?? "all";
+  const category = ["Cost", "HighAvailability", "Performance", "Security", "OperationalExcellence", "Other"].includes(requested) ? requested : "all";
+  const source = data.sources.find((item) => item.source === "Azure Advisor");
+  return (
+    <div className="page-stack">
+      <Link className="text-button" to="/ai-insights">
+        この環境の比較・優先順位を AI 分析で見る <ChevronRight size={15} aria-hidden="true" />
+      </Link>
+      <AdvisorPanel
+        availability={data.advisor?.availability}
+        recommendations={data.advisor?.recommendations}
+        details={data.advisor?.details}
+        diagnosis={source ? formatSourceMessage(source) : undefined}
+        selectedCategory={category}
+        onCategoryChange={(value) => {
+          const next = new URLSearchParams(searchParams);
+          if (value === "all") next.delete("category");
+          else next.set("category", value);
+          setSearchParams(next);
+        }}
+      />
+    </div>
+  );
+}
+
 function SecurityPage({ data }: { data: PublicSnapshotV1 }) {
   const defenderSource = data.sources.find((source) => source.source === "Defender for Cloud");
   const defenderPublished = defenderSource !== undefined && defenderSource.availability !== "unavailable";
   const secureScore = data.security.fieldAvailability?.secureScore === "unavailable" ? null : metricWhenSourcePublished(defenderSource, data.security.secureScore);
   const activeAlerts = data.security.fieldAvailability?.activeAlerts === "unavailable" ? null : metricWhenSourcePublished(defenderSource, data.security.activeAlerts);
   const assessmentsPublished = defenderPublished && data.security.fieldAvailability?.assessments !== "unavailable";
-  const openRecommendations = !assessmentsPublished ? null : metricWhenSourcePublished(
+  const publishedAssessmentGroups = !assessmentsPublished ? null : metricWhenSourcePublished(
     defenderSource,
-    data.security.recommendations.filter((item) => item.status !== "Resolved").length
+    data.security.recommendations.length
   );
   const complianceCount = metricWhenSourcePublished(
     defenderSource,
@@ -1542,11 +1578,16 @@ function SecurityPage({ data }: { data: PublicSnapshotV1 }) {
     (event) => event.id !== "collection-complete"
   );
   const advisorSource = data.sources.find((source) => source.source === "Azure Advisor");
-  const advisorPanel = <AdvisorPanel
-    availability={data.advisor?.availability}
-    recommendations={data.advisor?.recommendations}
-    diagnosis={advisorSource ? formatSourceMessage(advisorSource) : undefined}
-  />;
+  const advisorPanel = <>
+    <AdvisorPanel
+      availability={data.advisor?.availability}
+      recommendations={data.advisor?.recommendations}
+      details={data.advisor?.details}
+      diagnosis={advisorSource ? formatSourceMessage(advisorSource) : undefined}
+      categoryScope="Security"
+    />
+    <Link className="text-button" to="/recommendations">すべてのカテゴリの推奨事項を確認</Link>
+  </>;
 
   if (!defenderPublished) {
     return (
@@ -1567,9 +1608,9 @@ function SecurityPage({ data }: { data: PublicSnapshotV1 }) {
         >
           <div className="pending-metric-grid" aria-label="未収集のセキュリティ指標">
             {[
-              { label: "Secure score", detail: "推奨事項の達成率（0〜100）" },
+              { label: "Secure score", detail: "Azure が公開するセキュリティ スコア（0〜100）" },
               { label: "アクティブ アラート", detail: "未解決のセキュリティ アラート件数" },
-              { label: "未解決の推奨事項", detail: "対応が必要な推奨事項の集計件数" },
+              { label: "公開中の評価グループ", detail: "公開できた評価グループ数。全評価レコード数は未確認" },
               { label: "コンプライアンス集計", detail: "規制コンプライアンスのスコア集計" }
             ].map((item) => (
               <article key={item.label}>
@@ -1674,9 +1715,8 @@ function SecurityPage({ data }: { data: PublicSnapshotV1 }) {
           note={
             secureScore === null
               ? "このスナップショットに Secure score は含まれていません"
-              : "推奨事項の達成率（公開スナップショット値）"
+              : "公開スナップショット値。安全性を保証するしきい値は設けていません"
           }
-          severity={secureScore !== null && secureScore >= 70 ? "healthy" : "info"}
         />
         <MetricCard
           label="アクティブ アラート"
@@ -1685,13 +1725,13 @@ function SecurityPage({ data }: { data: PublicSnapshotV1 }) {
           severity={activeAlerts ? "warning" : "info"}
         />
         <MetricCard
-          label="未解決の推奨事項"
+          label="公開中の評価グループ"
           value={
-            openRecommendations === null
+            publishedAssessmentGroups === null
               ? "未収集"
-              : `${numberFormatter.format(openRecommendations)} 件`
+              : `${numberFormatter.format(publishedAssessmentGroups)} 件`
           }
-          note={openRecommendations === null ? unavailableNote : "資産の詳細は除外して集計"}
+          note={publishedAssessmentGroups === null ? unavailableNote : "最大 12 グループの公開。省略の有無・全評価レコード数は未確認"}
         />
         <MetricCard
           label="コンプライアンス集計"
@@ -1704,7 +1744,9 @@ function SecurityPage({ data }: { data: PublicSnapshotV1 }) {
       <div className="content-grid">
         <Panel
           title="Defender for Cloud 推奨事項"
-          description="タイトル、重要度、影響件数、対応状態だけを公開します。"
+          description={data.security.recommendations.length
+            ? "公開中の評価グループです。最大 12 グループ。標準内容に照合できていないタイトルは非公開です。"
+            : "この収集で返された評価データの状態を表示します。"}
           className="span-8"
         >
           {assessmentsPublished && data.security.recommendations.length ? (
@@ -1714,10 +1756,10 @@ function SecurityPage({ data }: { data: PublicSnapshotV1 }) {
                   <span className={`priority-line severity-${item.severity}`} aria-hidden="true" />
                   <div>
                     <strong>{item.title}</strong>
-                    <p>影響を受けるリソース {item.affectedCount} 件・集計表示</p>
+                    <p>未解決・未評価の評価レコード {item.affectedCount} 件（リソースの重複排除なし）</p>
                   </div>
                   <StatusBadge severity={item.severity}>
-                    {recommendationStatusLabel(item.status)}
+                    {item.status === "Open" ? "未解決・未評価" : recommendationStatusLabel(item.status)}
                   </StatusBadge>
                 </article>
               ))}
@@ -1725,7 +1767,7 @@ function SecurityPage({ data }: { data: PublicSnapshotV1 }) {
           ) : (
             <EmptyState
               title={assessmentsPublished ? "公開できる推奨事項はありません" : "Defender 推奨事項は未収集です"}
-              detail={assessmentsPublished ? "推奨事項が 0 件でも安全だとは判断しません。この収集ウィンドウで公開できる推奨事項がなかった状態です。" : "評価データが取得できていないため、推奨事項の件数を 0 件とは表示しません。"}
+              detail={assessmentsPublished ? "評価の取得は成功しましたが、このスコープでは評価レコードが返りませんでした。タイトルを隠したための空表示ではありません。Azure portal の Defender for Cloud で対象スコープと評価の有効化状況を確認できます。" : "評価データが取得できていないため、推奨事項の件数を 0 件とは表示しません。"}
             />
           )}
         </Panel>
@@ -1822,7 +1864,7 @@ function NetworkPage({ data }: { data: PublicSnapshotV1 }) {
                 ? `${numberFormatter.format(networkBlindSpot)}/${numberFormatter.format(networkInInventory)} 件`
                 : `${numberFormatter.format(networkBlindSpot)} 件`
             }
-            note="ネットワーク種別のうち Azure が可用性を公開しない件数。Azure Monitor での代替監視が必要です"
+            note="ネットワーク種別の Resource Health 対象外件数。既存監視の有無は未確認で、用途に応じて別の観測を確認してください"
           />
         )}
       </section>
@@ -2408,6 +2450,7 @@ function AppShell({ data }: { data: PublicSnapshotV1 }) {
             <Route path="/resources" element={<ResourcesPage data={data} />} />
             <Route path="/reliability" element={<ReliabilityPage data={data} />} />
             <Route path="/security" element={<SecurityPage data={data} />} />
+            <Route path="/recommendations" element={<RecommendationsPage data={data} />} />
             <Route path="/network" element={<NetworkPage data={data} />} />
             <Route path="/ai-insights" element={<AiInsightsPage data={data} />} />
             <Route path="*" element={<Navigate to="/overview" replace />} />

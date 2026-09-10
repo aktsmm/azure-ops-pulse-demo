@@ -13,6 +13,8 @@ interface ResourceTypeInfo {
 }
 
 const TYPES: Record<string, ResourceTypeInfo> = {
+  "other": { label: "その他・種別未確認", category: "その他", aliases: "unknown 未分類 不明" },
+  "microsoft.subscriptions/subscriptions": { label: "サブスクリプション単位", category: "監視・運用", aliases: "subscription スコープ サブスク" },
   "microsoft.compute/virtualmachines": { label: "仮想マシン (VM)", category: "コンピューティング", aliases: "vm virtual machine サーバー" },
   "microsoft.compute/virtualmachinescalesets": { label: "VM スケール セット", category: "コンピューティング", aliases: "vm vmss virtual machine サーバー" },
   "microsoft.compute/disks": { label: "マネージド ディスク", category: "ストレージ", aliases: "disk hdd ssd" },

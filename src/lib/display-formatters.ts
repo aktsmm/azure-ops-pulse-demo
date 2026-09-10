@@ -90,10 +90,11 @@ export function routeLabel(route: string): string {
     "/resources": "リソース",
     "/reliability": "信頼性",
     "/security": "セキュリティ",
+    "/recommendations": "推奨事項",
     "/network": "ネットワーク",
     "/ai-insights": "AI 分析"
   };
-  return labels[route] ?? "関連画面";
+  return labels[route.split("?")[0]!] ?? "関連画面";
 }
 
 export function formatDateTimeJa(value: string): string {
