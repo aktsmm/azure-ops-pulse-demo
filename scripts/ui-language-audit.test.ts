@@ -36,6 +36,74 @@ function withFirstMetricChange(change: string): PublicSnapshotV1 {
 }
 
 describe("UI language audit", () => {
+  it("allows only observed canonical CVE identifiers without excusing surrounding English or invented suffixes", () => {
+    const snapshot = demo();
+    snapshot.security.vulnerabilities = {
+      availability: "available", message: "取得済みの脆弱性です。",
+      totalSubAssessments: 1, unhealthySubAssessments: 1, unmappedSubAssessments: 0,
+      unknownStatusSubAssessments: 0, totalFindings: 1, truncated: false,
+      findings: [{ cve: "CVE-2026-12345", severity: "High", resourceRefs: [], cvssScore: 8.1 }]
+    };
+    const first = snapshot.aiInsights[0]!;
+    const withObservation = (observation: string): PublicSnapshotV1 => ({
+      ...snapshot, aiInsights: [{ ...first, observation }]
+    });
+    const observed = "CVE-2026-12345 のスコアは8.1です。";
+    expect(findUiLanguageLeaks(withObservation(observed))).toEqual([]);
+    snapshot.security.vulnerabilities.availability = "partial";
+    expect(findUiLanguageLeaks(withObservation(observed))).toEqual([]);
+    for (const observation of [
+      "CVE-2026-54321 の確認を行います。",
+      "CVE-2026-123456 の確認を行います。",
+      "CVE-2026-12345-extra の確認を行います。",
+      "CVE-2026-12345 requires immediate patching.",
+      "CVE の確認を行います。"
+    ]) {
+      expect(findUiLanguageLeaks(withObservation(observation)).map((leak) => leak.path))
+        .toContain("aiInsights[0].observation");
+    }
+    snapshot.security.vulnerabilities.availability = "unavailable";
+    expect(findUiLanguageLeaks(withObservation(observed)).map((leak) => leak.path))
+      .toContain("aiInsights[0].observation");
+    delete snapshot.security.vulnerabilities;
+    expect(findUiLanguageLeaks(withObservation(observed)).map((leak) => leak.path))
+      .toContain("aiInsights[0].observation");
+  });
+
+  it.each(["CVE-2026-1234", "CVE-2026-1234567"])(
+    "accepts a canonical %s identifier in Japanese analysis", (cve) => {
+      const snapshot = demo();
+      snapshot.security.vulnerabilities = {
+        availability: "available", message: "取得済みの脆弱性です。",
+        totalSubAssessments: 1, unhealthySubAssessments: 1, unmappedSubAssessments: 0,
+        unknownStatusSubAssessments: 0, totalFindings: 1, truncated: false,
+        findings: [{ cve, severity: "High", resourceRefs: [], cvssScore: 8.1 }]
+      };
+      const insight = snapshot.aiInsights[0];
+      if (!insight) throw new Error("demo fixture must publish an insight");
+      insight.observation = `${cve} のスコアは8.1です。`;
+      expect(findUiLanguageLeaks(snapshot)).toEqual([]);
+    }
+  );
+
+  it.each([
+    "CVE-26-1234", "CVE-2026-123", "CVE-2026-12345678",
+    "CVE-2026-1234-pending", "prefixCVE-2026-1234", "cve-2026-1234",
+    "CVE-2026-1234 requires immediate remediation"
+  ])("does not use %s to exempt malformed identifiers or English prose", (text) => {
+    const snapshot = demo();
+    snapshot.security.vulnerabilities = {
+      availability: "available", message: "取得済みの脆弱性です。",
+      totalSubAssessments: 1, unhealthySubAssessments: 1, unmappedSubAssessments: 0,
+      unknownStatusSubAssessments: 0, totalFindings: 1, truncated: false,
+      findings: [{ cve: "CVE-2026-1234", severity: "High", resourceRefs: [], cvssScore: 8.1 }]
+    };
+    const insight = snapshot.aiInsights[0];
+    if (!insight) throw new Error("demo fixture must publish an insight");
+    insight.observation = `確認対象: ${text}`;
+    expect(findUiLanguageLeaks(snapshot).some((leak) => leak.path === "aiInsights[0].observation")).toBe(true);
+  });
+
   it("accepts every reviewed Advisor guide, not just the last published subset", () => {
     const snapshot = demo();
     snapshot.advisor = {

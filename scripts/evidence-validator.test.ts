@@ -2,6 +2,30 @@ import { describe, expect, it } from "vitest";
 import { validateEvidenceItem } from "./evidence-validator";
 
 describe("AI numeric evidence validation", () => {
+  it("does not treat digits inside optional target references or addresses as observed quantities", () => {
+    const snapshot = {
+      inventory: { resources: [{ id: "res-abc123de", network: { privateIpv4: ["10.1.2.3"] } }] },
+      advisor: { details: { groups: [{
+        count: 1,
+        resourceRefs: ["res-abc123de"],
+        targets: [{ resourceRef: "res-abc123de", type: "example/v2" }]
+      }] } },
+      network: { topology: { nodes: [{ id: "res-abc123de" }] } }
+    };
+    for (const source of [
+      "inventory.resources.0.id", "inventory.resources.0.network.privateIpv4.0",
+      "advisor.details.groups.0.resourceRefs.0", "advisor.details.groups.0.targets.0.resourceRef",
+      "advisor.details.groups.0.targets.0.type", "network.topology.nodes.0.id"
+    ]) {
+      expect(() => validateEvidenceItem(snapshot, "具体的な対象の確認", {
+        label: "対象の数値", value: "123", source
+      })).toThrow("context, not numeric evidence");
+    }
+    expect(() => validateEvidenceItem(snapshot, "具体的な推奨", {
+      label: "推奨件数", value: "1件", source: "advisor.details.groups.0.count"
+    })).not.toThrow();
+  });
+
   it("keeps a successfully collected Defender field usable when another field is unavailable", () => {
     const snapshot = {
       sources: [{ source: "Defender for Cloud", availability: "partial" }],
@@ -14,6 +38,50 @@ describe("AI numeric evidence validation", () => {
     snapshot.security.fieldAvailability.activeAlerts = "available";
     snapshot.sources[0]!.availability = "unavailable";
     expect(() => validateEvidenceItem(snapshot, "内容を確認", evidence)).toThrow();
+  });
+
+  it("keeps known unhealthy assessment counts usable without treating unknown codes as healthy", () => {
+    const snapshot = {
+      sources: [{ source: "Defender for Cloud", availability: "partial" }],
+      security: {
+        fieldAvailability: { assessments: "partial" },
+        recommendations: [{ affectedCount: 2, unknownCount: 1 }],
+        assessmentCoverage: { unhealthyAssessments: 2, unknownAssessments: 1 }
+      }
+    };
+    for (const source of [
+      "security.recommendations.0.affectedCount", "security.assessmentCoverage.unhealthyAssessments"
+    ]) {
+      expect(() => validateEvidenceItem(snapshot, "取得済み評価の確認", {
+        label: "確認済みの不健全な評価数", value: "2件", source
+      })).not.toThrow();
+    }
+    snapshot.security.recommendations[0]!.affectedCount = 0;
+    expect(() => validateEvidenceItem(snapshot, "不明を正常と判断しない", {
+      label: "確認済みの不健全な評価数", value: "0件", source: "security.recommendations.0.affectedCount"
+    })).toThrow("not available");
+    snapshot.sources[0]!.availability = "unavailable";
+    expect(() => validateEvidenceItem(snapshot, "取得失敗", {
+      label: "評価数", value: "2件", source: "security.assessmentCoverage.unhealthyAssessments"
+    })).toThrow("not available");
+  });
+
+  it("uses the independent vulnerability availability without inheriting score or assessment failure", () => {
+    const snapshot = {
+      sources: [{ source: "Defender for Cloud", availability: "unavailable" }],
+      security: {
+        fieldAvailability: { secureScore: "unavailable", assessments: "unavailable", activeAlerts: "unavailable" },
+        vulnerabilities: { availability: "available", totalFindings: 1, findings: [{ cve: "CVE-2026-12345", cvssScore: 8.1 }] }
+      }
+    };
+    const evidence = { label: "観測されたスコア", value: "8.1", source: "security.vulnerabilities.findings.0.cvssScore" };
+    expect(() => validateEvidenceItem(snapshot, "具体的な脆弱性の確認", evidence)).not.toThrow();
+    snapshot.security.vulnerabilities.availability = "partial";
+    expect(() => validateEvidenceItem(snapshot, "収集済みの脆弱性の確認", evidence)).not.toThrow();
+    snapshot.sources[0]!.availability = "available";
+    snapshot.security.vulnerabilities.availability = "unavailable";
+    expect(() => validateEvidenceItem(snapshot, "未取得を正常と判断しない", evidence)).toThrow("Vulnerability observations");
+    expect(() => validateEvidenceItem({ sources: [], security: {} }, "旧データ", evidence)).toThrow("Vulnerability observations");
   });
 
   it("allows observed degraded resources in partial health data, but not an all-clear zero", () => {

@@ -1,4 +1,5 @@
-import type { AdvisorSummary, AdvisorRecommendationGroup } from "../src/data/contracts";
+import type { AdvisorSummary, AdvisorRecommendationGroup, RawResource } from "../src/data/contracts";
+import { resourceRef, normalizeResourceId } from "../src/lib/sanitize";
 import {
   ADVISOR_CATEGORIES, ADVISOR_IMPACTS, ADVISOR_CATALOG, ADVISOR_RESOURCE_TYPES,
   ADVISOR_SUMMARY_MESSAGE, ADVISOR_DETAILS_MESSAGE, advisorContent
@@ -48,7 +49,8 @@ export interface AdvisorRow {
   tracked?: unknown;
 }
 
-export function summarizeAdvisor(rows: readonly AdvisorRow[]): AdvisorSummary {
+export function summarizeAdvisor(rows: readonly AdvisorRow[], inventory: readonly RawResource[] = []): AdvisorSummary {
+  const known = new Map(inventory.map((item) => [normalizeResourceId(item.id), item]));
   if (rows.some((row) => row?.count !== undefined)) return summarizeLegacyAdvisor(rows);
   const unique = new Map<string, AdvisorRow>();
   for (const row of rows) {
@@ -85,7 +87,8 @@ export function summarizeAdvisor(rows: readonly AdvisorRow[]): AdvisorSummary {
     const state = groups.get(content.id) ?? {
       group: {
         ...content, count: 0, impacts: { High: 0, Medium: 0, Low: 0, Unknown: 0 },
-        affectedResourceCount: null, resourceTypes: []
+        affectedResourceCount: null, resourceTypes: [],
+        scopeCounts: { resource: 0, subscription: 0, unknown: 0 }
       },
       resources: new Set<string>(), missingIdentity: false
     };
@@ -95,18 +98,33 @@ export function summarizeAdvisor(rows: readonly AdvisorRow[]): AdvisorSummary {
     if (typeCount) typeCount.count += 1;
     else state.group.resourceTypes.push({ type: resourceType, count: 1 });
     if (identity && identity.type !== "microsoft.subscriptions/subscriptions") {
+      state.group.scopeCounts!.resource += 1;
       state.resources.add(identity.id);
       resources.add(identity.id);
     } else {
+      if (identity) state.group.scopeCounts!.subscription += 1;
+      else state.group.scopeCounts!.unknown += 1;
       state.missingIdentity = true;
       missingIdentity = true;
     }
     groups.set(content.id, state);
   }
-  const contentGroups = [...groups.values()].map(({ group, resources: identities, missingIdentity: missing }) => ({
-    ...group, affectedResourceCount: missing ? null : identities.size,
-    resourceTypes: group.resourceTypes.sort((a, b) => a.type.localeCompare(b.type))
-  })).sort((a, b) => a.id.localeCompare(b.id));
+  const contentGroups = [...groups.values()].map(({ group, resources: identities, missingIdentity: missing }) => {
+    const matched = [...identities].sort().filter((id) => known.has(id));
+    const targets = matched.slice(0, 100).map((id) => {
+      const item = known.get(id)!;
+      return { resourceRef: resourceRef(id), type: item.type, ...(item.location ? { region: item.location } : {}) };
+    });
+    return {
+      ...group, affectedResourceCount: missing ? null : identities.size,
+      resourceRefs: targets.map((target) => target.resourceRef), targets,
+      targetCoverage: {
+        totalResources: identities.size, publishedResources: targets.length,
+        unresolvedResources: identities.size - matched.length, truncated: matched.length > 100
+      },
+      resourceTypes: group.resourceTypes.sort((a, b) => a.type.localeCompare(b.type))
+    };
+  }).sort((a, b) => a.id.localeCompare(b.id));
   const mappedRecommendationCount = contentGroups.filter((group) => group.contentStatus === "mapped").reduce((sum, group) => sum + group.count, 0);
   const withheldRecommendationCount = contentGroups.filter((group) => group.contentStatus === "withheld").reduce((sum, group) => sum + group.count, 0);
   return {
@@ -122,7 +140,7 @@ export function summarizeAdvisor(rows: readonly AdvisorRow[]): AdvisorSummary {
 
 function resourceIdentity(value: unknown): { id: string; type: string } | null {
   if (typeof value !== "string") return null;
-  const id = value.toLowerCase().replace(/\/+$/, "");
+  const id = normalizeResourceId(value);
   const subscription = /^\/subscriptions\/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}(?=\/|$)/;
   if (!subscription.test(id)) return null;
   const scopedPath = id.replace(subscription, "");

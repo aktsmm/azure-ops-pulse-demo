@@ -9,9 +9,11 @@ import type {
   RawResource,
   RawSnapshot,
   ResourceHealthStatus,
-  SecurityRecommendation
+  SecurityRecommendation,
+  VulnerabilityEvidence
 } from "../data/contracts";
 import { SOURCE_REASONS } from "../data/contracts";
+import { sanitizeNetworkEvidence } from "./network-evidence";
 import {
   JPY_DISCLOSURE_FLOOR,
   WITHHELD_JPY_AMOUNT_LABEL,
@@ -57,7 +59,16 @@ export function stableHash(value: string): string {
     hash ^= character.charCodeAt(0);
     hash = Math.imul(hash, 16777619);
   }
+
   return (hash >>> 0).toString(16).padStart(8, "0");
+}
+
+export function resourceRef(value: string): string {
+  return `res-${stableHash(normalizeResourceId(value))}`;
+}
+
+export function normalizeResourceId(value: string): string {
+  return value.toLowerCase().replace(/\/+$/, "");
 }
 
 export function maskGuid(value: string): string {
@@ -275,7 +286,8 @@ function sanitizeResource(resource: RawResource): PublicSnapshotV1["inventory"][
     ? (resource.status as ResourceHealthStatus)
     : "Unknown";
   return {
-    id: `res-${stableHash(resource.id)}`,
+    id: resourceRef(resource.id),
+    ...(resource.network ? { network: sanitizeNetworkEvidence(resource.network) } : {}),
     name: maskResourceName(resource.name, resource.type),
     resourceGroup: maskResourceGroup(resource.resourceGroup),
     type: resource.type,
@@ -354,7 +366,34 @@ function sanitizeRecommendation(
       : recommendation.title,
     severity: recommendation.severity,
     affectedCount: Math.max(0, Math.round(recommendation.affectedCount)),
-    status: recommendation.status
+    status: recommendation.status,
+    ...(recommendation.unknownCount !== undefined ? { unknownCount: Math.max(0, Math.round(recommendation.unknownCount)) } : {})
+  };
+}
+
+function sanitizeVulnerabilities(value: VulnerabilityEvidence, inventory: PublicSnapshotV1["inventory"]["resources"]): VulnerabilityEvidence {
+  const unavailable = value.availability === "unavailable";
+  const findings = unavailable ? [] : value.findings.filter((finding) => /^CVE-\d{4}-\d{4,7}$/.test(finding.cve)).slice(0, 100).map((finding) => ({
+    cve: finding.cve,
+    severity: (["High", "Medium", "Low"].includes(finding.severity) ? finding.severity : "Unknown") as VulnerabilityEvidence["findings"][number]["severity"],
+    resourceRefs: [...new Set(finding.resourceRefs.filter((ref) => inventory.some((item) => item.id === ref)))].sort().slice(0, 100),
+    ...(typeof finding.patchable === "boolean" ? { patchable: finding.patchable } : {}),
+    ...(typeof finding.cvssScore === "number" && Number.isFinite(finding.cvssScore) && finding.cvssScore >= 0 && finding.cvssScore <= 10
+      ? { cvssScore: finding.cvssScore } : {})
+  }));
+  return {
+    availability: value.availability,
+    message: unavailable ? "脆弱性のサブ評価は取得できませんでした。ゼロ件・安全とは判定していません。"
+      : "取得した Unhealthy サブ評価の CVE のみ表示します。ゼロ件は安全の証明ではありません。",
+    totalSubAssessments: unavailable ? null : value.totalSubAssessments,
+    unhealthySubAssessments: unavailable ? null : value.unhealthySubAssessments,
+    unmappedSubAssessments: unavailable ? null : value.unmappedSubAssessments,
+    ...(value.unmappedTargetSubAssessments !== undefined ? {
+      unmappedTargetSubAssessments: unavailable ? null : value.unmappedTargetSubAssessments
+    } : {}),
+    unknownStatusSubAssessments: unavailable ? null : value.unknownStatusSubAssessments,
+    totalFindings: unavailable ? null : value.totalFindings,
+    truncated: !unavailable && (value.truncated || value.findings.length > findings.length), findings
   };
 }
 
@@ -376,7 +415,12 @@ function deltaPercent(current: number | null, previous: number | null): number |
 }
 
 export function sanitizeSnapshot(raw: RawSnapshot): PublicSnapshotV1 {
-  const resources = raw.resources.map(sanitizeResource);
+  const networks = new Map(raw.networkTopology?.availability !== "unavailable"
+    ? raw.networkTopology?.nodes.filter((node) => node.network).map((node) => [resourceRef(node.id), node.network])
+    : []);
+  const resources = raw.resources.map((resource) => sanitizeResource({
+    ...resource, network: networks.get(resourceRef(resource.id)) ?? resource.network
+  }));
   assertResourceAliasesAreInjective(raw.resources, resources);
   const withheldIdentifiers = collectWithheldIdentifiers(raw);
   const reliabilityCoverage = summarizeReliabilityCoverage(resources);
@@ -396,9 +440,19 @@ export function sanitizeSnapshot(raw: RawSnapshot): PublicSnapshotV1 {
   if (raw.costCategories.some((item) => !Number.isFinite(item.amountJpy))) {
     throw new Error("Cost categories contain a non-finite amount");
   }
+  const publishedMagnitude = raw.costCategories.reduce((sum, item) => sum + Math.abs(item.amountJpy), 0);
+  const suppliedMagnitude = raw.costCategoryMagnitudeJpy ?? publishedMagnitude;
+  // Collector and display sum the same magnitudes in different orders after sorting.
+  const magnitudeTolerance = Number.EPSILON * Math.max(1, publishedMagnitude, suppliedMagnitude) *
+    Math.max(1, raw.costCategories.length) * 4;
+  if (!Number.isFinite(publishedMagnitude) || !Number.isFinite(suppliedMagnitude) ||
+      suppliedMagnitude < 0 || publishedMagnitude - suppliedMagnitude > magnitudeTolerance) {
+    throw new Error("Cost category denominator must cover every published category");
+  }
   const categoryMagnitude = Math.max(
     1,
-    raw.costCategories.reduce((sum, item) => sum + Math.abs(item.amountJpy), 0)
+    publishedMagnitude,
+    suppliedMagnitude
   );
   const networkFlows: NetworkFlow[] =
     raw.networkTelemetry.availability === "unavailable"
@@ -446,9 +500,9 @@ export function sanitizeSnapshot(raw: RawSnapshot): PublicSnapshotV1 {
     },
     scope: {
       displayName:
-        raw.mode === "DEMO" ? raw.subscriptionDisplayName : `Azure subscription ${stableHash(raw.subscriptionId)}`,
-      subscriptionId: maskGuid(raw.subscriptionId),
-      tenantId: maskGuid(raw.tenantId)
+        raw.mode === "DEMO" ? raw.subscriptionDisplayName : "Azure subscription",
+      subscriptionId: "subscription-anonymous",
+      tenantId: "tenant-anonymous"
     },
     sources: raw.sources.map(({ source, availability, message, reason }) => ({
       source, availability, message,
@@ -528,6 +582,19 @@ export function sanitizeSnapshot(raw: RawSnapshot): PublicSnapshotV1 {
       coverage: reliabilityCoverage
     },
     security: {
+      ...(raw.security.vulnerabilities ? { vulnerabilities: sanitizeVulnerabilities(raw.security.vulnerabilities, resources) } : {}),
+      ...(fieldPublishable("assessments") && raw.security.assessmentCoverage ? {
+        assessmentCoverage: {
+          totalAssessments: raw.security.assessmentCoverage.totalAssessments,
+          unhealthyAssessments: raw.security.assessmentCoverage.unhealthyAssessments,
+          healthyAssessments: raw.security.assessmentCoverage.healthyAssessments,
+          notApplicableAssessments: raw.security.assessmentCoverage.notApplicableAssessments,
+          unknownAssessments: raw.security.assessmentCoverage.unknownAssessments,
+          totalGroups: raw.security.assessmentCoverage.totalGroups,
+          publishedGroups: raw.security.assessmentCoverage.publishedGroups,
+          truncated: raw.security.assessmentCoverage.truncated
+        }
+      } : {}),
       ...(raw.security.fieldAvailability ? {
         fieldAvailability: defenderPublishable ? { ...raw.security.fieldAvailability } : {
           secureScore: "unavailable" as const,
@@ -568,11 +635,11 @@ export function sanitizeSnapshot(raw: RawSnapshot): PublicSnapshotV1 {
       }
     },
     aiInsights: raw.aiInsights.map(sanitizeInsight),
-    ...(raw.advisor ? { advisor: sanitizeAdvisor(raw.advisor) } : {})
+    ...(raw.advisor ? { advisor: sanitizeAdvisor(raw.advisor, resources) } : {})
   };
 }
 
-function sanitizeAdvisor(value: AdvisorSummary): AdvisorSummary {
+function sanitizeAdvisor(value: AdvisorSummary, inventory: PublicSnapshotV1["inventory"]["resources"]): AdvisorSummary {
   const categories: ReadonlySet<string> = new Set(ADVISOR_CATEGORIES);
   const impacts: ReadonlySet<string> = new Set(ADVISOR_IMPACTS);
   const details = value.details;
@@ -588,6 +655,25 @@ function sanitizeAdvisor(value: AdvisorSummary): AdvisorSummary {
       count: group.count,
       impacts: { High: group.impacts.High, Medium: group.impacts.Medium, Low: group.impacts.Low, Unknown: group.impacts.Unknown },
       affectedResourceCount: group.affectedResourceCount,
+      ...(group.resourceRefs ? {
+        resourceRefs: [...new Set(group.resourceRefs.filter((ref) => inventory.some((item) => item.id === ref)))].sort().slice(0, 100),
+        targets: [...new Set(group.resourceRefs)].sort().slice(0, 100).flatMap((ref) => {
+          const resource = inventory.find((item) => item.id === ref);
+          return resource ? [{
+            resourceRef: ref, type: resource.type,
+            ...(resource.region !== "Unknown" ? { region: resource.region } : {})
+          }] : [];
+        })
+      } : {}),
+      ...(group.scopeCounts ? { scopeCounts: {
+        resource: group.scopeCounts.resource, subscription: group.scopeCounts.subscription, unknown: group.scopeCounts.unknown
+      } } : {}),
+      ...(group.targetCoverage ? { targetCoverage: {
+        totalResources: group.targetCoverage.totalResources,
+        publishedResources: group.resourceRefs?.filter((ref, index, all) => all.indexOf(ref) === index && inventory.some((item) => item.id === ref)).slice(0, 100).length ?? 0,
+        unresolvedResources: group.targetCoverage.unresolvedResources,
+        truncated: group.targetCoverage.truncated
+      } } : {}),
       resourceTypes: [...types].map(([type, count]) => ({ type, count })).sort((a, b) => a.type.localeCompare(b.type))
     };
   }) ?? [];
@@ -636,29 +722,30 @@ export function sanitizeTopology(value: NetworkTopology, inventory: readonly Raw
   if (value.availability === "unavailable") {
     return { availability: "unavailable", message: value.message, nodes: [], edges: [], truncated: false };
   }
-  const originalIds = new Map(inventory.map((resource) => [resource.id.toLowerCase(), resource.id]));
+  const originalIds = new Map(inventory.map((resource) => [normalizeResourceId(resource.id), resource.id]));
   const aliases = new Map<string, string>();
-  const owners = new Map(inventory.map((resource) => [`res-${stableHash(resource.id)}`, resource.id.toLowerCase()]));
-  const uniqueNodes = [...new Map(value.nodes.map((node) => [node.id.toLowerCase(), node])).values()];
+  const owners = new Map(inventory.map((resource) => [resourceRef(resource.id), normalizeResourceId(resource.id)]));
+  const uniqueNodes = [...new Map(value.nodes.map((node) => [normalizeResourceId(node.id), node])).values()];
   const nodes = uniqueNodes.slice(0, 400).map((node) => {
-    const rawId = originalIds.get(node.id.toLowerCase()) ?? node.id.toLowerCase();
-    const id = `res-${stableHash(rawId)}`;
+    const rawId = originalIds.get(normalizeResourceId(node.id)) ?? normalizeResourceId(node.id);
+    const id = resourceRef(rawId);
     const owner = owners.get(id);
-    if (owner && owner !== node.id.toLowerCase()) throw new Error("Topology resource id alias collision");
-    owners.set(id, node.id.toLowerCase());
-    aliases.set(node.id.toLowerCase(), id);
+    if (owner && owner !== normalizeResourceId(node.id)) throw new Error("Topology resource id alias collision");
+    owners.set(id, normalizeResourceId(node.id));
+    aliases.set(normalizeResourceId(node.id), id);
     return {
       id, type: node.type,
       ...(node.region ? { region: node.region } : {}),
+      ...(node.network ? { network: sanitizeNetworkEvidence(node.network) } : {}),
       referenceOnly: node.referenceOnly, scope: node.scope
     };
   });
   const uniqueEdges = [...new Map(value.edges.map((edge) => [
-    `${edge.source.toLowerCase()}|${edge.target.toLowerCase()}|${edge.kind}`, edge
+    `${normalizeResourceId(edge.source)}|${normalizeResourceId(edge.target)}|${edge.kind}`, edge
   ])).values()];
   const edges = uniqueEdges.slice(0, 800).flatMap((edge) => {
-    const source = aliases.get(edge.source.toLowerCase());
-    const target = aliases.get(edge.target.toLowerCase());
+    const source = aliases.get(normalizeResourceId(edge.source));
+    const target = aliases.get(normalizeResourceId(edge.target));
     return source && target ? [{ source, target, kind: edge.kind }] : [];
   });
   const truncated = value.truncated || uniqueNodes.length > 400 || uniqueEdges.length > 800 || edges.length < Math.min(uniqueEdges.length, 800);

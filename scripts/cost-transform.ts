@@ -18,6 +18,7 @@ interface ParsedCostPeriod {
 }
 
 export interface ComparableCostResult {
+  categoryMagnitudeJpy: number;
   currentTotalJpy: number | null;
   previousTotalJpy: number | null;
   categories: Array<{ name: string; amountJpy: number; deltaPercent: number | null }>;
@@ -186,6 +187,7 @@ export function transformComparableCost(
   );
 
   return {
+    categoryMagnitudeJpy: current.categories.reduce((sum, category) => sum + Math.abs(category.amountJpy), 0),
     currentTotalJpy: current.totalJpy,
     previousTotalJpy: previous.totalJpy,
     currentCurrencyVerifiedJpy: current.currencyVerifiedJpy,

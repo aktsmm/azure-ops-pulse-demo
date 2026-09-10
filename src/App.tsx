@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState, type ReactNode } from "react";
+import { useEffect, useLayoutEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import {
   Activity,
   Bot,
@@ -41,10 +41,17 @@ import type {
 } from "./data/contracts";
 import { ThemeToggle } from "./components/ThemeToggle";
 import { ResourceExplorer } from "./components/ResourceExplorer";
-import { AdvisorPanel } from "./components/AdvisorPanel";
+import { AdvisorPanel, RecommendationCard } from "./components/AdvisorPanel";
+import { DecisionPriorities } from "./components/DecisionPriorities";
+import { insightTargets, prioritizeInsights } from "./lib/insight-navigation";
+import { collectionFreshness } from "./lib/collection-freshness";
 import { TopologyGraph } from "./components/TopologyGraph";
+import { NetworkEvidence } from "./components/NetworkEvidence";
+import { VulnerabilityPanel } from "./components/VulnerabilityPanel";
 import { resourceTypeLabel } from "./lib/resource-catalog";
 import { useSnapshot } from "./hooks/useSnapshot";
+import { usePreviousAnalysis, type PreviousAnalysisState } from "./hooks/usePreviousAnalysis";
+import { PreviousAnalysisAvailability, PreviousAnalysisNotice } from "./components/PreviousAnalysisNotice";
 import {
   availabilityLabel,
   availabilitySeverity,
@@ -134,7 +141,7 @@ const RELATED_DEMOS = [
 const TITLES: Record<string, { title: string; subtitle: string }> = {
   "/overview": {
     title: "運用概要",
-    subtitle: "収集できた事実と、まだ収集していない範囲を分けて表示します。"
+    subtitle: "AI 分析から確認対象を選び、根拠と確認ガイドへ進みます。"
   },
   "/cost": {
     title: "コスト",
@@ -416,9 +423,11 @@ function SourceList({ data }: { data: PublicSnapshotV1 }) {
   );
 }
 
-function OverviewPage({ data }: { data: PublicSnapshotV1 }) {
+function OverviewPage({ data, previous, basePath = "" }: { data: PublicSnapshotV1; previous: PreviousAnalysisState; basePath?: string }) {
   const navigate = useNavigate();
   const scrollToAutomationPipeline = () => {
+    const disclosure = document.getElementById("automation-details");
+    if (disclosure instanceof HTMLDetailsElement) disclosure.open = true;
     document.getElementById("automation-pipeline")?.scrollIntoView({
       behavior: "smooth",
       block: "start"
@@ -437,20 +446,15 @@ function OverviewPage({ data }: { data: PublicSnapshotV1 }) {
   const unavailableSources = data.sources.filter(
     (source) => source.availability === "unavailable"
   ).length;
-  const priorityInsights = data.aiInsights
-    .slice()
-    .sort((a, b) => {
-      const rank: Record<Severity, number> = { critical: 3, warning: 2, info: 1, healthy: 0 };
-      return rank[b.severity] - rank[a.severity];
-    })
-    .slice(0, 3);
-
   return (
     <div className="page-stack">
-      <section className="mission-hero" aria-labelledby="mission-title">
+      {previous.status === "ready" && <PreviousAnalysisNotice current={data} archive={previous.data} />}
+      <DecisionPriorities data={previous.status === "ready" ? previous.data : data} basePath={previous.status === "ready" ? "/previous-analysis" : basePath} />
+      <PreviousAnalysisAvailability state={previous} />
+      <section className="mission-hero mission-compact" aria-labelledby="mission-title">
         <div className="mission-copy">
           <p className="eyebrow">GitHubでつなぐ Azure 運用</p>
-          <h2 id="mission-title">Azure運用を、収集からAI分析・公開までシンプルに。</h2>
+          <h2 id="mission-title">収集から AI 分析・公開まで、読み取り専用で。</h2>
           <p>
             読み取り専用の収集、公開前検証、根拠付き分析、独立した AI 内容審査、GitHub Pages
             への自動公開を、監査できるワークフローとしてつなぎます。
@@ -523,6 +527,8 @@ function OverviewPage({ data }: { data: PublicSnapshotV1 }) {
         </div>
       </section>
 
+      <details id="automation-details" className="automation-disclosure">
+      <summary>収集・検証・公開の仕組みを見る · 火・金 06:00 JST</summary>
       <Panel
         id="automation-pipeline"
         title="自動更新パイプライン"
@@ -588,6 +594,7 @@ function OverviewPage({ data }: { data: PublicSnapshotV1 }) {
           </div>
         </div>
       </Panel>
+      </details>
 
       <section className="metric-grid four" aria-label="主要指標">
         <MetricCard
@@ -651,56 +658,11 @@ function OverviewPage({ data }: { data: PublicSnapshotV1 }) {
 
       <div className="overview-grid">
         <Panel
-          title="優先確認アクション"
-          description="公開済み AI 分析の推奨アクションです。Azure への変更は実行しません。"
-          className="span-7"
-          action={
-            <button
-              type="button"
-              className="text-button"
-              onClick={() => navigate("/ai-insights")}
-            >
-              AI 分析を開く <ChevronRight size={15} aria-hidden="true" />
-            </button>
-          }
-        >
-          {priorityInsights.length ? (
-            <div className="action-list">
-              {priorityInsights.map((insight) => (
-                <button
-                  type="button"
-                  className="action-row"
-                  key={insight.id}
-                  onClick={() => navigate(insight.route)}
-                  aria-label={`${insight.title}の関連画面を開く`}
-                >
-                  <span className={`priority-line severity-${insight.severity}`} />
-                  <span>
-                    <small>
-                      {routeLabel(insight.route)}・信頼度{" "}
-                      {numberFormatter.format(Math.round(insight.confidence * 100))}%
-                    </small>
-                    <strong>{insight.title}</strong>
-                    <p>{insight.recommendedAction}</p>
-                  </span>
-                  <ChevronRight size={17} aria-hidden="true" />
-                </button>
-              ))}
-            </div>
-          ) : (
-            <EmptyState
-              title="公開済みの AI 分析はありません"
-              detail="数値根拠と公開ゲートを通過した分析がないため、アクションを表示していません。"
-            />
-          )}
-        </Panel>
-
-        <Panel
           title="コスト サマリー"
           description="正確な請求額ではなく、公開用に丸めた値です。"
-          className="span-5"
+          className="span-6"
           action={
-            <button type="button" className="text-button" onClick={() => navigate("/cost")}>
+            <button type="button" className="text-button" onClick={() => navigate(`${basePath}/cost`)}>
               詳細 <ChevronRight size={15} aria-hidden="true" />
             </button>
           }
@@ -772,7 +734,7 @@ function OverviewPage({ data }: { data: PublicSnapshotV1 }) {
                   type="button"
                   className="timeline-item"
                   key={event.id}
-                  onClick={() => navigate(event.route)}
+                  onClick={() => navigate(`${basePath}${event.route}`)}
                   aria-label={`${formatActivityTitle(event.title)}の関連画面を開く`}
                 >
                   <span className={`timeline-marker severity-${event.severity}`} aria-hidden="true" />
@@ -827,7 +789,7 @@ function OverviewPage({ data }: { data: PublicSnapshotV1 }) {
   );
 }
 
-function CostPage({ data }: { data: PublicSnapshotV1 }) {
+function CostPage({ data, basePath = "" }: { data: PublicSnapshotV1; basePath?: string }) {
   const currentAvailable = data.cost.current.availability === "available";
   // The browser never revalidates snapshot.json, so a change is only rendered when the amount it was
   // measured against is itself published. The other two buckets are named in a footnote rather than
@@ -870,7 +832,7 @@ function CostPage({ data }: { data: PublicSnapshotV1 }) {
           金額は公開用に丸めた概算値です。正確な Azure 請求額、未収集の予測、未収集の予算は推定しません。
         </span>
       </div>
-      <Link className="text-button" to="/recommendations?category=Cost">
+      <Link className="text-button" to={`${basePath}/recommendations?category=Cost`}>
         コストの推奨事項を確認 <ChevronRight size={15} aria-hidden="true" />
       </Link>
       <section className="metric-grid four" aria-label="コスト指標">
@@ -1098,6 +1060,7 @@ function ResourceDrawer({
             <dd>{resource.change}</dd>
           </div>
         </dl>
+        {(resource.network || resource.type.toLowerCase().startsWith("microsoft.network/")) && <NetworkEvidence evidence={resource.network} />}
         <section>
           <h3>公開可能なタグ</h3>
           {Object.keys(resource.tags).length ? (
@@ -1172,7 +1135,7 @@ function ResourcesPage({ data }: { data: PublicSnapshotV1 }) {
   );
 }
 
-function ReliabilityPage({ data }: { data: PublicSnapshotV1 }) {
+function ReliabilityPage({ data, basePath = "" }: { data: PublicSnapshotV1; basePath?: string }) {
   const navigate = useNavigate();
   const coverage = data.reliability.coverage;
   const serviceHealth = data.reliability.serviceHealth;
@@ -1228,7 +1191,7 @@ function ReliabilityPage({ data }: { data: PublicSnapshotV1 }) {
           label="Resource Health の内訳"
         />
       </section>
-      <Link className="text-button" to="/recommendations?category=HighAvailability">
+      <Link className="text-button" to={`${basePath}/recommendations?category=HighAvailability`}>
         信頼性の推奨事項を確認 <ChevronRight size={15} aria-hidden="true" />
       </Link>
 
@@ -1276,7 +1239,7 @@ function ReliabilityPage({ data }: { data: PublicSnapshotV1 }) {
           description="Azure Resource Health が状態を公開する種別と、公開しない種別を分けて集計しています。"
           className="span-7"
           action={
-            <button type="button" className="text-button" onClick={() => navigate("/resources")}>
+            <button type="button" className="text-button" onClick={() => navigate(`${basePath}/resources`)}>
               インベントリを開く <ChevronRight size={15} aria-hidden="true" />
             </button>
           }
@@ -1529,20 +1492,47 @@ function ReliabilityPage({ data }: { data: PublicSnapshotV1 }) {
   );
 }
 
-function RecommendationsPage({ data }: { data: PublicSnapshotV1 }) {
+function RecommendationsPage({ data, basePath = "" }: { data: PublicSnapshotV1; basePath?: string }) {
   const [searchParams, setSearchParams] = useSearchParams();
   const requested = searchParams.get("category") ?? "all";
   const category = ["Cost", "HighAvailability", "Performance", "Security", "OperationalExcellence", "Other"].includes(requested) ? requested : "all";
   const source = data.sources.find((item) => item.source === "Azure Advisor");
+  const groupId = searchParams.get("group");
+  const selectionContext = `${data.generatedAt}|${basePath}|${groupId ?? ""}`;
+  const [selection, setSelection] = useState<{ context: string; resource: ResourceItem } | null>(null);
+  const selectResource = (resource: ResourceItem) => setSelection({ context: selectionContext, resource });
+  const selectedGroup = data.advisor?.availability !== "unavailable" && data.advisor?.details?.availability !== "unavailable"
+    ? data.advisor?.details?.groups.find((group) => group.id === groupId) : undefined;
   return (
     <div className="page-stack">
-      <Link className="text-button" to="/ai-insights">
+      {groupId !== null && (
+        selectedGroup ? (
+          <section className="selected-guide" aria-label="選択中の確認ガイド">
+            <header className="selected-guide-header">
+              <p>ルールベースの確認ガイド · 選択した内容グループ</p>
+              <button className="text-button" type="button" onClick={() => setSearchParams({})}>選択を解除して全件を見る</button>
+            </header>
+            <RecommendationCard group={selectedGroup} impact="all" resources={data.inventory.resources} onResourceSelect={selectResource} />
+          </section>
+        ) : (
+          <div className="notice" role="status">
+            <div><strong>指定された確認ガイドは見つかりません</strong>
+              <p>現在の公開スナップショットに一致する ID がありません。別のグループへの自動置換は行いません。</p>
+              <button className="text-button" type="button" onClick={() => setSearchParams({})}>選択を解除して全件を見る</button>
+            </div>
+          </div>
+        )
+      )}
+      <Link className="text-button" to={`${basePath}/ai-insights`}>
         この環境の比較・優先順位を AI 分析で見る <ChevronRight size={15} aria-hidden="true" />
       </Link>
-      <AdvisorPanel
+      {!selectedGroup && <AdvisorPanel
+        key={groupId ?? "all"}
         availability={data.advisor?.availability}
         recommendations={data.advisor?.recommendations}
         details={data.advisor?.details}
+        resources={data.inventory.resources}
+        onResourceSelect={selectResource}
         diagnosis={source ? formatSourceMessage(source) : undefined}
         selectedCategory={category}
         onCategoryChange={(value) => {
@@ -1551,12 +1541,18 @@ function RecommendationsPage({ data }: { data: PublicSnapshotV1 }) {
           else next.set("category", value);
           setSearchParams(next);
         }}
-      />
+      />}
+      <ResourceDrawer resource={selection?.context === selectionContext ? selection.resource : null} onClose={() => setSelection(null)} />
     </div>
   );
 }
 
-function SecurityPage({ data }: { data: PublicSnapshotV1 }) {
+function SecurityPage({ data, basePath = "" }: { data: PublicSnapshotV1; basePath?: string }) {
+  const [selectedResource, setSelectedResource] = useState<ResourceItem | null>(null);
+  const vulnerabilities = data.security.vulnerabilities;
+  const hasVulnerabilityFindings = vulnerabilities?.availability !== "unavailable" && (vulnerabilities?.findings.length ?? 0) > 0;
+  const vulnerabilityPanel = <VulnerabilityPanel evidence={vulnerabilities} resources={data.inventory.resources} onSelect={setSelectedResource} />;
+  const assessmentCoverage = data.security.assessmentCoverage;
   const defenderSource = data.sources.find((source) => source.source === "Defender for Cloud");
   const defenderPublished = defenderSource !== undefined && defenderSource.availability !== "unavailable";
   const secureScore = data.security.fieldAvailability?.secureScore === "unavailable" ? null : metricWhenSourcePublished(defenderSource, data.security.secureScore);
@@ -1583,15 +1579,18 @@ function SecurityPage({ data }: { data: PublicSnapshotV1 }) {
       availability={data.advisor?.availability}
       recommendations={data.advisor?.recommendations}
       details={data.advisor?.details}
+      resources={data.inventory.resources}
+      onResourceSelect={setSelectedResource}
       diagnosis={advisorSource ? formatSourceMessage(advisorSource) : undefined}
       categoryScope="Security"
     />
-    <Link className="text-button" to="/recommendations">すべてのカテゴリの推奨事項を確認</Link>
+    <Link className="text-button" to={`${basePath}/recommendations`}>すべてのカテゴリの推奨事項を確認</Link>
   </>;
 
   if (!defenderPublished) {
     return (
       <div className="page-stack">
+        {hasVulnerabilityFindings && vulnerabilityPanel}
         {advisorPanel}
         <div className="notice muted">
           <ShieldCheck size={18} aria-hidden="true" />
@@ -1603,8 +1602,8 @@ function SecurityPage({ data }: { data: PublicSnapshotV1 }) {
           )}
         </div>
         <Panel
-          title="Defender for Cloud は未収集です"
-          description="公開できる Defender データがありません。応答が空であることだけでは、プラン未有効・権限不足・評価待ちのいずれかを断定できません。"
+          title={vulnerabilities && vulnerabilities.availability !== "unavailable" ? "Defender の集約指標は未収集です" : "Defender for Cloud は未収集です"}
+          description="Secure score・アラート・評価集計のデータがありません。CVE サブ評価の取得結果とは分けて表示します。応答が空であることだけでは、プラン未有効・権限不足・評価待ちのいずれかを断定できません。"
         >
           <div className="pending-metric-grid" aria-label="未収集のセキュリティ指標">
             {[
@@ -1630,6 +1629,7 @@ function SecurityPage({ data }: { data: PublicSnapshotV1 }) {
             基礎 CSPM と Defender CSPM の違い（Microsoft Learn）
           </LearnLink>
         </Panel>
+        {!hasVulnerabilityFindings && vulnerabilityPanel}
         <Panel
           title="収集できているセキュリティ関連シグナル"
           description="Defender が未収集でも、管理操作の可視化は Activity Log から収集しています。"
@@ -1686,18 +1686,20 @@ function SecurityPage({ data }: { data: PublicSnapshotV1 }) {
             <div>
               <strong>集計を前提に公開</strong>
               <p>
-                資産名、脆弱性の詳細、悪用情報、識別子は公開しません。Secure score
+                元の資産名、認証秘密、生の構成プロパティは公開しません。承認された CVE 番号・重大度・公開リソース参照などの構造化情報だけを表示します。Secure score
                 はソースが値を公開した場合だけ表示し、実測の 0 と未収集を区別します。
               </p>
             </div>
           </div>
         </Panel>
+        <ResourceDrawer resource={selectedResource} onClose={() => setSelectedResource(null)} />
       </div>
     );
   }
 
   return (
     <div className="page-stack">
+      {hasVulnerabilityFindings && vulnerabilityPanel}
       {advisorPanel}
       {defenderSource && (
         <div className="notice">
@@ -1731,7 +1733,9 @@ function SecurityPage({ data }: { data: PublicSnapshotV1 }) {
               ? "未収集"
               : `${numberFormatter.format(publishedAssessmentGroups)} 件`
           }
-          note={publishedAssessmentGroups === null ? unavailableNote : "最大 12 グループの公開。省略の有無・全評価レコード数は未確認"}
+          note={publishedAssessmentGroups === null ? unavailableNote : assessmentCoverage
+            ? `${assessmentCoverage.publishedGroups}/${assessmentCoverage.totalGroups} グループを公開・評価レコード ${assessmentCoverage.totalAssessments} 件${assessmentCoverage.truncated ? "（一部を省略）" : ""}`
+            : "最大 12 グループの公開。省略の有無・全評価レコード数は未確認"}
         />
         <MetricCard
           label="コンプライアンス集計"
@@ -1741,6 +1745,19 @@ function SecurityPage({ data }: { data: PublicSnapshotV1 }) {
           note={complianceCount === null ? unavailableNote : "収集できたフレームワーク数"}
         />
       </section>
+      {!hasVulnerabilityFindings && vulnerabilityPanel}
+      {assessmentsPublished && assessmentCoverage && (
+        <details className="assessment-coverage">
+          <summary>評価レコードの収集範囲を見る · {assessmentCoverage.totalAssessments} 件</summary>
+          <dl>
+            <div><dt>問題ありと判定</dt><dd>{assessmentCoverage.unhealthyAssessments} 件</dd></div>
+            <div><dt>正常と判定</dt><dd>{assessmentCoverage.healthyAssessments} 件</dd></div>
+            <div><dt>対象外</dt><dd>{assessmentCoverage.notApplicableAssessments} 件</dd></div>
+            <div><dt>状態未確認</dt><dd>{assessmentCoverage.unknownAssessments} 件</dd></div>
+          </dl>
+          <p>評価レコードの状態です。リソースの重複排除件数や、環境全体の安全性を示すものではありません。</p>
+        </details>
+      )}
       <div className="content-grid">
         <Panel
           title="Defender for Cloud 推奨事項"
@@ -1756,10 +1773,14 @@ function SecurityPage({ data }: { data: PublicSnapshotV1 }) {
                   <span className={`priority-line severity-${item.severity}`} aria-hidden="true" />
                   <div>
                     <strong>{item.title}</strong>
-                    <p>未解決・未評価の評価レコード {item.affectedCount} 件（リソースの重複排除なし）</p>
+                    <p>{item.unknownCount === undefined
+                      ? `未解決・未評価の評価レコード ${item.affectedCount} 件（リソースの重複排除なし）`
+                      : `未解決の評価レコード ${item.affectedCount} 件 / 未評価 ${item.unknownCount} 件（リソースの重複排除なし）`}</p>
                   </div>
                   <StatusBadge severity={item.severity}>
-                    {item.status === "Open" ? "未解決・未評価" : recommendationStatusLabel(item.status)}
+                    {item.unknownCount !== undefined && item.unknownCount > 0
+                      ? item.affectedCount > 0 ? "未解決・未評価" : "未評価"
+                      : item.status === "Open" ? "未解決・未評価" : recommendationStatusLabel(item.status)}
                   </StatusBadge>
                 </article>
               ))}
@@ -1767,7 +1788,11 @@ function SecurityPage({ data }: { data: PublicSnapshotV1 }) {
           ) : (
             <EmptyState
               title={assessmentsPublished ? "公開できる推奨事項はありません" : "Defender 推奨事項は未収集です"}
-              detail={assessmentsPublished ? "評価の取得は成功しましたが、このスコープでは評価レコードが返りませんでした。タイトルを隠したための空表示ではありません。Azure portal の Defender for Cloud で対象スコープと評価の有効化状況を確認できます。" : "評価データが取得できていないため、推奨事項の件数を 0 件とは表示しません。"}
+              detail={assessmentsPublished
+                ? assessmentCoverage && assessmentCoverage.totalAssessments > 0
+                  ? `評価レコード ${assessmentCoverage.totalAssessments} 件の収集結果はありますが、表示できる評価グループはありません。収集範囲と公開条件を確認してください。`
+                  : "評価の取得は成功しましたが、このスコープでは評価レコードが返りませんでした。タイトルを隠したための空表示ではありません。Azure portal の Defender for Cloud で対象スコープと評価の有効化状況を確認できます。"
+                : "評価データが取得できていないため、推奨事項の件数を 0 件とは表示しません。"}
             />
           )}
         </Panel>
@@ -1795,13 +1820,14 @@ function SecurityPage({ data }: { data: PublicSnapshotV1 }) {
             <div>
               <strong>集計を前提に公開</strong>
               <p>
-                資産名、脆弱性の詳細、悪用情報、識別子は公開しません。Secure score
+                元の資産名、認証秘密、生の構成プロパティは公開しません。承認された CVE 番号・重大度・公開リソース参照などの構造化情報だけを表示します。Secure score
                 はソースが値を公開した場合だけ表示し、実測の 0 と未収集を区別します。
               </p>
             </div>
           </div>
         </Panel>
       </div>
+      <ResourceDrawer resource={selectedResource} onClose={() => setSelectedResource(null)} />
     </div>
   );
 }
@@ -1871,14 +1897,19 @@ function NetworkPage({ data }: { data: PublicSnapshotV1 }) {
       {topology && topology.availability !== "unavailable" ? (
         <TopologyGraph
           key={data.generatedAt}
-          nodes={topology.nodes.map((node) => ({
-            id: node.id,
-            type: node.type,
-            label: resourceIndex.get(node.id)?.name ?? node.id,
-            region: node.region ?? "",
-            referenceOnly: node.referenceOnly || !resourceIndex.has(node.id),
-            scope: node.scope
-          }))}
+          nodes={topology.nodes.map((node) => {
+            const resource = !node.referenceOnly && node.scope !== "external" && node.scope !== "uncollected"
+              ? resourceIndex.get(node.id) : undefined;
+            return {
+              id: node.id,
+              type: node.type,
+              label: resource?.name ?? node.id,
+              region: node.region ?? "",
+              referenceOnly: node.referenceOnly || !resource,
+              scope: node.scope,
+              network: node.network ?? resource?.network
+            };
+          })}
           edges={topology.edges.map((edge) => ({ ...edge, label: TOPOLOGY_RELATIONS[edge.kind] }))}
           partial={topology.availability === "partial" || topology.truncated}
           onSelect={(id) => setSelectedResource(resourceIndex.get(id) ?? null)}
@@ -2043,8 +2074,7 @@ function NetworkPage({ data }: { data: PublicSnapshotV1 }) {
   );
 }
 
-function InsightCard({ insight }: { insight: AiInsight }) {
-  const navigate = useNavigate();
+function InsightCard({ insight, data, basePath = "" }: { insight: AiInsight; data: PublicSnapshotV1; basePath?: string }) {
   return (
     <article className="insight-card">
       <header>
@@ -2072,8 +2102,8 @@ function InsightCard({ insight }: { insight: AiInsight }) {
         <h3>想定される影響</h3>
         <p>{insight.impact}</p>
       </section>
-      <section>
-        <h3>数値根拠</h3>
+      <details className="insight-evidence">
+        <summary>数値根拠 {insight.numericEvidence.length} 件・ソース パスを見る</summary>
         <div className="evidence-table">
           {insight.numericEvidence.map((evidence) => (
             <div key={`${evidence.source}-${evidence.value}`}>
@@ -2083,19 +2113,15 @@ function InsightCard({ insight }: { insight: AiInsight }) {
             </div>
           ))}
         </div>
-      </section>
+      </details>
       <footer>
         <div>
           <small>推奨アクション</small>
           <strong>{insight.recommendedAction}</strong>
         </div>
-        <button
-          type="button"
-          className="secondary-button"
-          onClick={() => navigate(insight.route)}
-        >
-          {routeLabel(insight.route)}を開く <ChevronRight size={15} aria-hidden="true" />
-        </button>
+        {insightTargets(insight, data, basePath).map((target) => (
+          <Link className="secondary-button" key={target.href} to={target.href}>{target.label} <ChevronRight size={15} aria-hidden="true" /></Link>
+        ))}
       </footer>
     </article>
   );
@@ -2129,7 +2155,11 @@ function CollectionScopePanel({ data }: { data: PublicSnapshotV1 }) {
   );
 }
 
-function AiInsightsPage({ data }: { data: PublicSnapshotV1 }) {
+function AiInsightsPage({ data, basePath = "" }: { data: PublicSnapshotV1; basePath?: string }) {
+  const [searchParams, setSearchParams] = useSearchParams();
+  const insightId = searchParams.get("insight");
+  const selectedInsight = data.aiInsights.find((insight) => insight.id === insightId);
+  const insights = selectedInsight ? [selectedInsight] : prioritizeInsights(data);
   const warnings = data.aiInsights.filter(
     (insight) => insight.severity === "critical" || insight.severity === "warning"
   ).length;
@@ -2215,6 +2245,20 @@ function AiInsightsPage({ data }: { data: PublicSnapshotV1 }) {
         </StatusBadge>
       </div>
 
+      {insightId !== null && (
+        <div className="selected-guide-header" role="status">
+          <span>{selectedInsight ? "選択中の AI 分析" : "指定された AI 分析は見つかりません。現在の公開分析を表示しています。"}</span>
+          <button type="button" className="text-button" onClick={() => setSearchParams({})}>分析の選択を解除</button>
+        </div>
+      )}
+      <div className="insight-grid">
+        {insights.map((insight) => (
+          <InsightCard insight={insight} data={data} basePath={basePath} key={insight.id} />
+        ))}
+      </div>
+
+      <details className="analysis-summary">
+      <summary>公開分析の集計・基準時点を見る</summary>
       <section className="metric-grid four" aria-label="AI 分析サマリー">
         <MetricCard
           label="公開インサイト"
@@ -2250,29 +2294,7 @@ function AiInsightsPage({ data }: { data: PublicSnapshotV1 }) {
           ))}
         </div>
       </Panel>
-
-      <Panel
-        title="優先アクション"
-        description="推奨は人による確認を前提とし、自動実行されません。"
-      >
-        <div className="priority-action-grid">
-          {data.aiInsights.map((insight) => (
-            <article key={insight.id}>
-              <StatusBadge severity={insight.severity}>
-                {severityLabel(insight.severity)}
-              </StatusBadge>
-              <strong>{insight.title}</strong>
-              <p>{insight.recommendedAction}</p>
-            </article>
-          ))}
-        </div>
-      </Panel>
-
-      <div className="insight-grid">
-        {data.aiInsights.map((insight) => (
-          <InsightCard insight={insight} key={insight.id} />
-        ))}
-      </div>
+      </details>
 
       <CollectionScopePanel data={data} />
 
@@ -2295,6 +2317,54 @@ function AiInsightsPage({ data }: { data: PublicSnapshotV1 }) {
           </article>
         </div>
       </Panel>
+    </div>
+  );
+}
+
+function CurrentAnalysisPage({ current, previous }: { current: PublicSnapshotV1; previous: PreviousAnalysisState }) {
+  return (
+    <div className="page-stack">
+      {previous.status === "ready" ? (
+        <>
+          <PreviousAnalysisNotice current={current} archive={previous.data} />
+          <AiInsightsPage data={previous.data} basePath="/previous-analysis" />
+        </>
+      ) : (
+        <>
+          <PreviousAnalysisAvailability state={previous} />
+          <AiInsightsPage data={current} />
+        </>
+      )}
+    </div>
+  );
+}
+
+function HistoricalAnalysisPage({ current, previous }: { current: PublicSnapshotV1; previous: PreviousAnalysisState }) {
+  if (previous.status !== "ready") {
+    return (
+      <Panel title="前回の分析は表示していません">
+        <PreviousAnalysisAvailability state={previous} />
+        {previous.status === "idle" && <p>現在の公開分析がある場合、前回のファイルは読み込みません。現在のデータに置き換えて詳細を表示することもありません。</p>}
+        <Link to="/ai-insights">現在の AI 分析へ戻る</Link>
+      </Panel>
+    );
+  }
+  const data = previous.data;
+  const basePath = "/previous-analysis";
+  return (
+    <div className="page-stack">
+      <PreviousAnalysisNotice current={current} archive={data} />
+      <Routes>
+        <Route path="overview" element={<OverviewPage data={data} previous={{ status: "idle", data: null }} basePath={basePath} />} />
+        <Route path="ai-insights" element={<AiInsightsPage data={data} basePath={basePath} />} />
+        <Route path="recommendations" element={<RecommendationsPage data={data} basePath={basePath} />} />
+        <Route path="cost" element={<CostPage data={data} basePath={basePath} />} />
+        <Route path="resources" element={<ResourcesPage data={data} />} />
+        <Route path="network" element={<NetworkPage data={data} />} />
+        <Route path="reliability" element={<ReliabilityPage data={data} basePath={basePath} />} />
+        <Route path="security" element={<SecurityPage data={data} basePath={basePath} />} />
+        <Route path="*" element={<Navigate to={`${basePath}/ai-insights`} replace />} />
+      </Routes>
     </div>
   );
 }
@@ -2322,13 +2392,24 @@ function ErrorState({ error }: { error: string }) {
 
 function AppShell({ data }: { data: PublicSnapshotV1 }) {
   const location = useLocation();
+  const previous = usePreviousAnalysis(data);
+  const mainRef = useRef<HTMLElement>(null);
+  const params = new URLSearchParams(location.search);
+  const detailDestination = `${location.pathname}|${params.get("group") ?? ""}|${params.get("insight") ?? ""}`;
+  useLayoutEffect(() => {
+    document.documentElement.scrollTop = 0;
+    document.body.scrollTop = 0;
+    mainRef.current?.focus({ preventScroll: true });
+  }, [detailDestination]);
   const [menuOpen, setMenuOpen] = useState(false);
-  const page = TITLES[location.pathname] ?? TITLES["/overview"]!;
-  const ageMinutes = Math.max(
-    0,
-    Math.round((Date.now() - new Date(data.generatedAt).getTime()) / 60_000)
-  );
-  const fresh = data.freshness.state === "fresh" && ageMinutes <= 4_320;
+  const historical = location.pathname.startsWith("/previous-analysis/");
+  const page = TITLES[historical ? location.pathname.slice("/previous-analysis".length) : location.pathname] ?? TITLES["/overview"]!;
+  const [now, setNow] = useState(Date.now);
+  useEffect(() => {
+    const timer = window.setInterval(() => setNow(Date.now()), 60_000);
+    return () => window.clearInterval(timer);
+  }, []);
+  const freshness = collectionFreshness(data.freshness, now);
 
   return (
     <div className="app-shell">
@@ -2409,16 +2490,24 @@ function AppShell({ data }: { data: PublicSnapshotV1 }) {
           </label>
           <div className="topbar-spacer" />
           <ThemeToggle />
-          <div className="freshness" aria-label={`データ鮮度: ${fresh ? "最新" : "期限超過"}`}>
-            <span
-              className={`health-dot severity-${fresh ? "healthy" : "warning"}`}
-              aria-hidden="true"
-            />
-            <span>
-              <strong>{fresh ? "最新" : "期限超過"}</strong>
-              <small>{formatSnapshotAge(data.generatedAt)}</small>
-            </span>
-          </div>
+          <details className="freshness" aria-label={`データ鮮度: ${freshness.label}`}>
+            <summary>
+              <span className={`health-dot severity-${freshness.severity}`} aria-hidden="true" />
+              <span>
+                <strong>{freshness.label}</strong>
+                <small>{formatSnapshotAge(data.freshness.lastSuccessfulCollection, now)}</small>
+              </span>
+            </summary>
+            <div className="freshness-detail">
+              <strong>最終収集: {formatDateTimeJa(data.freshness.lastSuccessfulCollection)} JST</strong>
+              <p>スナップショット作成: {formatDateTimeJa(data.generatedAt)} JST</p>
+              <p>公開分析の根拠時点: {data.aiInsights.length ? `${formatDateTimeJa(data.generatedAt)} JST`
+                : previous.status === "ready" ? `${formatDateTimeJa(previous.data.generatedAt)} JST（前回）` : "今回の公開分析なし"}</p>
+              <p>次回の予定: {freshness.nextScheduledAt ? `${formatDateTimeJa(freshness.nextScheduledAt)} JST` : "未確認"}</p>
+              <p>予定は実行・公開の完了を保証しません。この画面は読み込んだ公開スナップショットです。</p>
+              <a href={ACTIONS_URL} target="_blank" rel="noreferrer">更新の実行状況を確認</a>
+            </div>
+          </details>
         </header>
         <nav className="demo-navigation" aria-label="関連デモ">
           <span className="demo-navigation-label">デモ</span>
@@ -2432,11 +2521,11 @@ function AppShell({ data }: { data: PublicSnapshotV1 }) {
             </a>
           ))}
         </nav>
-        <main>
-          <div className="page-heading">
+        <main ref={mainRef} tabIndex={-1}>
+          <div className={`page-heading${location.pathname === "/overview" ? " overview-page-heading" : ""}`}>
             <div>
               <p className="breadcrumb">運用 / {page.title}</p>
-              <h1>{page.title}</h1>
+              <h1>{historical ? "前回の分析 / " : ""}{page.title}</h1>
               <p>{page.subtitle}</p>
             </div>
             <div className="mode-chip">
@@ -2445,14 +2534,15 @@ function AppShell({ data }: { data: PublicSnapshotV1 }) {
             </div>
           </div>
           <Routes>
-            <Route path="/overview" element={<OverviewPage data={data} />} />
+            <Route path="/overview" element={<OverviewPage data={data} previous={previous} />} />
             <Route path="/cost" element={<CostPage data={data} />} />
             <Route path="/resources" element={<ResourcesPage data={data} />} />
             <Route path="/reliability" element={<ReliabilityPage data={data} />} />
             <Route path="/security" element={<SecurityPage data={data} />} />
             <Route path="/recommendations" element={<RecommendationsPage data={data} />} />
             <Route path="/network" element={<NetworkPage data={data} />} />
-            <Route path="/ai-insights" element={<AiInsightsPage data={data} />} />
+            <Route path="/ai-insights" element={<CurrentAnalysisPage current={data} previous={previous} />} />
+            <Route path="/previous-analysis/*" element={<HistoricalAnalysisPage current={data} previous={previous} />} />
             <Route path="*" element={<Navigate to="/overview" replace />} />
           </Routes>
         </main>

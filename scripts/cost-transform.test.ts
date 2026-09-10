@@ -34,6 +34,7 @@ describe("Cost Management transform", () => {
     );
 
     expect(result.currentTotalJpy).toBe(550_000);
+    expect(result.categoryMagnitudeJpy).toBe(550_000);
     expect(result.categories).toHaveLength(8);
     expect(result.categories[0]).toEqual({
       name: "Service 1",
@@ -48,6 +49,14 @@ describe("Cost Management transform", () => {
     expect(result.currentTotalJpy).toBe(125_000);
     expect(result.previousTotalJpy).toBeNull();
     expect(result.categories[0]?.deltaPercent).toBeNull();
+  });
+
+  it("keeps all nine category magnitudes including credits in the share denominator", () => {
+    const result = transformComparableCost(costResponse([100, 90, 80, 70, 60, 50, 40, 30, -20]), null);
+    expect(result.categories).toHaveLength(8);
+    expect(result.currentTotalJpy).toBe(500);
+    expect(result.categoryMagnitudeJpy).toBe(540);
+    expect(result.categories.reduce((sum, item) => sum + Math.abs(item.amountJpy), 0)).toBe(520);
   });
 
   it("keeps current cost visibly available when comparison coverage is partial", () => {

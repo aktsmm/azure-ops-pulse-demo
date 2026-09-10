@@ -16,6 +16,7 @@
         "required": ["id", "type", "referenceOnly", "scope"],
         "properties": {
           "id": { "type": "string", "pattern": "^res-[0-9a-f]{8}$" },
+          "network": { "$ref": "./inventory.schema.json#/properties/resources/items/$defs/networkAddress" },
           "type": { "type": "string", "pattern": "^[Mm][Ii][Cc][Rr][Oo][Ss][Oo][Ff][Tt]\\.[a-zA-Z0-9]+(/[a-zA-Z][a-zA-Z0-9]*)+$" },
           "region": { "type": "string", "pattern": "^[a-zA-Z0-9-]+$" },
           "referenceOnly": { "type": "boolean" },

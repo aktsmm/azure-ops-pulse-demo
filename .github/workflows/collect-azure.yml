@@ -57,23 +57,32 @@ jobs:
           npx tsx scripts/privacy-scan.ts .candidate
       - name: Publish validated snapshot to main
         id: publish
+        env:
+          AZURE_SUBSCRIPTION_ID: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+          AZURE_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
         run: |
+          # Verify real source continuity and preserve the whole prior analysis before replacement.
+          npx tsx scripts/bind-analysis-continuity.ts collection .candidate/snapshot.json
           cp .candidate/snapshot.json public/data/snapshot.json
-          if git diff --quiet -- public/data/snapshot.json; then
+          npx tsx scripts/privacy-scan.ts public/data
+          git add public/data/snapshot.json public/data/analysis-continuity.json
+          if [ -f public/data/last-analysis.json ]; then
+            git add public/data/last-analysis.json
+          fi
+          if git diff --cached --quiet -- public/data/snapshot.json public/data/last-analysis.json public/data/analysis-continuity.json; then
             echo "No sanitized snapshot change."
             echo "published=false" >> "$GITHUB_OUTPUT"
             exit 0
           fi
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add public/data/snapshot.json
           git commit -m "Publish sanitized Azure operations snapshot"
           git push origin "HEAD:${{ github.event.repository.default_branch }}"
           echo "published=true" >> "$GITHUB_OUTPUT"
       - name: Dispatch AI analysis
         id: analysis
-        # Skipped when the snapshot is byte-identical to the published one, which spares an agent run
-        # that could only reproduce the insights already on the site. In practice the collection
+        # Skipped when neither the snapshot, retained analysis nor its binding changes. Initializing
+        # continuity can publish once even with an identical current snapshot. In practice collection
         # timestamp changes every run, so this rarely skips; it is a guard against a pointless run,
         # not a budget control.
         if: steps.publish.outputs.published == 'true'

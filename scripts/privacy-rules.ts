@@ -1,4 +1,5 @@
 import { isIP } from "node:net";
+import { isPrivateIpv4, isPrivateCidr } from "../src/lib/network-evidence";
 
 export interface PrivacyFinding {
   label: string;
@@ -54,8 +55,8 @@ const rules: ScanRule[] = [
   },
   {
     // The sanitizer never emits more than eight hex characters in a row: alias suffixes are
-    // `stableHash` output, and the published subscription and tenant GUIDs deliberately reveal an
-    // eight-character head and tail with asterisks in between. So a longer run cannot have come
+    // `stableHash` output. Scope IDs are fixed anonymous labels; historical masked IDs remain
+    // schema-compatible. A longer run cannot have come
     // from the masking boundary, and nine characters already discloses more of a GUID than the
     // contract allows. Anchoring the threshold to what the sanitizer produces — rather than to a
     // GUID's shape — is what lets this catch fragments embedded inside other text, which is exactly
@@ -110,21 +111,44 @@ export function scanContent(content: string, context: ScanContext = { structured
   return findings;
 }
 
-function collectStrings(value: unknown, into: string[]): void {
+function collectStrings(value: unknown, into: string[], path: string[] = []): void {
   if (typeof value === "string") {
+    // Only typed address-array elements on inventory resources or topology nodes may carry
+    // RFC1918 values. A matching key in prose, tags, or an arbitrary nested object is not a grant.
+    const field = path.at(-2);
+    const parent = path.slice(0, -2).join(".");
+    const addressPath = /^(?:inventory\.resources|resources)\.\d+\.network$/.test(parent) ||
+      /^(?:(?:network\.)?topology\.)?nodes\.\d+\.network$/.test(parent);
+    if (addressPath && ((field === "privateIpv4" && isPrivateIpv4(value)) ||
+        (field === "privateCidrs" && isPrivateCidr(value)))) return;
     into.push(value);
     return;
   }
   if (Array.isArray(value)) {
-    for (const item of value) collectStrings(item, into);
+    for (const [index, item] of value.entries()) collectStrings(item, into, [...path, String(index)]);
     return;
   }
   if (value && typeof value === "object") {
     for (const [key, item] of Object.entries(value)) {
       into.push(key);
-      collectStrings(item, into);
+      collectStrings(item, into, [...path, key]);
     }
   }
+}
+
+const CONTINUITY_KIND = "azure-ops-pulse-analysis-continuity";
+const CONTINUITY_HASH_FIELDS = ["archiveSha256", "currentEvidenceSha256", "sourceScopeSha256"] as const;
+
+function isContinuitySidecar(value: Record<string, unknown>, content: string): boolean {
+  const keys = ["kind", "version", ...CONTINUITY_HASH_FIELDS];
+  const digest = (hash: unknown) => typeof hash === "string" && /^[0-9a-f]{64}$/.test(hash);
+  // Count raw property tokens too: JSON.parse alone hides duplicate-key values from the scan.
+  const rawKeyCount = [...content.matchAll(/"(?:\\.|[^"\\])*"\s*:/g)].length;
+  return Buffer.byteLength(content, "utf8") <= 2048 && rawKeyCount === keys.length &&
+    Object.keys(value).length === keys.length && keys.every((key) => Object.hasOwn(value, key)) &&
+    value.kind === CONTINUITY_KIND && value.version === 1 &&
+    (value.archiveSha256 === null || digest(value.archiveSha256)) &&
+    digest(value.currentEvidenceSha256) && digest(value.sourceScopeSha256);
 }
 
 /**
@@ -143,6 +167,18 @@ export function scanJson(content: string): PrivacyFinding[] {
     return [{ label: "unreadable published JSON", index: 0 }];
   }
   const strings: string[] = [];
+  if (parsed !== null && typeof parsed === "object" && !Array.isArray(parsed) &&
+      (parsed as Record<string, unknown>).kind === CONTINUITY_KIND) {
+    const sidecar = parsed as Record<string, unknown>;
+    if (!isContinuitySidecar(sidecar, content)) {
+      collectStrings(parsed, strings);
+      return [{ label: "invalid analysis continuity sidecar", index: 0 }, ...scanContent(strings.join("\n"), { structured: true })];
+    }
+    // Only the strict root sidecar's three digest values are exempt; producer provenance and
+    // canonical pair/lineage verification remain the continuity validator's responsibility.
+    collectStrings({ ...sidecar, archiveSha256: null, currentEvidenceSha256: null, sourceScopeSha256: null }, strings);
+    return scanContent(strings.join("\n"), { structured: true });
+  }
   collectStrings(parsed, strings);
   return scanContent(strings.join("\n"), { structured: true });
 }

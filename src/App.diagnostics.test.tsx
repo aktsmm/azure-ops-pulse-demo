@@ -42,6 +42,7 @@ const DIAGNOSTIC_FIELDS = [
   "network.telemetry.message",
   "network.topology.message",
   "reliability.serviceHealth.message",
+  "security.vulnerabilities.message",
   "sources[].message"
 ] as const;
 
@@ -82,6 +83,13 @@ function withDiagnosticSentinels(snapshot: PublicSnapshotV1): PublicSnapshotV1 {
       ...snapshot.network,
       topology: { availability: "unavailable", message: SENTINEL, nodes: [], edges: [], truncated: false },
       telemetry: { ...snapshot.network.telemetry, message: SENTINEL }
+    },
+    security: {
+      ...snapshot.security,
+      vulnerabilities: {
+        availability: "unavailable", message: SENTINEL, totalSubAssessments: null, unhealthySubAssessments: null,
+        unmappedSubAssessments: null, unknownStatusSubAssessments: null, totalFindings: null, truncated: false, findings: []
+      }
     },
     sources: [
       ...snapshot.sources.filter((source) => !["Azure Advisor", "Network topology"].includes(source.source)).map((source) => ({ ...source, message: SENTINEL })),

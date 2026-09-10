@@ -46,6 +46,7 @@ export interface TrendMetric {
 }
 
 export interface ResourceItem {
+  network?: NetworkAddressEvidence;
   id: string;
   name: string;
   resourceGroup: string;
@@ -123,6 +124,7 @@ export interface NetworkMetricCoverage {
 }
 
 export interface SecurityRecommendation {
+  unknownCount?: number;
   title: string;
   severity: Severity;
   affectedCount: number;
@@ -149,6 +151,10 @@ export type AdvisorCategory = "Cost" | "HighAvailability" | "Performance" | "Sec
 export type AdvisorImpact = "High" | "Medium" | "Low" | "Unknown";
 
 export interface AdvisorRecommendationGroup {
+  resourceRefs?: string[];
+  targets?: Array<{ resourceRef: string; type?: string; region?: string }>;
+  scopeCounts?: { resource: number; subscription: number; unknown: number };
+  targetCoverage?: { totalResources: number; publishedResources: number; unresolvedResources: number; truncated: boolean };
   /** Closed catalog slug, never an Azure recommendation identifier. */
   id: string;
   category: AdvisorCategory;
@@ -197,10 +203,48 @@ export type TopologyEdgeKind =
   | "network-security-group" | "route-table" | "nat-gateway"
   | "backend" | "frontend" | "public-ip" | "private-link";
 
+export interface NetworkAddressEvidence {
+  privateIpv4: string[];
+  privateCidrs: string[];
+  publicIpv4Masked: string[];
+  truncated: boolean;
+}
+
+export interface AssessmentCoverage {
+  totalAssessments: number;
+  unhealthyAssessments: number;
+  healthyAssessments: number;
+  notApplicableAssessments: number;
+  unknownAssessments: number;
+  totalGroups: number;
+  publishedGroups: number;
+  truncated: boolean;
+}
+
+export interface VulnerabilityEvidence {
+  availability: Availability;
+  message: string;
+  totalSubAssessments: number | null;
+  unhealthySubAssessments: number | null;
+  unmappedSubAssessments: number | null;
+  unmappedTargetSubAssessments?: number | null;
+  unknownStatusSubAssessments: number | null;
+  totalFindings: number | null;
+  truncated: boolean;
+  findings: Array<{
+    cve: string;
+    severity: "High" | "Medium" | "Low" | "Unknown";
+    resourceRefs: string[];
+    patchable?: boolean;
+    cvssScore?: number;
+  }>;
+}
+
 export interface NetworkTopology {
   availability: Availability;
   message: string;
   nodes: Array<{
+    network?: NetworkAddressEvidence;
     id: string;
     type: string;
     region?: string;
@@ -282,6 +326,8 @@ export interface PublicSnapshotV1 {
     serviceHealth: ServiceHealthSummary;
   };
   security: {
+    assessmentCoverage?: AssessmentCoverage;
+    vulnerabilities?: VulnerabilityEvidence;
     fieldAvailability?: DefenderFieldAvailability;
     secureScore: number | null;
     activeAlerts: number | null;
@@ -314,6 +360,7 @@ export interface PublicSnapshotV1 {
 }
 
 export interface RawResource {
+  network?: NetworkAddressEvidence;
   id: string;
   name: string;
   resourceGroup: string;
@@ -342,6 +389,7 @@ export interface RawSnapshot {
   forecastCostJpy: number | null;
   budgetLimitJpy: number | null;
   normalizedCostTrend: number[];
+  costCategoryMagnitudeJpy?: number;
   costCategories: Array<{ name: string; amountJpy: number; deltaPercent: number | null }>;
   resources: RawResource[];
   reliability: Omit<PublicSnapshotV1["reliability"], "coverage">;

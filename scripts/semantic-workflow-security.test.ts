@@ -90,7 +90,8 @@ describe("independent semantic review publication boundary", () => {
     // model-authored reviews and validate the exact hash; blanket scanning rejects valid reports.
     expect(publisher.match(/^\s+npx tsx scripts\/privacy-scan\.ts .+$/gm)?.map((line) => line.trim())).toEqual([
       "npx tsx scripts/privacy-scan.ts .candidate",
-      "npx tsx scripts/privacy-scan.ts .candidate"
+      "npx tsx scripts/privacy-scan.ts .candidate",
+      "npx tsx scripts/privacy-scan.ts public/data"
     ]);
     expect(source).not.toContain("scripts/privacy-scan.ts");
     expect(source).toContain("Do not write a bound semantic-review.json");
@@ -115,6 +116,57 @@ describe("independent semantic review publication boundary", () => {
     ]) expect(source).toContain(criterion);
   });
 
+  it("requires distinct decision value without excluding conditional single-group demo deferral", () => {
+    const author = readFileSync(".github/workflows/ai-insights.md", "utf8");
+    for (const criterion of [
+      "Build a shortlist of DISTINCT operator decisions",
+      "Do not repeat a catalog confirmation guide as if it were new AI analysis",
+      "A mapped single-count insight can still qualify",
+      "Do not assume those conditions merely because this is a demo",
+      "Same type, similar alias, matching counts or category labels do",
+      "Name the exact observed content group or category"
+    ]) expect(author).toContain(criterion);
+    for (const criterion of [
+      "Catalog prose with a count inserted is not new analysis",
+      "A conditional proceed/defer decision may qualify with a single mapped group",
+      "each actually adds a distinct operational choice",
+      "Resource-level joins require explicit matching references",
+      "it does not infer disposability from the word demo"
+    ]) expect(source).toContain(criterion);
+  });
+
+  it("uses only explicitly matched optional target context and keeps legacy absence unknown", () => {
+    const author = readFileSync(".github/workflows/ai-insights.md", "utf8").replace(/\r\n/g, "\n");
+    for (const criterion of [
+      "targets[{resourceRef,type?,region?}]",
+      "targetCoverage",
+      "privateIpv4",
+      "privateCidrs",
+      "publicIpv4Masked",
+      "not proof"
+    ]) {
+      expect(author).toContain(criterion);
+      expect(source).toContain(criterion);
+    }
+    expect(author).toContain("Missing\noptional context in an older snapshot is unknown");
+    expect(author).toContain("Match a `resourceRef` exactly");
+    expect(source).toContain("An absent optional field in an older snapshot means unknown");
+    expect(source).toContain("Join only on exact `inventory.resources[].id`");
+    expect(source).toContain("Do not require invented target/configuration details");
+  });
+
+  it("admits observed CVE decisions but never turns absent or zero vulnerability results into an all-clear", () => {
+    const author = readFileSync(".github/workflows/ai-insights.md", "utf8");
+    expect(author).toContain("has its OWN availability");
+    expect(author).toContain('not "secure"; never invent rows from totals');
+    expect(source).toContain("one real numeric source (score or totalFindings)");
+    expect(source).toContain("another Defender field's failure does not invalidate");
+    expect(source).toContain("Successful zero means no observed result in this scope, not secure");
+    expect(source).toContain("do not prove exploitation, exposure");
+    expect(author).toContain("`unmappedTargetSubAssessments` counts Unhealthy CVE-bearing records");
+    expect(source).toContain("Empty resourceRefs do not authorize guessed target links");
+  });
+
   it("requires blind calibration for empty and nonempty candidates without publishing cases", () => {
     const prepare = source.indexOf("npx tsx scripts/prepare-semantic-cases.ts review-input/calibration.json");
     expect(prepare).toBeGreaterThan(source.indexOf('echo "candidate-sha256=$candidate_sha256"'));
@@ -125,7 +177,7 @@ describe("independent semantic review publication boundary", () => {
     expect(source).toContain("The `calibration` array is REQUIRED");
     expect(source).toContain("nine neutral IDs case-01..case-09");
     expect(source).toContain("Apply every requirement conjunctively to BOTH real candidates and calibration examples");
-    expect(source).toContain("Cards do NOT contain actual resource settings");
+    expect(source).toContain("A guide does NOT establish actual protective settings");
     expect(source).toContain("passing it is not proof that the actual candidate is correct");
     expect(publisher).not.toContain("calibration.json");
     expect(source).not.toMatch(/path: review-input\/calibration\.json/);

@@ -1,5 +1,5 @@
 import type { PublicSnapshotV1, SourceStatus } from "../src/data/contracts";
-import { summarizeAssessments, type DefenderAssessmentRow } from "../src/lib/defender-recommendations";
+import { assessmentCoverage, summarizeAssessments, type DefenderAssessmentRow } from "../src/lib/defender-recommendations";
 import { CollectionError, collectionFailureReason, safeCollectionFailure, type CollectionFailure } from "./collection-diagnostics";
 
 export function collectDefender(query: <T>(query: string) => T[]): {
@@ -20,7 +20,7 @@ export function collectDefender(query: <T>(query: string) => T[]): {
     const rows = query<DefenderAssessmentRow>(
       "SecurityResources | where type =~ 'microsoft.security/assessments' | project properties"
     );
-    if (rows.some((row) => !row?.properties)) throw new CollectionError("invalid-response");
+    if (rows.some((row) => !row || typeof row !== "object")) throw new CollectionError("invalid-response");
     return rows;
   });
   const secureScore = attempt("スコア", () => {
@@ -44,16 +44,18 @@ export function collectDefender(query: <T>(query: string) => T[]): {
     }
     return Number(rows[0]!.count_);
   });
+  const recommendations = summarizeAssessments(assessments ?? []);
+  const coverage = assessments === null ? undefined : assessmentCoverage(assessments, recommendations.length);
   const fieldAvailability = {
     secureScore: secureScore === null ? "unavailable" as const : "available" as const,
-    assessments: assessments === null ? "unavailable" as const : "available" as const,
+    assessments: assessments === null ? "unavailable" as const : coverage?.unknownAssessments ? "partial" as const : "available" as const,
     activeAlerts: activeAlerts === null ? "unavailable" as const : "available" as const
   };
-  const successes = Object.values(fieldAvailability).filter((value) => value === "available").length;
+  const successes = Object.values(fieldAvailability).filter((value) => value !== "unavailable").length;
   return {
     status: {
       source: "Defender for Cloud",
-      availability: successes === 3 ? "available" : successes ? "partial" : "unavailable",
+      availability: successes === 3 && !coverage?.unknownAssessments ? "available" : successes ? "partial" : "unavailable",
       ...(failureReasons.length ? { reason: failureReasons[0] } : secureScore === null ? { reason: "empty" as const } : {}),
       message: [
         assessments === null ? "" : `評価の読み取り成功: ${assessments.length} 件。`,
@@ -68,7 +70,8 @@ export function collectDefender(query: <T>(query: string) => T[]): {
       fieldAvailability,
       secureScore,
       activeAlerts,
-      recommendations: summarizeAssessments(assessments ?? []),
+      recommendations,
+      ...(coverage ? { assessmentCoverage: coverage } : {}),
       // Secure score is not a regulatory-compliance score; no proxy percentage is published.
       compliance: []
     }

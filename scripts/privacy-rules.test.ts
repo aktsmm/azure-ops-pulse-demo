@@ -11,6 +11,85 @@ const coloned = (...parts: string[]) => parts.join(":");
  */
 const GUID_TAIL = "a5b4c3d2e1f0";
 
+describe("strict analysis continuity digest boundary", () => {
+  const sidecar = () => ({
+    kind: "azure-ops-pulse-analysis-continuity", version: 1,
+    archiveSha256: "ab12".repeat(16),
+    currentEvidenceSha256: "cd34".repeat(16),
+    sourceScopeSha256: "ef56".repeat(16)
+  });
+
+  it.each([false, true])("allows only the exact root digest sidecar (null archive: %s)", (withoutArchive) => {
+    const value = { ...sidecar(), archiveSha256: withoutArchive ? null : sidecar().archiveSha256 };
+    expect(scanJson(JSON.stringify(value))).toEqual([]);
+    expect(scanContent(JSON.stringify(value), { structured: true })).toContainEqual(
+      expect.objectContaining({ label: "recoverable hex fragment" })
+    );
+  });
+
+  it("does not grant digest exceptions to ordinary JSON, nested sidecars or arrays", () => {
+    for (const value of [
+      { digest: sidecar().archiveSha256 },
+      { ...sidecar(), kind: "other" },
+      { sidecar: sidecar() },
+      [sidecar()]
+    ]) {
+      expect(scanJson(JSON.stringify(value))).toContainEqual(
+        expect.objectContaining({ label: "recoverable hex fragment" })
+      );
+    }
+  });
+
+  it.each([
+    "ab12".repeat(16).slice(1), `${"ab12".repeat(16)}a`, "AB12".repeat(16),
+    "gh12".repeat(16), "00000000-0000-0000-0000-000000000001",
+    "private@example.invalid", "10.1.2.3", null, 123
+  ])("rejects malformed or private mandatory digest value %s", (value) => {
+    expect(scanJson(JSON.stringify({ ...sidecar(), sourceScopeSha256: value }))).toContainEqual(
+      expect.objectContaining({ label: "invalid analysis continuity sidecar" })
+    );
+  });
+
+  it("rejects unknown keys, missing fields, wrong version and nested hash values", () => {
+    const missingArchive: Record<string, unknown> = sidecar();
+    delete missingArchive.archiveSha256;
+    for (const value of [
+      { ...sidecar(), extra: "private@example.invalid" },
+      missingArchive,
+      { ...sidecar(), version: 2 },
+      { ...sidecar(), version: "1" },
+      { ...sidecar(), archiveSha256: [sidecar().archiveSha256] }
+    ]) {
+      expect(scanJson(JSON.stringify(value))).toContainEqual(
+        expect.objectContaining({ label: "invalid analysis continuity sidecar" })
+      );
+    }
+    expect(scanJson(JSON.stringify({ ...sidecar(), extra: "private@example.invalid" }))).toContainEqual(
+      expect.objectContaining({ label: "email address" })
+    );
+  });
+
+  it("rejects duplicate fields that JSON.parse would hide, including escaped field names", () => {
+    const json = JSON.stringify(sidecar());
+    for (const duplicate of [
+      '"sourceScopeSha256":"private@example.invalid",',
+      '"sourceScope\\u0053ha256":{"private":"00000000-0000-0000-0000-000000000001"},'
+    ]) {
+      expect(scanJson(`{${duplicate}${json.slice(1)}`)).toContainEqual(
+        expect.objectContaining({ label: "invalid analysis continuity sidecar" })
+      );
+    }
+  });
+
+  it("enforces the sidecar byte bound without broadening other JSON scanning", () => {
+    const json = JSON.stringify(sidecar());
+    expect(scanJson(json.padEnd(2048, " "))).toEqual([]);
+    expect(scanJson(json.padEnd(2049, " "))).toContainEqual(
+      expect.objectContaining({ label: "invalid analysis continuity sidecar" })
+    );
+  });
+});
+
 describe("public asset privacy rules", () => {
   it.each([
     dotted("10", "24", "8", "17"),

@@ -14,7 +14,7 @@ export function numericTokens(value: unknown): string[] {
     const compact = token.replaceAll(",", "");
     const negative = compact.startsWith("-");
     const unsigned = compact.replace(/^[+-]/, "");
-    const [integerPart, fractionalPart = ""] = unsigned.split(".");
+    const [integerPart = "0", fractionalPart = ""] = unsigned.split(".");
     const integer = integerPart.replace(/^0+(?=\d)/, "");
     const fractional = fractionalPart.replace(/0+$/, "");
     const canonical = fractional ? `${integer}.${fractional}` : integer;
@@ -24,6 +24,13 @@ export function numericTokens(value: unknown): string[] {
 
 function requireAvailableEvidenceSource(snapshot: unknown, sourcePath: string): void {
   if (snapshot === null || typeof snapshot !== "object") return;
+  if (sourcePath.startsWith("security.vulnerabilities.")) {
+    // Subassessment collection is independent of score, assessment and alert collection.
+    if (!["available", "partial"].includes(String(valueAtPath(snapshot, "security.vulnerabilities.availability")))) {
+      throw new Error(`Vulnerability observations are not available for ${sourcePath}`);
+    }
+    return;
+  }
   const sources = (snapshot as { sources?: unknown }).sources;
   if (!Array.isArray(sources)) return;
 
@@ -50,9 +57,15 @@ function requireAvailableEvidenceSource(snapshot: unknown, sourcePath: string): 
       (source as { source?: unknown }).source === requiredSource &&
       typeof (source as { availability?: unknown }).availability === "string"
   );
-  const defenderField = sourcePath.startsWith("security.recommendations.") ? "assessments" : sourcePath.split(".")[1];
+  const defenderField = /^security\.(?:recommendations|assessmentCoverage)\./u.test(sourcePath)
+    ? "assessments" : (sourcePath.split(".")[1] ?? "");
+  const observedUnhealthyAssessmentCount =
+    /^security\.(?:recommendations\.\d+\.affectedCount|assessmentCoverage\.unhealthyAssessments)$/u.test(sourcePath) &&
+    valueAtPath(snapshot, "security.fieldAvailability.assessments") === "partial" &&
+    typeof valueAtPath(snapshot, sourcePath) === "number" && Number(valueAtPath(snapshot, sourcePath)) > 0;
   const individuallyAvailable = sourcePath.startsWith("security.") &&
-    valueAtPath(snapshot, `security.fieldAvailability.${defenderField}`) === "available";
+    (valueAtPath(snapshot, `security.fieldAvailability.${defenderField}`) === "available" ||
+      observedUnhealthyAssessmentCount);
   const observedHealthCount = /^reliability\.coverage\.(?:degradedResources|unavailableResources)$/u.test(sourcePath) &&
     typeof valueAtPath(snapshot, sourcePath) === "number" && Number(valueAtPath(snapshot, sourcePath)) > 0;
   if (status?.availability !== "available" &&
@@ -61,7 +74,8 @@ function requireAvailableEvidenceSource(snapshot: unknown, sourcePath: string): 
   }
   if (sourcePath.startsWith("security.")) {
     const security = (snapshot as { security?: { fieldAvailability?: Record<string, string> } }).security;
-    if (security?.fieldAvailability && security.fieldAvailability[defenderField] !== "available") {
+    if (security?.fieldAvailability && security.fieldAvailability[defenderField] !== "available" &&
+        !observedUnhealthyAssessmentCount) {
       throw new Error(`Defender field is not available for ${sourcePath}`);
     }
   }
@@ -89,6 +103,9 @@ export function validateEvidenceItem(
   insightTitle: string,
   evidence: AiInsight["numericEvidence"][number]
 ): void {
+  if (/^(?:inventory\.resources\.\d+\.id|network\.topology\.nodes\.\d+\.id)$|\.(?:resourceRefs|targets)\.|\.network\.(?:privateIpv4|privateCidrs|publicIpv4Masked)\./u.test(evidence.source)) {
+    throw new Error(`Target references and addresses are context, not numeric evidence: ${evidence.source}`);
+  }
   requireAvailableEvidenceSource(snapshot, evidence.source);
   const sourceValue = valueAtPath(snapshot, evidence.source);
   if (sourceValue === undefined || (typeof sourceValue !== "string" && typeof sourceValue !== "number")) {

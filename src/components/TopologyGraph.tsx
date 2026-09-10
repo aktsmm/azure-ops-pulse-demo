@@ -2,6 +2,8 @@ import { useState } from "react";
 import { Info, Network } from "lucide-react";
 import { ResourceIcon } from "./ResourceExplorer";
 import { resourceTypeLabel } from "../lib/resource-catalog";
+import type { NetworkAddressEvidence } from "../data/contracts";
+import { NetworkEvidence } from "./NetworkEvidence";
 
 export interface TopologyNodeView {
   id: string;
@@ -10,6 +12,7 @@ export interface TopologyNodeView {
   region: string;
   referenceOnly: boolean;
   scope?: "inventory" | "external" | "uncollected";
+  network?: NetworkAddressEvidence;
 }
 export interface TopologyEdgeView {
   source: string;
@@ -130,10 +133,13 @@ export function TopologyGraph({ nodes, edges, partial, onSelect }: {
         <div className="empty-state"><Network size={24} aria-hidden="true" /><strong>構成図に表示できるノードはありません</strong><p>構成参照を確認できるリソースは今回の収集に含まれていません。</p></div>
       )}
       {selected && (
+        <>
         <div className="topology-selection">
           <div><strong>{resourceTypeLabel(selected.type)} · {selected.label}</strong><p>{selectedEdges.length} 件の直接の関連。参照がないことは、未接続の証明ではありません。</p></div>
           {!selected.referenceOnly && <button type="button" className="secondary-button" onClick={() => onSelect(selected.id)}>リソース詳細</button>}
         </div>
+        <NetworkEvidence evidence={selected.network} />
+        </>
       )}
       <details className="topology-relations">
         <summary>{selected ? "選択ノードの関連一覧" : "関連一覧を表で確認"}（{selected ? selectedEdges.length : visibleEdges.length} 件）</summary>

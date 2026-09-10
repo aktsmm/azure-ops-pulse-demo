@@ -607,7 +607,8 @@ describe("AI insight publication gate", () => {
     expect(trustedValidation).toBeGreaterThan(trustedIdentity);
     expect(trustedValidation).toBeGreaterThan(trustedDerivation);
     // An analysis that supported nothing has to say so, instead of reading as a routine no-op.
-    expect(publisher).toContain("::warning::The analysis published no insights");
+    expect(publisher).toContain("::warning::The analysis published no current insights");
+    expect(publisher).toContain("Any retained analysis remains explicitly dated; its evidence is not current.");
   });
 
   it("retains every compiler audit and candidate artifact for one day", () => {

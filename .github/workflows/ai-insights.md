@@ -129,6 +129,36 @@ because identifiers were removed. Demo use can justify conditional deferral, not
 that every resource or its data is disposable. Put the useful conclusion first and keep uncertainty
 brief and decision-specific rather than repeating a general warning in every field.
 
+Build a shortlist of DISTINCT operator decisions before drafting prose. Lead each title with what
+to decide, then use observation/impact to explain why these observed targets or comparisons make
+that decision useful now. End with the next check and its decision fork: proceed if the requirement
+is confirmed; defer with a concrete re-evaluation condition if a disposable/reproducible demo or a
+verified alternative control meets it. Do not assume those conditions merely because this is a demo.
+When multiple mapped groups are available, compare their actual concerns (for example recovery
+versus service continuity versus compatibility), not just their record counts or impact labels.
+Do not repeat a catalog confirmation guide as if it were new AI analysis. The added value must be
+a snapshot-specific comparison OR an explicit prerequisite that changes the operator's next
+decision for the cited mapped concern. A mapped single-count insight can still qualify through that
+conditional decision; inflating evidence counts or prose length cannot make a weak candidate useful.
+
+## Optional observed target context
+
+An Advisor content group under `advisor.details.groups` may include `resourceRefs` and
+`targets[{resourceRef,type?,region?}]`. These are inventory-matched references and fetched inventory
+context, not resources guessed from the recommendation title. Match a `resourceRef` exactly to a
+`inventory.resources[].id` (or a matching `network.topology.nodes[].id`) before describing a relationship.
+`scopeCounts` counts recommendation RECORDS with resource/subscription/unknown scope; a group can
+mix scopes. `targetCoverage` reports total/published/unresolved targets and truncation, not risk.
+Published refs are a bounded subset, not proof that every affected resource is listed. Missing
+optional context in an older snapshot is unknown, never zero targets or evidence of no concern.
+
+Inventory resources and topology nodes may have `network` with `privateIpv4`, `privateCidrs`,
+`publicIpv4Masked` and `truncated`. These are structured address observations only. They do not
+prove connectivity, reachability, allowed traffic, firewall behavior or exposure. Do not infer an
+address for a recommendation target without an exact ref match. Keep addresses in the structured
+detail view; do not reproduce them as AI prose or numericEvidence. Workload purpose, dependency,
+recovery requirements and actual protective settings remain unobserved unless explicitly supplied.
+
 ## What the linked pages actually contain
 
 - `/cost`: category shares, approximate category costs, category change percentages, and overall
@@ -147,15 +177,41 @@ brief and decision-specific rather than repeating a general warning in every fie
   postponed records are counted in `details.excludedRecommendationCount`, not actionable cards.
   `details.groups` excludes them. Do not call the all-state total "open" or "active".
   A group's `impacts.High` etc. counts its records at each impact; they are NOT separate issue types.
-  Cards contain GUIDES and counts/types, not actual configuration values, workload purpose, owners,
-  recipients or verification results. Say "read the guide, then verify X in Azure portal/with the
-  operator", not "open this dashboard card to check the current setting/recipient/purpose".
+  A guide is not a measurement of actual protective settings, workload purpose, owners, recipients
+  or verification results. Optional refs/types/regions and structured network addresses are the
+  bounded observed target context described above, not proof that a suggested configuration exists.
+  Say "read this group's guide, inspect its published target context when present, then verify the
+  missing setting/requirement in Azure portal/with the operator". Do not promise that the card
+  displays an uncollected setting, recipient or workload purpose.
   If `advisor.availability` is available, a mapped group may be used even when `details.availability`
   is partial because other content is withheld or the total distinct-resource count is unknown.
   This is not permission to infer withheld content. When lifecycleUnknownCount is nonzero, do not
   call every eligible record active: its lifecycle may still need confirmation.
 - `/security`: Defender summaries and only the Security subset of Advisor. Defender assessment
   labels may be withheld; such groups do not disclose the actual issue, remediation or urgency.
+  Optional `security.assessmentCoverage` describes assessment records and published groups, not
+  deduplicated resources. Recommendation `affectedCount` counts confirmed Unhealthy assessments;
+  optional `unknownCount` and `unknownAssessments` are neither healthy nor confirmed findings.
+  `In progress` accompanying unknown assessments is not evidence that remediation is under way.
+  Positive known unhealthy counts remain usable when other assessment statuses are unknown, but
+  do not invent the issue from a withheld title or promote unknown/coverage counts into a finding.
+  Optional `security.vulnerabilities` is collected independently and has its OWN availability.
+  Available/partial published `findings` contain observed CVE identifiers, severity, explicit
+  inventory-matched `resourceRefs` and optional `cvssScore`/`patchable`. These concrete rows may
+  support a bounded human decision using one actual numeric source (their score or totalFindings),
+  without padding. Use `/security`, name the observed CVE, and inspect only its matched targets.
+  Prefer an observed per-row `findings.<index>.cvssScore` source for an exact evidence drilldown.
+  `totalFindings` is aggregate context, not the affected-resource count of the named CVE.
+  A CVE or score does not prove exploitation, exposure, customer impact, urgency or patch safety.
+  Treat patchable as a reported property, not authorization to apply a fix. Check applicability and
+  workload constraints with the operator before deciding update versus conditional deferral.
+  Unavailable, successful zero, unknown-status/unmapped records and truncated published rows are
+  distinct. Zero is no observed result in this scope, not "secure"; never invent rows from totals.
+  `unmappedTargetSubAssessments` counts Unhealthy CVE-bearing records without an inventory-matched
+  target; it differs from `unmappedSubAssessments`, which counts unsupported/non-CVE content.
+  Neither is a deduplicated resource count. Empty `resourceRefs` provide no clickable target:
+  request explicit operator/portal identification rather than matching a similar resource.
+  Do not claim a scoring version or compute an estate-wide risk score that the snapshot lacks.
 - `/reliability`: Resource Health and Service Health summaries, with a link to Advisor reliability
   guidance. Event-specific impact details and notification settings require Azure portal follow-up.
 - `/network`: anonymous configuration topology and collection scope, NOT traffic traces or outage proof.
@@ -207,6 +263,13 @@ run can publish zero insights. Evaluate candidates against these rules BEFORE wr
    A low impact label or small count alone NEVER means "ignore", "safe" or "no action required".
    Ask the operator to confirm these missing requirements outside the dashboard; do not pretend
    the dashboard contains them. Distinguish review from applying changes.
+   Name the exact observed content group or category in the action so its evidence has a concrete
+   drilldown. Join configuration, resources and recommendations ONLY through explicit matching
+   references in this snapshot. Same type, similar alias, matching counts or category labels do
+   not prove the same target. Do not infer target identity from recommendation totals.
+   Optional target references and structured addresses are relationship context, not numerical
+   measurements. Digits inside an alias, resource type or address cannot serve as numericEvidence;
+   cite an actual observed count or metric and leave literal addresses in the structured detail.
 5. Use only time windows actually stated in the snapshot. A category share is concentration, not
    proof of waste. A decrease is not deterioration. Without comparable prior observations, do not
    claim a new issue, recurrence, duration, anomaly, acceleration, or worsening.
@@ -216,6 +279,9 @@ run can publish zero insights. Evaluate candidates against these rules BEFORE wr
    Prefer distinct decisions (for example data recovery, compatibility, capacity and spend) over
    repeating the same redundancy advice for several products. This is not a per-domain quota:
    unavailable data must not become an invented finding just to fill a category.
+   Where configuration relationships are present, explain their bounded consequence for a choice,
+   not an unobserved traffic path, compromise or outage. Do not quote literal addresses in AI prose;
+   leave approved structured target details in their evidence view.
 
 After generation, a separate reviewer evaluates the WHOLE claim, not just whether numbers match.
 It rejects generic prose with inserted numbers, unrelated evidence, invalid periods/denominators,
