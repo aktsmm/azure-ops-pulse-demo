@@ -1,11 +1,11 @@
 {
   "schemaVersion": "1.4.0",
-  "generatedAt": "2026-09-10T12:50:47.892Z",
+  "generatedAt": "2026-09-10T22:55:49.365Z",
   "mode": "AZURE",
   "freshness": {
     "state": "fresh",
     "ageMinutes": 0,
-    "lastSuccessfulCollection": "2026-09-10T12:50:47.892Z",
+    "lastSuccessfulCollection": "2026-09-10T22:55:49.365Z",
     "nextScheduledCollection": "Tuesday / Friday 06:00 JST"
   },
   "scope": {
@@ -32,7 +32,7 @@
     {
       "source": "Service Health",
       "availability": "available",
-      "message": "Service Health returned 5 events in aggregate."
+      "message": "Service Health returned 4 events in aggregate."
     },
     {
       "source": "Activity Log",
@@ -154,7 +154,7 @@
       {
         "id": "event-ff907070",
         "timestamp": "現在の収集期間",
-        "severity": "info",
+        "severity": "warning",
         "title": "Service Health イベントを検出",
         "detail": "影響を受けたサブスクリプションやリソースの詳細を除き、サービス単位の状態のみを表示します。",
         "route": "/reliability"
@@ -203,7 +203,7 @@
       "availability": "available",
       "approximateAmount": "約¥2.2万"
     },
-    "deltaPercent": 0.8,
+    "deltaPercent": 2.3,
     "forecast": {
       "availability": "unavailable",
       "approximateAmount": null
@@ -217,8 +217,8 @@
       {
         "name": "Azure Cognitive Search",
         "approximateAmount": "約¥1.4万",
-        "sharePercent": 63,
-        "deltaPercent": -3.5
+        "sharePercent": 62.9,
+        "deltaPercent": -2.2
       },
       {
         "name": "Load Balancer",
@@ -228,9 +228,9 @@
       },
       {
         "name": "Foundry Tools",
-        "approximateAmount": "約¥2千",
+        "approximateAmount": "約¥3千",
         "sharePercent": 11,
-        "deltaPercent": -49.1
+        "deltaPercent": -48.3
       },
       {
         "name": "Storage",
@@ -253,7 +253,7 @@
       {
         "name": "Logic Apps",
         "approximateAmount": "約¥1千未満",
-        "sharePercent": 1.9,
+        "sharePercent": 2,
         "deltaPercent": null
       },
       {
@@ -1376,13 +1376,13 @@
     },
     "serviceHealth": {
       "availability": "available",
-      "message": "Service Health reported 5 events in aggregate (2 active, 3 resolved).",
+      "message": "Service Health reported 4 events in aggregate (2 active, 2 resolved).",
       "activeEvents": 2,
-      "resolvedEvents": 3,
+      "resolvedEvents": 2,
       "categories": [
         {
           "label": "サービスの問題",
-          "count": 3
+          "count": 2
         },
         {
           "label": "正常性アドバイザリ",
@@ -1643,77 +1643,7 @@
       "flows": []
     }
   },
-  "aiInsights": [
-    {
-      "severity": "info",
-      "title": "コスト増加要因はAzure Cognitive Search以外のカテゴリを優先確認すべきか判断",
-      "observation": "コストの63%を占めるAzure Cognitive Searchの前期比は-3.5%だが、全体の前期比は+0.8%増加している。",
-      "impact": "費用シェア63%を占める最大カテゴリの増減率は-3.5%の減少だが、全体の増減率は+0.8%の増加であり、最大カテゴリの動きと全体の動きが逆方向になっている。増減率が未公開の他カテゴリが増加を牽引した可能性があり、費用シェア最大のカテゴリだけを見ていると増加要因を見落とす。",
-      "numericEvidence": [
-        {
-          "label": "Azure Cognitive Searchの費用シェア",
-          "value": "63%",
-          "source": "cost.categories.0.sharePercent"
-        },
-        {
-          "label": "全体の前期比増減率",
-          "value": "+0.8%",
-          "source": "cost.deltaPercent"
-        },
-        {
-          "label": "Azure Cognitive Searchの前期比増減率",
-          "value": "-3.5%",
-          "source": "cost.categories.0.deltaPercent"
-        }
-      ],
-      "recommendedAction": "/cost で各カテゴリの前期比を確認し、変化率が未公開のカテゴリ(Load Balancer、Storage等)についてはAzureポータルのコスト分析で使用量の変化を確認したうえで、レビュー対象の優先順位を判断してください。",
-      "confidence": 0.6,
-      "route": "/cost",
-      "period": "2026-09-10 スナップショット収集時点",
-      "id": "insight-43fdbcff"
-    },
-    {
-      "severity": "warning",
-      "title": "重複する対象ストレージアカウントはゾーン冗長性の確認を優先すべきか判断",
-      "observation": "ゾーン冗長性に関する指摘は影響度が「高」でストレージアカウント4件が対象となっており、その対象はBlobの誤削除・上書きからの復旧に関する指摘(影響度「中」・対象7件)の対象と重複する。",
-      "impact": "同じストレージアカウント群がゾーン冗長性(可用性)とBlobの誤削除保護(データ復旧)という異なる観点で指摘されている。ゾーン障害はアカウント全体へのアクセス不能につながるため、対象4件を持つ影響度「高」のゾーン冗長性を、対象7件だが影響度「中」の誤削除保護より先に確認する方が稼働継続への影響が大きい。",
-      "numericEvidence": [
-        {
-          "label": "ゾーン冗長性指摘の対象リソース数",
-          "value": "4件",
-          "source": "advisor.details.groups.10.affectedResourceCount"
-        },
-        {
-          "label": "Blob誤削除保護指摘の対象リソース数",
-          "value": "7件",
-          "source": "advisor.details.groups.0.affectedResourceCount"
-        }
-      ],
-      "recommendedAction": "/recommendations でストレージのゾーン冗長性に関する推奨事項の内容を確認し、現在の冗長化方式と許容停止時間を優先的に確認します。稼働用途が検証用で停止を許容できると所有者が確認できれば保留し、本番化時にBlobの保持期間確認も合わせて実施してください。",
-      "confidence": 0.55,
-      "route": "/recommendations",
-      "period": "2026-09-10 スナップショット収集時点",
-      "id": "insight-2931daa4"
-    },
-    {
-      "severity": "info",
-      "title": "ストレージのTLS設定変更前にクライアント互換性を確認すべきか判断",
-      "observation": "ストレージのTLS設定に関する指摘は影響度が「高」でストレージアカウント1件が対象になっている。",
-      "impact": "最小TLSバージョンの見直しは、対応していない古いクライアントの接続断につながる可能性がある。影響度「高」は緊急対応の意味ではなく接続互換性の事前確認が必要という意味であり、対象1件の実接続バージョンを確認しないまま変更すると既存クライアントに影響しうる。",
-      "numericEvidence": [
-        {
-          "label": "TLS設定指摘の対象リソース数",
-          "value": "1件",
-          "source": "advisor.details.groups.9.affectedResourceCount"
-        }
-      ],
-      "recommendedAction": "/recommendations でストレージのTLS設定に関する推奨事項のガイドを確認し、対象ストレージアカウントへの実接続で使用されているTLSバージョンをAzureポータルで確認したうえで、変更前に互換性テストを計画してください。全接続が対応済みと確認できた場合は変更を保留し、新規クライアント追加時に再確認します。",
-      "confidence": 0.5,
-      "route": "/recommendations",
-      "period": "2026-09-10 スナップショット収集時点",
-      "id": "insight-327248cd"
-    }
-  ],
+  "aiInsights": [],
   "advisor": {
     "availability": "available",
     "message": "カテゴリ・影響度の件数は全ライフサイクルの推奨レコード数です。対応候補の内容別集計は完了・却下・延期を除外します。",
