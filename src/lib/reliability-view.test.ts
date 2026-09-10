@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import snapshot from "../../public/data/snapshot.json";
+import { snapshotFixture } from "../test/snapshot-fixtures";
 import type { ReliabilityCoverage, ResourceHealthStatus } from "../data/contracts";
 import {
   blindSpotSummary,
@@ -10,6 +10,7 @@ import {
   supportedSharePercent
 } from "./reliability-view";
 
+const snapshot = snapshotFixture();
 const publishedResources = snapshot.inventory.resources as Array<{
   type: string;
   region: string;

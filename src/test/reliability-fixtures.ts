@@ -1,4 +1,4 @@
-import baseSnapshot from "../../public/data/snapshot.json";
+import { snapshotFixture } from "./snapshot-fixtures";
 import type {
   NetworkMetricCoverage,
   PublicSnapshotV1,
@@ -15,10 +15,10 @@ import { resourceAliasLabel } from "../lib/sanitize";
 /**
  * The published snapshot is rewritten by every scheduled collection, so its numbers are evidence of
  * one moment in Azure rather than a contract. Tests that assert on a *specific* reliability state
- * must therefore build that state here; only invariants that hold for any collection may read the
- * published file directly.
+ * must therefore build that state here from a fixed test-only baseline. Live publication invariants
+ * are validated separately in scripts/published-snapshot.test.ts.
  */
-export const publishedSnapshot = baseSnapshot as unknown as PublicSnapshotV1;
+export const publishedSnapshot = snapshotFixture();
 
 const SUPPORTED_TYPE = "microsoft.storage/storageaccounts";
 const NOT_APPLICABLE_TYPE = "microsoft.logic/workflows";
@@ -115,7 +115,10 @@ function countBy<T>(items: T[], key: (item: T) => string): Array<{ label: string
  * Coverage and source status are derived with the same functions the collector runs, so a fixture
  * cannot drift into a state production could never publish.
  */
-export function reliabilityFixture(options: ReliabilityFixtureOptions): PublicSnapshotV1 {
+export function reliabilityFixture(
+  options: ReliabilityFixtureOptions,
+  baseSnapshot: PublicSnapshotV1 = publishedSnapshot
+): PublicSnapshotV1 {
   const supported = requireCount(options.supported, "supported");
   const evaluated = requireCount(options.evaluated, "evaluated");
   const degraded = requireCount(options.degraded ?? 0, "degraded");
@@ -157,7 +160,18 @@ export function reliabilityFixture(options: ReliabilityFixtureOptions): PublicSn
   push(notApplicable, NOT_APPLICABLE_TYPE, "NotApplicable", "japaneast");
   push(networkNotApplicable, NETWORK_NOT_APPLICABLE_TYPE, "NotApplicable", "japaneast");
 
-  const snapshot = structuredClone(publishedSnapshot);
+  const snapshot = structuredClone(baseSnapshot);
+  // Replacing inventory invalidates prior analysis and optional exact-resource evidence. Retain
+  // unrelated aggregates, but model these optional collections as absent rather than invent links.
+  snapshot.aiInsights = [];
+  for (const group of snapshot.advisor?.details?.groups ?? []) {
+    delete group.resourceRefs;
+    delete group.targets;
+    delete group.targetCoverage;
+    delete group.scopeCounts;
+  }
+  delete snapshot.security.vulnerabilities;
+  delete snapshot.network.topology;
   snapshot.inventory.total = resources.length;
   snapshot.inventory.resources = resources;
   snapshot.inventory.byType = countBy(resources, (resource) => resource.type);

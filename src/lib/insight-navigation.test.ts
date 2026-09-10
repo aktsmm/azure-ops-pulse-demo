@@ -1,9 +1,8 @@
 import { describe, expect, it } from "vitest";
-import published from "../../public/data/snapshot.json";
-import type { PublicSnapshotV1 } from "../data/contracts";
+import { snapshotFixture } from "../test/snapshot-fixtures";
 import { insightAdvisorGroups, insightTargets, prioritizeInsights } from "./insight-navigation";
 
-const data = published as PublicSnapshotV1;
+const data = snapshotFixture();
 const insight = data.aiInsights.find((item) => item.route === "/recommendations")!;
 describe("Evidence-driven insight navigation", () => {
   it("resolves exact group indices and deduplicates multiple facts from a group", () => {

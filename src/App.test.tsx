@@ -2,8 +2,10 @@ import "@testing-library/jest-dom/vitest";
 import { fireEvent, render, screen, within } from "@testing-library/react";
 import { HashRouter } from "react-router-dom";
 import { afterEach, describe, expect, it, vi } from "vitest";
-import snapshot from "../public/data/snapshot.json";
+import { snapshotFixture } from "./test/snapshot-fixtures";
 import App from "./App";
+
+const snapshot = snapshotFixture();
 
 describe("Overview automation CTA", () => {
   afterEach(() => {

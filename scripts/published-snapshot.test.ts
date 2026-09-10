@@ -10,6 +10,8 @@ import {
   resolveDemoOutputPath
 } from "./build-demo-snapshot";
 import { deriveInsightId } from "./insight-identity";
+import { validateRetainedAnalysis } from "./retain-last-analysis";
+import { resourceAliasLabel } from "../src/lib/sanitize";
 
 /**
  * `public/data/snapshot.json` is what GitHub Pages serves as the site's real data, and nothing else
@@ -23,6 +25,15 @@ import { deriveInsightId } from "./insight-identity";
  * the failure mode PR #21 had to remove.
  */
 describe("published snapshot", () => {
+  it("validates the actual collection independently of unit fixtures, including empty AI analysis", () => {
+    const snapshot = validateRetainedAnalysis(readFileSync(PUBLISHED_SNAPSHOT_PATH, "utf8"));
+    for (const resource of snapshot.inventory.resources) {
+      expect(resource.name).toMatch(/^[A-Za-z0-9]+-[0-9a-f]{8}$/);
+      expect(resource.name.slice(0, -9)).toBe(resourceAliasLabel(resource.type));
+      expect(resource.resourceGroup).toMatch(/^rg-[0-9a-f]{8}$/);
+    }
+  });
+
   it("is collected from Azure rather than generated from the demo fixture", () => {
     const published = JSON.parse(readFileSync(PUBLISHED_SNAPSHOT_PATH, "utf8")) as {
       mode?: unknown;

@@ -2,9 +2,11 @@ import "@testing-library/jest-dom/vitest";
 import { cleanup, fireEvent, render, screen, within } from "@testing-library/react";
 import { HashRouter } from "react-router-dom";
 import { afterEach, describe, expect, it, vi } from "vitest";
-import published from "../public/data/snapshot.json";
+import { snapshotFixture } from "./test/snapshot-fixtures";
 import type { PublicSnapshotV1 } from "./data/contracts";
 import App from "./App";
+
+const published = snapshotFixture();
 
 afterEach(() => {
   cleanup();
