@@ -1,17 +1,17 @@
 {
   "schemaVersion": "1.4.0",
-  "generatedAt": "2026-09-10T04:17:04.906Z",
+  "generatedAt": "2026-09-10T12:21:46.622Z",
   "mode": "AZURE",
   "freshness": {
     "state": "fresh",
     "ageMinutes": 0,
-    "lastSuccessfulCollection": "2026-09-10T04:17:04.906Z",
+    "lastSuccessfulCollection": "2026-09-10T12:21:46.622Z",
     "nextScheduledCollection": "Tuesday / Friday 06:00 JST"
   },
   "scope": {
-    "displayName": "Azure subscription ad7fb9a5",
-    "subscriptionId": "832c4080-****-****-****-****9596d40a",
-    "tenantId": "04879edd-****-****-****-****71c883fa"
+    "displayName": "Azure subscription",
+    "subscriptionId": "subscription-anonymous",
+    "tenantId": "tenant-anonymous"
   },
   "sources": [
     {
@@ -197,13 +197,13 @@
     },
     "current": {
       "availability": "available",
-      "approximateAmount": "約¥2.2万"
+      "approximateAmount": "約¥2.3万"
     },
     "previous": {
       "availability": "available",
       "approximateAmount": "約¥2.2万"
     },
-    "deltaPercent": -0.4,
+    "deltaPercent": 0.8,
     "forecast": {
       "availability": "unavailable",
       "approximateAmount": null
@@ -217,8 +217,8 @@
       {
         "name": "Azure Cognitive Search",
         "approximateAmount": "約¥1.4万",
-        "sharePercent": 62.9,
-        "deltaPercent": -4.9
+        "sharePercent": 63,
+        "deltaPercent": -3.5
       },
       {
         "name": "Load Balancer",
@@ -229,7 +229,7 @@
       {
         "name": "Foundry Tools",
         "approximateAmount": "約¥2千",
-        "sharePercent": 11.2,
+        "sharePercent": 11,
         "deltaPercent": -49.1
       },
       {
@@ -268,7 +268,7 @@
     "total": 82,
     "resources": [
       {
-        "id": "res-ba938391",
+        "id": "res-2b208491",
         "name": "smartdetectoralertrules-3d24b9da",
         "resourceGroup": "rg-d9a6959d",
         "type": "microsoft.alertsmanagement/smartdetectoralertrules",
@@ -279,7 +279,7 @@
         "change": "Azure Resource Graph から収集"
       },
       {
-        "id": "res-b16f9e95",
+        "id": "res-4966dd95",
         "name": "containerapps-8d2a795c",
         "resourceGroup": "rg-d9a6959d",
         "type": "microsoft.app/containerapps",
@@ -290,7 +290,7 @@
         "change": "Azure Resource Graph から収集"
       },
       {
-        "id": "res-2637eb84",
+        "id": "res-22393704",
         "name": "containerapps-3ea0c4c3",
         "resourceGroup": "rg-8c2924db",
         "type": "microsoft.app/containerapps",
@@ -301,7 +301,7 @@
         "change": "Azure Resource Graph から収集"
       },
       {
-        "id": "res-e52ced7c",
+        "id": "res-d1fe355c",
         "name": "jobs-c4355b20",
         "resourceGroup": "rg-d9a6959d",
         "type": "microsoft.app/jobs",
@@ -312,7 +312,7 @@
         "change": "Azure Resource Graph から収集"
       },
       {
-        "id": "res-fcf8d05e",
+        "id": "res-f8cb8c1e",
         "name": "managedenvironments-881de1ed",
         "resourceGroup": "rg-d9a6959d",
         "type": "microsoft.app/managedenvironments",
@@ -323,7 +323,7 @@
         "change": "Azure Resource Graph から収集"
       },
       {
-        "id": "res-2bbd2d3d",
+        "id": "res-945836fd",
         "name": "managedenvironments-18ef8b6c",
         "resourceGroup": "rg-8c2924db",
         "type": "microsoft.app/managedenvironments",
@@ -334,7 +334,7 @@
         "change": "Azure Resource Graph から収集"
       },
       {
-        "id": "res-f623fba7",
+        "id": "res-048f3ba7",
         "name": "automationaccounts-80faaaf7",
         "resourceGroup": "rg-39bccb00",
         "type": "microsoft.automation/automationaccounts",
@@ -345,7 +345,7 @@
         "change": "Azure Resource Graph から収集"
       },
       {
-        "id": "res-39e5e1ad",
+        "id": "res-04c9456d",
         "name": "runbooks-dec1ffe6",
         "resourceGroup": "rg-39bccb00",
         "type": "microsoft.automation/automationaccounts/runbooks",
@@ -356,7 +356,7 @@
         "change": "Azure Resource Graph から収集"
       },
       {
-        "id": "res-29421a58",
+        "id": "res-43c653b8",
         "name": "runbooks-edc4eb65",
         "resourceGroup": "rg-39bccb00",
         "type": "microsoft.automation/automationaccounts/runbooks",
@@ -367,7 +367,7 @@
         "change": "Azure Resource Graph から収集"
       },
       {
-        "id": "res-2d7649a4",
+        "id": "res-c1511804",
         "name": "runbooks-4bb947ad",
         "resourceGroup": "rg-39bccb00",
         "type": "microsoft.automation/automationaccounts/runbooks",
@@ -378,7 +378,7 @@
         "change": "Azure Resource Graph から収集"
       },
       {
-        "id": "res-42d30a40",
+        "id": "res-b5320580",
         "name": "runbooks-3aafa20f",
         "resourceGroup": "rg-39bccb00",
         "type": "microsoft.automation/automationaccounts/runbooks",
@@ -389,7 +389,7 @@
         "change": "Azure Resource Graph から収集"
       },
       {
-        "id": "res-c5208249",
+        "id": "res-75cedaa9",
         "name": "runbooks-65df6978",
         "resourceGroup": "rg-39bccb00",
         "type": "microsoft.automation/automationaccounts/runbooks",
@@ -400,7 +400,7 @@
         "change": "Azure Resource Graph から収集"
       },
       {
-        "id": "res-6f51e0d3",
+        "id": "res-a127a3f3",
         "name": "runbooks-dcbe0cda",
         "resourceGroup": "rg-39bccb00",
         "type": "microsoft.automation/automationaccounts/runbooks",
@@ -411,7 +411,7 @@
         "change": "Azure Resource Graph から収集"
       },
       {
-        "id": "res-c3344744",
+        "id": "res-332cda44",
         "name": "runbooks-edcc4273",
         "resourceGroup": "rg-39bccb00",
         "type": "microsoft.automation/automationaccounts/runbooks",
@@ -422,7 +422,7 @@
         "change": "Azure Resource Graph から収集"
       },
       {
-        "id": "res-b62a74e8",
+        "id": "res-f4c58b08",
         "name": "usageplans-0992ae83",
         "resourceGroup": "rg-e8dfc19d",
         "type": "microsoft.azureresiliencemanagement/usageplans",
@@ -433,7 +433,7 @@
         "change": "Azure Resource Graph から収集"
       },
       {
-        "id": "res-dd3568bd",
+        "id": "res-24f74c1d",
         "name": "workspaces-80faaaf7",
         "resourceGroup": "rg-39bccb00",
         "type": "microsoft.chaos/workspaces",
@@ -444,7 +444,7 @@
         "change": "Azure Resource Graph から収集"
       },
       {
-        "id": "res-ab090959",
+        "id": "res-45cf7ad9",
         "name": "accounts-7887422e",
         "resourceGroup": "rg-c9576fff",
         "type": "microsoft.cognitiveservices/accounts",
@@ -455,7 +455,7 @@
         "change": "Azure Resource Graph から収集"
       },
       {
-        "id": "res-e7a2df7a",
+        "id": "res-edef3efa",
         "name": "accounts-27e79685",
         "resourceGroup": "rg-d9a6959d",
         "type": "microsoft.cognitiveservices/accounts",
@@ -466,7 +466,7 @@
         "change": "Azure Resource Graph から収集"
       },
       {
-        "id": "res-f99db5f1",
+        "id": "res-97df8531",
         "name": "accounts-826925e5",
         "resourceGroup": "rg-7572de4c",
         "type": "microsoft.cognitiveservices/accounts",
@@ -477,7 +477,7 @@
         "change": "Azure Resource Graph から収集"
       },
       {
-        "id": "res-a505ce94",
+        "id": "res-1a5adbd4",
         "name": "accounts-69c6ad3d",
         "resourceGroup": "rg-608d7ecd",
         "type": "microsoft.cognitiveservices/accounts",
@@ -488,7 +488,7 @@
         "change": "Azure Resource Graph から収集"
       },
       {
-        "id": "res-748a2ebe",
+        "id": "res-7f6f0f3e",
         "name": "virtualmachinescalesets-dc9a2eaf",
         "resourceGroup": "rg-e8dfc19d",
         "type": "microsoft.compute/virtualmachinescalesets",
@@ -501,7 +501,7 @@
         "change": "Azure Resource Graph から収集"
       },
       {
-        "id": "res-ed3cac31",
+        "id": "res-126670b1",
         "name": "registries-63e43ae7",
         "resourceGroup": "rg-d9a6959d",
         "type": "microsoft.containerregistry/registries",
@@ -512,7 +512,7 @@
         "change": "Azure Resource Graph から収集"
       },
       {
-        "id": "res-0e1fc878",
+        "id": "res-79ef05b8",
         "name": "databaseaccounts-6f303527",
         "resourceGroup": "rg-d9a6959d",
         "type": "microsoft.documentdb/databaseaccounts",
@@ -523,7 +523,7 @@
         "change": "Azure Resource Graph から収集"
       },
       {
-        "id": "res-beb18c1c",
+        "id": "res-11c07d7c",
         "name": "actiongroups-fb4849b8",
         "resourceGroup": "rg-d9a6959d",
         "type": "microsoft.insights/actiongroups",
@@ -534,7 +534,7 @@
         "change": "Azure Resource Graph から収集"
       },
       {
-        "id": "res-9e8e71a0",
+        "id": "res-a3758a80",
         "name": "components-bff73c0a",
         "resourceGroup": "rg-d9a6959d",
         "type": "microsoft.insights/components",
@@ -545,7 +545,7 @@
         "change": "Azure Resource Graph から収集"
       },
       {
-        "id": "res-26e2d3ba",
+        "id": "res-9149b79a",
         "name": "datacollectionendpoints-cb63fab3",
         "resourceGroup": "rg-39bccb00",
         "type": "microsoft.insights/datacollectionendpoints",
@@ -556,7 +556,7 @@
         "change": "Azure Resource Graph から収集"
       },
       {
-        "id": "res-61879d72",
+        "id": "res-c06fee32",
         "name": "datacollectionrules-7e539ba2",
         "resourceGroup": "rg-39bccb00",
         "type": "microsoft.insights/datacollectionrules",
@@ -567,7 +567,7 @@
         "change": "Azure Resource Graph から収集"
       },
       {
-        "id": "res-62e40a63",
+        "id": "res-46271e43",
         "name": "datacollectionrules-d563a093",
         "resourceGroup": "rg-39bccb00",
         "type": "microsoft.insights/datacollectionrules",
@@ -578,7 +578,7 @@
         "change": "Azure Resource Graph から収集"
       },
       {
-        "id": "res-210b3db7",
+        "id": "res-6cc6b7b7",
         "name": "workflows-1c649d44",
         "resourceGroup": "rg-5806f191",
         "type": "microsoft.logic/workflows",
@@ -589,7 +589,7 @@
         "change": "Azure Resource Graph から収集"
       },
       {
-        "id": "res-d322a95b",
+        "id": "res-e267173b",
         "name": "workflows-9b7ed65c",
         "resourceGroup": "rg-5806f191",
         "type": "microsoft.logic/workflows",
@@ -600,7 +600,7 @@
         "change": "Azure Resource Graph から収集"
       },
       {
-        "id": "res-f0d4a2f6",
+        "id": "res-e4e920f6",
         "name": "workflows-44503833",
         "resourceGroup": "rg-5806f191",
         "type": "microsoft.logic/workflows",
@@ -611,7 +611,7 @@
         "change": "Azure Resource Graph から収集"
       },
       {
-        "id": "res-dfded8d1",
+        "id": "res-edee82d1",
         "name": "workflows-b2f8c486",
         "resourceGroup": "rg-5806f191",
         "type": "microsoft.logic/workflows",
@@ -622,7 +622,7 @@
         "change": "Azure Resource Graph から収集"
       },
       {
-        "id": "res-0e7ffe8a",
+        "id": "res-dcf4cc8a",
         "name": "workflows-60ceb42b",
         "resourceGroup": "rg-5806f191",
         "type": "microsoft.logic/workflows",
@@ -633,7 +633,7 @@
         "change": "Azure Resource Graph から収集"
       },
       {
-        "id": "res-993fff5e",
+        "id": "res-bbe89d5e",
         "name": "workflows-0f377ceb",
         "resourceGroup": "rg-5806f191",
         "type": "microsoft.logic/workflows",
@@ -644,7 +644,7 @@
         "change": "Azure Resource Graph から収集"
       },
       {
-        "id": "res-63610b75",
+        "id": "res-f2d1c575",
         "name": "workflows-7879982a",
         "resourceGroup": "rg-5806f191",
         "type": "microsoft.logic/workflows",
@@ -655,7 +655,7 @@
         "change": "Azure Resource Graph から収集"
       },
       {
-        "id": "res-f498a9ea",
+        "id": "res-d10c57ea",
         "name": "workflows-1ceabaf7",
         "resourceGroup": "rg-5806f191",
         "type": "microsoft.logic/workflows",
@@ -666,7 +666,7 @@
         "change": "Azure Resource Graph から収集"
       },
       {
-        "id": "res-c96f09ca",
+        "id": "res-95fd03ca",
         "name": "workflows-50570b11",
         "resourceGroup": "rg-5806f191",
         "type": "microsoft.logic/workflows",
@@ -677,7 +677,7 @@
         "change": "Azure Resource Graph から収集"
       },
       {
-        "id": "res-85facbe9",
+        "id": "res-87db15e9",
         "name": "workflows-1c5506ea",
         "resourceGroup": "rg-5806f191",
         "type": "microsoft.logic/workflows",
@@ -688,7 +688,7 @@
         "change": "Azure Resource Graph から収集"
       },
       {
-        "id": "res-b2759462",
+        "id": "res-eeb7ee62",
         "name": "workflows-82013ab9",
         "resourceGroup": "rg-5806f191",
         "type": "microsoft.logic/workflows",
@@ -699,7 +699,7 @@
         "change": "Azure Resource Graph から収集"
       },
       {
-        "id": "res-8cf5fc55",
+        "id": "res-5b6aca55",
         "name": "workflows-c30ddd38",
         "resourceGroup": "rg-5806f191",
         "type": "microsoft.logic/workflows",
@@ -710,7 +710,7 @@
         "change": "Azure Resource Graph から収集"
       },
       {
-        "id": "res-9e6d20a4",
+        "id": "res-a04d6aa4",
         "name": "workflows-74d57d53",
         "resourceGroup": "rg-5806f191",
         "type": "microsoft.logic/workflows",
@@ -721,7 +721,7 @@
         "change": "Azure Resource Graph から収集"
       },
       {
-        "id": "res-f5a7136e",
+        "id": "res-31e96d6e",
         "name": "workflows-16111191",
         "resourceGroup": "rg-5806f191",
         "type": "microsoft.logic/workflows",
@@ -732,7 +732,7 @@
         "change": "Azure Resource Graph から収集"
       },
       {
-        "id": "res-b6ca734d",
+        "id": "res-3a29fd4d",
         "name": "workflows-0b181e1a",
         "resourceGroup": "rg-5806f191",
         "type": "microsoft.logic/workflows",
@@ -743,7 +743,7 @@
         "change": "Azure Resource Graph から収集"
       },
       {
-        "id": "res-b8cbab4f",
+        "id": "res-483c654f",
         "name": "workflows-e2d1dc64",
         "resourceGroup": "rg-5806f191",
         "type": "microsoft.logic/workflows",
@@ -754,7 +754,7 @@
         "change": "Azure Resource Graph から収集"
       },
       {
-        "id": "res-1690c203",
+        "id": "res-18710c03",
         "name": "workflows-c271a788",
         "resourceGroup": "rg-5806f191",
         "type": "microsoft.logic/workflows",
@@ -765,7 +765,7 @@
         "change": "Azure Resource Graph から収集"
       },
       {
-        "id": "res-e3d2a8d1",
+        "id": "res-f9c159f1",
         "name": "workflows-ba2ecf03",
         "resourceGroup": "rg-7be2e8a6",
         "type": "microsoft.logic/workflows",
@@ -776,7 +776,7 @@
         "change": "Azure Resource Graph から収集"
       },
       {
-        "id": "res-9c16f428",
+        "id": "res-346d4028",
         "name": "workflows-f9f8bdfe",
         "resourceGroup": "rg-7be2e8a6",
         "type": "microsoft.logic/workflows",
@@ -787,7 +787,7 @@
         "change": "Azure Resource Graph から収集"
       },
       {
-        "id": "res-6feffa80",
+        "id": "res-8cd26680",
         "name": "workflows-3764ba6e",
         "resourceGroup": "rg-7be2e8a6",
         "type": "microsoft.logic/workflows",
@@ -798,7 +798,7 @@
         "change": "Azure Resource Graph から収集"
       },
       {
-        "id": "res-5362bd0a",
+        "id": "res-cbd2c10a",
         "name": "workflows-9bffe224",
         "resourceGroup": "rg-7be2e8a6",
         "type": "microsoft.logic/workflows",
@@ -809,7 +809,7 @@
         "change": "Azure Resource Graph から収集"
       },
       {
-        "id": "res-d19be39c",
+        "id": "res-05390f9c",
         "name": "workflows-95fbd182",
         "resourceGroup": "rg-7be2e8a6",
         "type": "microsoft.logic/workflows",
@@ -820,7 +820,7 @@
         "change": "Azure Resource Graph から収集"
       },
       {
-        "id": "res-e26c4762",
+        "id": "res-0d9bebe2",
         "name": "userassignedidentities-23cf32b9",
         "resourceGroup": "rg-d9a6959d",
         "type": "microsoft.managedidentity/userassignedidentities",
@@ -831,7 +831,7 @@
         "change": "Azure Resource Graph から収集"
       },
       {
-        "id": "res-03a2d108",
+        "id": "res-c1269088",
         "name": "userassignedidentities-90d71484",
         "resourceGroup": "rg-1a5d33ae",
         "type": "microsoft.managedidentity/userassignedidentities",
@@ -842,9 +842,15 @@
         "change": "Azure Resource Graph から収集"
       },
       {
-        "id": "res-886334a2",
+        "id": "res-5262c962",
         "name": "loadbalancers-55bf3cde",
         "resourceGroup": "rg-e8dfc19d",
+        "network": {
+          "privateIpv4": [],
+          "privateCidrs": [],
+          "publicIpv4Masked": [],
+          "truncated": false
+        },
         "type": "microsoft.network/loadbalancers",
         "region": "japaneast",
         "status": "Unknown",
@@ -855,7 +861,7 @@
         "change": "Azure Resource Graph から収集"
       },
       {
-        "id": "res-41902ccd",
+        "id": "res-e1936a8d",
         "name": "networkwatchers-a04aec79",
         "resourceGroup": "rg-adc33e8d",
         "type": "microsoft.network/networkwatchers",
@@ -866,7 +872,7 @@
         "change": "Azure Resource Graph から収集"
       },
       {
-        "id": "res-72b9c51f",
+        "id": "res-b42088df",
         "name": "networkwatchers-d405254b",
         "resourceGroup": "rg-adc33e8d",
         "type": "microsoft.network/networkwatchers",
@@ -877,7 +883,7 @@
         "change": "Azure Resource Graph から収集"
       },
       {
-        "id": "res-28f21a15",
+        "id": "res-277774d5",
         "name": "networkwatchers-9f1ee449",
         "resourceGroup": "rg-adc33e8d",
         "type": "microsoft.network/networkwatchers",
@@ -888,7 +894,7 @@
         "change": "Azure Resource Graph から収集"
       },
       {
-        "id": "res-c318f6ff",
+        "id": "res-bf2255bf",
         "name": "networkwatchers-30090d6b",
         "resourceGroup": "rg-adc33e8d",
         "type": "microsoft.network/networkwatchers",
@@ -899,7 +905,7 @@
         "change": "Azure Resource Graph から収集"
       },
       {
-        "id": "res-672786aa",
+        "id": "res-44521f6a",
         "name": "networkwatchers-82da7fbe",
         "resourceGroup": "rg-adc33e8d",
         "type": "microsoft.network/networkwatchers",
@@ -910,7 +916,7 @@
         "change": "Azure Resource Graph から収集"
       },
       {
-        "id": "res-2bda15ca",
+        "id": "res-e4d9048a",
         "name": "networkwatchers-a2db697e",
         "resourceGroup": "rg-adc33e8d",
         "type": "microsoft.network/networkwatchers",
@@ -921,7 +927,7 @@
         "change": "Azure Resource Graph から収集"
       },
       {
-        "id": "res-af9a0b33",
+        "id": "res-5239d773",
         "name": "networkwatchers-5795d84f",
         "resourceGroup": "rg-adc33e8d",
         "type": "microsoft.network/networkwatchers",
@@ -932,9 +938,17 @@
         "change": "Azure Resource Graph から収集"
       },
       {
-        "id": "res-728d35fe",
+        "id": "res-45e025fe",
         "name": "publicipaddresses-29efd19d",
         "resourceGroup": "rg-e8dfc19d",
+        "network": {
+          "privateIpv4": [],
+          "privateCidrs": [],
+          "publicIpv4Masked": [
+            "52.156.*.*"
+          ],
+          "truncated": false
+        },
         "type": "microsoft.network/publicipaddresses",
         "region": "japaneast",
         "status": "NotApplicable",
@@ -945,9 +959,17 @@
         "change": "Azure Resource Graph から収集"
       },
       {
-        "id": "res-360adff8",
+        "id": "res-7f62ac38",
         "name": "virtualnetworks-96540b49",
         "resourceGroup": "rg-e8dfc19d",
+        "network": {
+          "privateIpv4": [],
+          "privateCidrs": [
+            "10.55.0.0/16"
+          ],
+          "publicIpv4Masked": [],
+          "truncated": false
+        },
         "type": "microsoft.network/virtualnetworks",
         "region": "japaneast",
         "status": "NotApplicable",
@@ -958,7 +980,7 @@
         "change": "Azure Resource Graph から収集"
       },
       {
-        "id": "res-0dec37bf",
+        "id": "res-bb7df6df",
         "name": "workspaces-e65866fb",
         "resourceGroup": "rg-69f0d835",
         "type": "microsoft.operationalinsights/workspaces",
@@ -969,7 +991,7 @@
         "change": "Azure Resource Graph から収集"
       },
       {
-        "id": "res-137af75b",
+        "id": "res-94793dbb",
         "name": "workspaces-3e184652",
         "resourceGroup": "rg-09313d6c",
         "type": "microsoft.operationalinsights/workspaces",
@@ -980,7 +1002,7 @@
         "change": "Azure Resource Graph から収集"
       },
       {
-        "id": "res-0f970ed7",
+        "id": "res-31be02b7",
         "name": "workspaces-fd0ca70c",
         "resourceGroup": "rg-13f2e5fe",
         "type": "microsoft.operationalinsights/workspaces",
@@ -991,7 +1013,7 @@
         "change": "Azure Resource Graph から収集"
       },
       {
-        "id": "res-7c2c5886",
+        "id": "res-4c5fa906",
         "name": "workspaces-b7799671",
         "resourceGroup": "rg-39bccb00",
         "type": "microsoft.operationalinsights/workspaces",
@@ -1002,7 +1024,7 @@
         "change": "Azure Resource Graph から収集"
       },
       {
-        "id": "res-d1c7f840",
+        "id": "res-71b61500",
         "name": "workspaces-3db2d4d8",
         "resourceGroup": "rg-d9a6959d",
         "type": "microsoft.operationalinsights/workspaces",
@@ -1013,7 +1035,7 @@
         "change": "Azure Resource Graph から収集"
       },
       {
-        "id": "res-5670c3b7",
+        "id": "res-dc0ef377",
         "name": "workspaces-a5d5c4eb",
         "resourceGroup": "rg-8c2924db",
         "type": "microsoft.operationalinsights/workspaces",
@@ -1024,7 +1046,7 @@
         "change": "Azure Resource Graph から収集"
       },
       {
-        "id": "res-1fcaf1f3",
+        "id": "res-e469ce73",
         "name": "solutions-1c2ec251",
         "resourceGroup": "rg-69f0d835",
         "type": "microsoft.operationsmanagement/solutions",
@@ -1035,7 +1057,7 @@
         "change": "Azure Resource Graph から収集"
       },
       {
-        "id": "res-e3c0c25f",
+        "id": "res-7abcde9f",
         "name": "solutions-d8ea4a34",
         "resourceGroup": "rg-09313d6c",
         "type": "microsoft.operationsmanagement/solutions",
@@ -1046,7 +1068,7 @@
         "change": "Azure Resource Graph から収集"
       },
       {
-        "id": "res-209c1d37",
+        "id": "res-d20387b7",
         "name": "solutions-c09268f2",
         "resourceGroup": "rg-13f2e5fe",
         "type": "microsoft.operationsmanagement/solutions",
@@ -1057,7 +1079,7 @@
         "change": "Azure Resource Graph から収集"
       },
       {
-        "id": "res-dc440abe",
+        "id": "res-048661fe",
         "name": "searchservices-75d06b15",
         "resourceGroup": "rg-d9a6959d",
         "type": "microsoft.search/searchservices",
@@ -1068,7 +1090,7 @@
         "change": "Azure Resource Graph から収集"
       },
       {
-        "id": "res-de42d182",
+        "id": "res-220853c2",
         "name": "storageaccounts-b212ffa5",
         "resourceGroup": "rg-6c1c5f55",
         "type": "microsoft.storage/storageaccounts",
@@ -1079,7 +1101,7 @@
         "change": "Azure Resource Graph から収集"
       },
       {
-        "id": "res-976ccfcd",
+        "id": "res-598fae0d",
         "name": "storageaccounts-e6825b28",
         "resourceGroup": "rg-e8dfc19d",
         "type": "microsoft.storage/storageaccounts",
@@ -1092,7 +1114,7 @@
         "change": "Azure Resource Graph から収集"
       },
       {
-        "id": "res-61e65c0b",
+        "id": "res-09f22d4b",
         "name": "storageaccounts-981509ce",
         "resourceGroup": "rg-e8dfc19d",
         "type": "microsoft.storage/storageaccounts",
@@ -1105,7 +1127,7 @@
         "change": "Azure Resource Graph から収集"
       },
       {
-        "id": "res-22eb53f3",
+        "id": "res-9c4cefb3",
         "name": "storageaccounts-4a09f5e6",
         "resourceGroup": "rg-d9a6959d",
         "type": "microsoft.storage/storageaccounts",
@@ -1116,7 +1138,7 @@
         "change": "Azure Resource Graph から収集"
       },
       {
-        "id": "res-49f01cec",
+        "id": "res-26cdd4ac",
         "name": "storageaccounts-1787366d",
         "resourceGroup": "rg-8c2924db",
         "type": "microsoft.storage/storageaccounts",
@@ -1127,7 +1149,7 @@
         "change": "Azure Resource Graph から収集"
       },
       {
-        "id": "res-f0481154",
+        "id": "res-d282cf54",
         "name": "connections-67009abe",
         "resourceGroup": "rg-5806f191",
         "type": "microsoft.web/connections",
@@ -1138,7 +1160,7 @@
         "change": "Azure Resource Graph から収集"
       },
       {
-        "id": "res-d2ee329d",
+        "id": "res-22fa609d",
         "name": "connections-1658d17b",
         "resourceGroup": "rg-5806f191",
         "type": "microsoft.web/connections",
@@ -1149,7 +1171,7 @@
         "change": "Azure Resource Graph から収集"
       },
       {
-        "id": "res-6bb85822",
+        "id": "res-74deef02",
         "name": "connections-1658d17b",
         "resourceGroup": "rg-7be2e8a6",
         "type": "microsoft.web/connections",
@@ -1160,7 +1182,7 @@
         "change": "Azure Resource Graph から収集"
       },
       {
-        "id": "res-1630a8ba",
+        "id": "res-9545399a",
         "name": "staticsites-c97bd803",
         "resourceGroup": "rg-6c1c5f55",
         "type": "microsoft.web/staticsites",
@@ -1171,7 +1193,7 @@
         "change": "Azure Resource Graph から収集"
       },
       {
-        "id": "res-cc375eb3",
+        "id": "res-93b5cf73",
         "name": "staticsites-155e7fa6",
         "resourceGroup": "rg-8c2924db",
         "type": "microsoft.web/staticsites",
@@ -1370,6 +1392,28 @@
     }
   },
   "security": {
+    "assessmentCoverage": {
+      "totalAssessments": 0,
+      "unhealthyAssessments": 0,
+      "healthyAssessments": 0,
+      "notApplicableAssessments": 0,
+      "unknownAssessments": 0,
+      "totalGroups": 0,
+      "publishedGroups": 0,
+      "truncated": false
+    },
+    "vulnerabilities": {
+      "availability": "available",
+      "message": "取得した Unhealthy サブ評価の CVE のみ表示します。ゼロ件は安全の証明ではありません。",
+      "totalSubAssessments": 0,
+      "unhealthySubAssessments": 0,
+      "unmappedSubAssessments": 0,
+      "unknownStatusSubAssessments": 0,
+      "unmappedTargetSubAssessments": 0,
+      "totalFindings": 0,
+      "truncated": false,
+      "findings": []
+    },
     "fieldAvailability": {
       "secureScore": "unavailable",
       "assessments": "available",
@@ -1386,20 +1430,40 @@
       "message": "構成参照を一部収集しました。参照先が未収集・対象スコープ外、または一部プロパティが未取得です。線は通信状態を示しません。",
       "nodes": [
         {
-          "id": "res-886334a2",
+          "network": {
+            "privateIpv4": [],
+            "privateCidrs": [],
+            "publicIpv4Masked": [],
+            "truncated": false
+          },
+          "id": "res-5262c962",
           "type": "microsoft.network/loadbalancers",
           "region": "japaneast",
           "referenceOnly": false,
           "scope": "inventory"
         },
         {
-          "id": "res-728d35fe",
+          "network": {
+            "privateIpv4": [],
+            "privateCidrs": [],
+            "publicIpv4Masked": [
+              "52.156.*.*"
+            ],
+            "truncated": false
+          },
+          "id": "res-45e025fe",
           "type": "microsoft.network/publicipaddresses",
           "region": "japaneast",
           "referenceOnly": false,
           "scope": "inventory"
         },
         {
+          "network": {
+            "privateIpv4": [],
+            "privateCidrs": [],
+            "publicIpv4Masked": [],
+            "truncated": false
+          },
           "id": "res-1dc325ca",
           "type": "microsoft.network/loadbalancers/frontendipconfigurations",
           "region": "japaneast",
@@ -1407,6 +1471,12 @@
           "scope": "inventory"
         },
         {
+          "network": {
+            "privateIpv4": [],
+            "privateCidrs": [],
+            "publicIpv4Masked": [],
+            "truncated": false
+          },
           "id": "res-df85d243",
           "type": "microsoft.network/loadbalancers/backendaddresspools",
           "region": "japaneast",
@@ -1426,13 +1496,29 @@
           "scope": "uncollected"
         },
         {
-          "id": "res-360adff8",
+          "network": {
+            "privateIpv4": [],
+            "privateCidrs": [
+              "10.55.0.0/16"
+            ],
+            "publicIpv4Masked": [],
+            "truncated": false
+          },
+          "id": "res-7f62ac38",
           "type": "microsoft.network/virtualnetworks",
           "region": "japaneast",
           "referenceOnly": false,
           "scope": "inventory"
         },
         {
+          "network": {
+            "privateIpv4": [],
+            "privateCidrs": [
+              "10.55.1.0/24"
+            ],
+            "publicIpv4Masked": [],
+            "truncated": false
+          },
           "id": "res-bd9730c9",
           "type": "microsoft.network/virtualnetworks/subnets",
           "region": "japaneast",
@@ -1442,17 +1528,17 @@
       ],
       "edges": [
         {
-          "source": "res-886334a2",
-          "target": "res-728d35fe",
+          "source": "res-5262c962",
+          "target": "res-45e025fe",
           "kind": "public-ip"
         },
         {
-          "source": "res-886334a2",
+          "source": "res-5262c962",
           "target": "res-1dc325ca",
           "kind": "frontend"
         },
         {
-          "source": "res-886334a2",
+          "source": "res-5262c962",
           "target": "res-df85d243",
           "kind": "backend"
         },
@@ -1468,11 +1554,11 @@
         },
         {
           "source": "res-1dc325ca",
-          "target": "res-728d35fe",
+          "target": "res-45e025fe",
           "kind": "public-ip"
         },
         {
-          "source": "res-360adff8",
+          "source": "res-7f62ac38",
           "target": "res-bd9730c9",
           "kind": "contains"
         },
@@ -1557,82 +1643,7 @@
       "flows": []
     }
   },
-  "aiInsights": [
-    {
-      "severity": "info",
-      "title": "最大カテゴリのコストが全体より大きく減少",
-      "observation": "Azure Cognitive Search は当期コストの62.9%を占める最大カテゴリで、このカテゴリ単体の変化率は-4.9%です。一方で全カテゴリ合計の変化率は-0.4%にとどまっています。",
-      "impact": "最大シェアのカテゴリが全体変化率（-0.4%）よりも大きく減少（-4.9%）しているため、他のカテゴリのどれかが増加方向に動いている可能性があります。シェアは使用量の増減理由を示さないため、これだけでは原因は特定できません。",
-      "numericEvidence": [
-        {
-          "label": "最大カテゴリのコスト構成比",
-          "value": "62.9%",
-          "source": "cost.categories.0.sharePercent"
-        },
-        {
-          "label": "最大カテゴリの変化率",
-          "value": "-4.9%",
-          "source": "cost.categories.0.deltaPercent"
-        },
-        {
-          "label": "コスト全体の変化率",
-          "value": "-0.4%",
-          "source": "cost.deltaPercent"
-        }
-      ],
-      "recommendedAction": "/cost ダッシュボードで最大カテゴリの変化率と他カテゴリの変化率を見比べ、まずどのカテゴリを重点的にレビューするか判断してください。使用量増減の実際の原因は、Azure ポータルのコスト分析画面で当該カテゴリを確認してください。",
-      "confidence": 0.68,
-      "route": "/cost",
-      "period": "2026-09-10 スナップショット収集時点",
-      "id": "insight-7d47932c"
-    },
-    {
-      "severity": "warning",
-      "title": "Blob の誤削除・上書きからの復旧確認が必要な Storage アカウントが7件",
-      "observation": "Azure Advisor の可用性カテゴリの対応候補「Blob の誤削除・上書きからの復旧を確認」は影響度中の推奨事項が7件あり、対象は Storage アカウント7件です。",
-      "impact": "論理的な削除や上書きの保護が不十分だと、対象の7件の Storage アカウントで誤削除・上書きからの復旧ができない可能性があります。保持期間や復元テストが確認できるまでは、重要データへの影響有無を判断できません。",
-      "numericEvidence": [
-        {
-          "label": "対象リソース数",
-          "value": "7",
-          "source": "advisor.details.groups.0.affectedResourceCount"
-        },
-        {
-          "label": "影響度中の件数",
-          "value": "7",
-          "source": "advisor.details.groups.0.impacts.Medium"
-        }
-      ],
-      "recommendedAction": "/recommendations でこの推奨事項のガイドを確認したうえで、対象の Storage アカウントの論理的な削除の保持期間、上書き保護、復元テストの状況を Azure ポータルで確認し、復旧要件と保持コストを比較してから保留か対応かを判断してください。",
-      "confidence": 0.66,
-      "route": "/recommendations",
-      "period": "2026-09-10 スナップショット収集時点",
-      "id": "insight-db569e11"
-    },
-    {
-      "severity": "warning",
-      "title": "Storage の TLS 設定確認が必要な影響度高の推奨事項が1件",
-      "observation": "Azure Advisor の可用性カテゴリの対応候補「Storage の TLS 設定と接続互換性を確認」は影響度高の推奨事項が1件あり、対象は Storage アカウント1件です。",
-      "impact": "最小 TLS バージョンの設定を見直すと、古い TLS のみに対応したクライアントが接続できなくなる可能性があります。対象の1件について現在の接続クライアントのバージョンを確認しないまま変更すると、既存の接続に影響する可能性があります。",
-      "numericEvidence": [
-        {
-          "label": "対象リソース数",
-          "value": "1",
-          "source": "advisor.details.groups.9.affectedResourceCount"
-        },
-        {
-          "label": "影響度高の件数",
-          "value": "1",
-          "source": "advisor.details.groups.9.impacts.High"
-        }
-      ],
-      "recommendedAction": "/recommendations でこの推奨事項のガイドを確認したうえで、対象の Storage アカウントの最小 TLS 設定と実際に接続しているクライアントのバージョンを Azure ポータルで確認し、互換性テストを計画してから変更を判断してください。",
-      "confidence": 0.62,
-      "route": "/recommendations",
-      "period": "2026-09-10 スナップショット収集時点",
-      "id": "insight-e725a3e1"
-    }
-  ],
+  "aiInsights": [],
   "advisor": {
     "availability": "available",
     "message": "カテゴリ・影響度の件数は全ライフサイクルの推奨レコード数です。対応候補の内容別集計は完了・却下・延期を除外します。",
@@ -1673,6 +1684,51 @@
       "affectedResourceCount": null,
       "groups": [
         {
+          "resourceRefs": [
+            "res-09f22d4b",
+            "res-220853c2",
+            "res-26cdd4ac",
+            "res-598fae0d",
+            "res-9c4cefb3"
+          ],
+          "targets": [
+            {
+              "resourceRef": "res-09f22d4b",
+              "type": "microsoft.storage/storageaccounts",
+              "region": "japaneast"
+            },
+            {
+              "resourceRef": "res-220853c2",
+              "type": "microsoft.storage/storageaccounts",
+              "region": "eastasia"
+            },
+            {
+              "resourceRef": "res-26cdd4ac",
+              "type": "microsoft.storage/storageaccounts",
+              "region": "japaneast"
+            },
+            {
+              "resourceRef": "res-598fae0d",
+              "type": "microsoft.storage/storageaccounts",
+              "region": "japaneast"
+            },
+            {
+              "resourceRef": "res-9c4cefb3",
+              "type": "microsoft.storage/storageaccounts",
+              "region": "japaneast"
+            }
+          ],
+          "scopeCounts": {
+            "resource": 7,
+            "subscription": 0,
+            "unknown": 0
+          },
+          "targetCoverage": {
+            "totalResources": 7,
+            "publishedResources": 5,
+            "unresolvedResources": 2,
+            "truncated": false
+          },
           "id": "blob-soft-delete",
           "category": "HighAvailability",
           "contentStatus": "mapped",
@@ -1698,6 +1754,33 @@
           "sourceUrl": "https://learn.microsoft.com/ja-jp/azure/advisor/advisor-reference-reliability-recommendations"
         },
         {
+          "resourceRefs": [
+            "res-945836fd",
+            "res-f8cb8c1e"
+          ],
+          "targets": [
+            {
+              "resourceRef": "res-945836fd",
+              "type": "microsoft.app/managedenvironments",
+              "region": "japaneast"
+            },
+            {
+              "resourceRef": "res-f8cb8c1e",
+              "type": "microsoft.app/managedenvironments",
+              "region": "japaneast"
+            }
+          ],
+          "scopeCounts": {
+            "resource": 2,
+            "subscription": 0,
+            "unknown": 0
+          },
+          "targetCoverage": {
+            "totalResources": 2,
+            "publishedResources": 2,
+            "unresolvedResources": 0,
+            "truncated": false
+          },
           "id": "container-apps-zone-redundancy",
           "category": "HighAvailability",
           "contentStatus": "mapped",
@@ -1723,6 +1806,27 @@
           "sourceUrl": "https://learn.microsoft.com/ja-jp/azure/advisor/advisor-reference-reliability-recommendations"
         },
         {
+          "resourceRefs": [
+            "res-79ef05b8"
+          ],
+          "targets": [
+            {
+              "resourceRef": "res-79ef05b8",
+              "type": "microsoft.documentdb/databaseaccounts",
+              "region": "japaneast"
+            }
+          ],
+          "scopeCounts": {
+            "resource": 1,
+            "subscription": 0,
+            "unknown": 0
+          },
+          "targetCoverage": {
+            "totalResources": 1,
+            "publishedResources": 1,
+            "unresolvedResources": 0,
+            "truncated": false
+          },
           "id": "cosmos-continuous-backup",
           "category": "HighAvailability",
           "contentStatus": "mapped",
@@ -1748,6 +1852,27 @@
           "sourceUrl": "https://learn.microsoft.com/ja-jp/azure/advisor/advisor-reference-reliability-recommendations"
         },
         {
+          "resourceRefs": [
+            "res-79ef05b8"
+          ],
+          "targets": [
+            {
+              "resourceRef": "res-79ef05b8",
+              "type": "microsoft.documentdb/databaseaccounts",
+              "region": "japaneast"
+            }
+          ],
+          "scopeCounts": {
+            "resource": 1,
+            "subscription": 0,
+            "unknown": 0
+          },
+          "targetCoverage": {
+            "totalResources": 1,
+            "publishedResources": 1,
+            "unresolvedResources": 0,
+            "truncated": false
+          },
           "id": "cosmos-missing-indexes",
           "category": "Performance",
           "contentStatus": "mapped",
@@ -1773,6 +1898,27 @@
           "sourceUrl": "https://learn.microsoft.com/ja-jp/azure/advisor/advisor-reference-performance-recommendations"
         },
         {
+          "resourceRefs": [
+            "res-7f62ac38"
+          ],
+          "targets": [
+            {
+              "resourceRef": "res-7f62ac38",
+              "type": "microsoft.network/virtualnetworks",
+              "region": "japaneast"
+            }
+          ],
+          "scopeCounts": {
+            "resource": 1,
+            "subscription": 0,
+            "unknown": 0
+          },
+          "targetCoverage": {
+            "totalResources": 1,
+            "publishedResources": 1,
+            "unresolvedResources": 0,
+            "truncated": false
+          },
           "id": "outbound-nat-capacity",
           "category": "HighAvailability",
           "contentStatus": "mapped",
@@ -1798,6 +1944,27 @@
           "sourceUrl": "https://learn.microsoft.com/ja-jp/azure/advisor/advisor-reference-reliability-recommendations"
         },
         {
+          "resourceRefs": [
+            "res-126670b1"
+          ],
+          "targets": [
+            {
+              "resourceRef": "res-126670b1",
+              "type": "microsoft.containerregistry/registries",
+              "region": "japaneast"
+            }
+          ],
+          "scopeCounts": {
+            "resource": 1,
+            "subscription": 0,
+            "unknown": 0
+          },
+          "targetCoverage": {
+            "totalResources": 1,
+            "publishedResources": 1,
+            "unresolvedResources": 0,
+            "truncated": false
+          },
           "id": "registry-geo-replication",
           "category": "HighAvailability",
           "contentStatus": "mapped",
@@ -1823,6 +1990,27 @@
           "sourceUrl": "https://learn.microsoft.com/ja-jp/azure/advisor/advisor-reference-reliability-recommendations"
         },
         {
+          "resourceRefs": [
+            "res-126670b1"
+          ],
+          "targets": [
+            {
+              "resourceRef": "res-126670b1",
+              "type": "microsoft.containerregistry/registries",
+              "region": "japaneast"
+            }
+          ],
+          "scopeCounts": {
+            "resource": 1,
+            "subscription": 0,
+            "unknown": 0
+          },
+          "targetCoverage": {
+            "totalResources": 1,
+            "publishedResources": 1,
+            "unresolvedResources": 0,
+            "truncated": false
+          },
           "id": "registry-premium-tier",
           "category": "HighAvailability",
           "contentStatus": "mapped",
@@ -1848,6 +2036,27 @@
           "sourceUrl": "https://learn.microsoft.com/ja-jp/azure/advisor/advisor-reference-reliability-recommendations"
         },
         {
+          "resourceRefs": [
+            "res-048661fe"
+          ],
+          "targets": [
+            {
+              "resourceRef": "res-048661fe",
+              "type": "microsoft.search/searchservices",
+              "region": "japaneast"
+            }
+          ],
+          "scopeCounts": {
+            "resource": 1,
+            "subscription": 0,
+            "unknown": 0
+          },
+          "targetCoverage": {
+            "totalResources": 1,
+            "publishedResources": 1,
+            "unresolvedResources": 0,
+            "truncated": false
+          },
           "id": "search-replica-capacity",
           "category": "HighAvailability",
           "contentStatus": "mapped",
@@ -1873,6 +2082,19 @@
           "sourceUrl": "https://learn.microsoft.com/ja-jp/azure/advisor/advisor-reference-reliability-recommendations"
         },
         {
+          "resourceRefs": [],
+          "targets": [],
+          "scopeCounts": {
+            "resource": 0,
+            "subscription": 1,
+            "unknown": 0
+          },
+          "targetCoverage": {
+            "totalResources": 0,
+            "publishedResources": 0,
+            "unresolvedResources": 0,
+            "truncated": false
+          },
           "id": "service-health-alert",
           "category": "HighAvailability",
           "contentStatus": "mapped",
@@ -1898,6 +2120,27 @@
           "sourceUrl": "https://learn.microsoft.com/ja-jp/azure/advisor/advisor-reference-reliability-recommendations"
         },
         {
+          "resourceRefs": [
+            "res-220853c2"
+          ],
+          "targets": [
+            {
+              "resourceRef": "res-220853c2",
+              "type": "microsoft.storage/storageaccounts",
+              "region": "eastasia"
+            }
+          ],
+          "scopeCounts": {
+            "resource": 1,
+            "subscription": 0,
+            "unknown": 0
+          },
+          "targetCoverage": {
+            "totalResources": 1,
+            "publishedResources": 1,
+            "unresolvedResources": 0,
+            "truncated": false
+          },
           "id": "storage-tls-version",
           "category": "HighAvailability",
           "contentStatus": "mapped",
@@ -1923,6 +2166,45 @@
           "sourceUrl": "https://learn.microsoft.com/ja-jp/azure/advisor/advisor-reference-reliability-recommendations"
         },
         {
+          "resourceRefs": [
+            "res-220853c2",
+            "res-26cdd4ac",
+            "res-598fae0d",
+            "res-9c4cefb3"
+          ],
+          "targets": [
+            {
+              "resourceRef": "res-220853c2",
+              "type": "microsoft.storage/storageaccounts",
+              "region": "eastasia"
+            },
+            {
+              "resourceRef": "res-26cdd4ac",
+              "type": "microsoft.storage/storageaccounts",
+              "region": "japaneast"
+            },
+            {
+              "resourceRef": "res-598fae0d",
+              "type": "microsoft.storage/storageaccounts",
+              "region": "japaneast"
+            },
+            {
+              "resourceRef": "res-9c4cefb3",
+              "type": "microsoft.storage/storageaccounts",
+              "region": "japaneast"
+            }
+          ],
+          "scopeCounts": {
+            "resource": 4,
+            "subscription": 0,
+            "unknown": 0
+          },
+          "targetCoverage": {
+            "totalResources": 4,
+            "publishedResources": 4,
+            "unresolvedResources": 0,
+            "truncated": false
+          },
           "id": "storage-zone-redundancy",
           "category": "HighAvailability",
           "contentStatus": "mapped",
@@ -1948,6 +2230,19 @@
           "sourceUrl": "https://learn.microsoft.com/ja-jp/azure/advisor/advisor-reference-reliability-recommendations"
         },
         {
+          "resourceRefs": [],
+          "targets": [],
+          "scopeCounts": {
+            "resource": 3,
+            "subscription": 0,
+            "unknown": 0
+          },
+          "targetCoverage": {
+            "totalResources": 3,
+            "publishedResources": 0,
+            "unresolvedResources": 3,
+            "truncated": false
+          },
           "id": "vm-availability-zones",
           "category": "HighAvailability",
           "contentStatus": "mapped",
@@ -1973,6 +2268,27 @@
           "sourceUrl": "https://learn.microsoft.com/ja-jp/azure/advisor/advisor-reference-reliability-recommendations"
         },
         {
+          "resourceRefs": [
+            "res-7f6f0f3e"
+          ],
+          "targets": [
+            {
+              "resourceRef": "res-7f6f0f3e",
+              "type": "microsoft.compute/virtualmachinescalesets",
+              "region": "japaneast"
+            }
+          ],
+          "scopeCounts": {
+            "resource": 1,
+            "subscription": 0,
+            "unknown": 0
+          },
+          "targetCoverage": {
+            "totalResources": 1,
+            "publishedResources": 1,
+            "unresolvedResources": 0,
+            "truncated": false
+          },
           "id": "vmss-automatic-repair",
           "category": "HighAvailability",
           "contentStatus": "mapped",
@@ -1998,6 +2314,27 @@
           "sourceUrl": "https://learn.microsoft.com/ja-jp/azure/advisor/advisor-reference-reliability-recommendations"
         },
         {
+          "resourceRefs": [
+            "res-7f6f0f3e"
+          ],
+          "targets": [
+            {
+              "resourceRef": "res-7f6f0f3e",
+              "type": "microsoft.compute/virtualmachinescalesets",
+              "region": "japaneast"
+            }
+          ],
+          "scopeCounts": {
+            "resource": 1,
+            "subscription": 0,
+            "unknown": 0
+          },
+          "targetCoverage": {
+            "totalResources": 1,
+            "publishedResources": 1,
+            "unresolvedResources": 0,
+            "truncated": false
+          },
           "id": "vmss-health-monitoring",
           "category": "HighAvailability",
           "contentStatus": "mapped",
