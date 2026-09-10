@@ -30,6 +30,9 @@ if [ "$SCENARIO" = malformed ]; then echo '{'; exit 0; fi
 id=5678 branch=main repo=o/r source=o/r path=.github/workflows/review-ai-insights.lock.yml
 event=workflow_dispatch title="Semantic review publication 1234" status=completed conclusion=success
 case "$SCENARIO" in
+  initializing)
+    if [ "$count" -eq 0 ]; then title=""; status=queued; fi ;;
+  persistent-mismatch) title=""; status=in_progress ;;
   wrong-id) id=9999 ;;
   wrong-branch) branch=feature ;;
   wrong-repo) repo=other/repo ;;
@@ -82,6 +85,8 @@ scenario() {
 }
 scenario success 0 ""
 scenario transient 0 "" 2
+scenario initializing 0 "" 3
+scenario persistent-mismatch 1 "provenance mismatch" 5
 scenario dispatch-failure 1 "Could not dispatch"
 scenario missing-id 1 "exact run id"
 scenario malformed-id 1 "exact run id"
