@@ -151,7 +151,9 @@ describe("severity, route, confidence and value notation", () => {
     ["/Cost", "/cost"],
     ["cost", "/cost"],
     ["/cost/", "/cost"],
-    ["/AI-Insights", "/ai-insights"]
+    ["/AI-Insights", "/ai-insights"],
+    ["Recommendations", "/recommendations"],
+    ["/Recommendations/", "/recommendations"]
   ])("respells route %j as %j", (written, expected) => {
     expect(normalizeRouteNotation(written)).toBe(expected);
   });
