@@ -6,6 +6,7 @@ function insight(...sources: string[]) {
   const base = buildDemoSnapshot().aiInsights[0]!;
   return {
     ...base,
+    impact: "対象1件の比較を根拠に確認対象を絞ります。",
     numericEvidence: sources.map((source) => ({ source, value: "1", label: "対象件数" }))
   };
 }
@@ -39,6 +40,20 @@ describe("new insight admission quality", () => {
     expect(() => validateInsightQuality([insight(
       "cost.categories.0.sharePercent", "cost.categories.0.deltaPercent", "cost.deltaPercent"
     )])).not.toThrow();
+  });
+
+  it("rejects isolated active/resolved event totals", () => {
+    expect(() => validateInsightQuality([insight(
+      "reliability.serviceHealth.activeEvents", "reliability.serviceHealth.resolvedEvents"
+    )])).toThrow("event-totals-only");
+  });
+
+  it("requires impact to be anchored in cited values rather than generic prose", () => {
+    const candidate = insight("cost.categories.0.sharePercent", "cost.deltaPercent");
+    expect(() => validateInsightQuality([{ ...candidate, impact: "変動が全体へ波及する可能性があります。" }]))
+      .toThrow("tie the impact");
+    expect(() => validateInsightQuality([{ ...candidate, impact: "未確認の99件に影響します。" }]))
+      .toThrow("tie the impact");
   });
 
   it("does not count duplicate sources as independent evidence", () => {

@@ -9,7 +9,7 @@ function valueAtPath(root: unknown, path: string): unknown {
   return current;
 }
 
-function numericTokens(value: unknown): string[] {
+export function numericTokens(value: unknown): string[] {
   return (String(value).match(/[+-]?\d[\d,]*(?:\.\d+)?/g) ?? []).map((token) => {
     const compact = token.replaceAll(",", "");
     const negative = compact.startsWith("-");

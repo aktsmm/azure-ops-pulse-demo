@@ -557,6 +557,9 @@ describe("AI insight publication gate", () => {
     expect(promptBody).toContain("Zero qualifying candidates means an empty array is correct");
     expect(promptBody).toContain("Never add unrelated evidence");
     expect(promptBody).toContain("NotApplicable is NOT failure");
+    expect(source).toContain("run: npx tsx scripts/prepare-ai-input.ts");
+    expect(lock).toContain("run: npx tsx scripts/prepare-ai-input.ts");
+    expect(promptBody).toContain("do not recover or imitate previous insight text");
 
     // And the trusted publisher derives the period itself before repeating the gates, so the pass
     // that ran in the workspace the agent can write to is feedback rather than authority. That the
