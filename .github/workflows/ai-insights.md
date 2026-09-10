@@ -147,13 +147,17 @@ brief and decision-specific rather than repeating a general warning in every fie
   postponed records are counted in `details.excludedRecommendationCount`, not actionable cards.
   `details.groups` excludes them. Do not call the all-state total "open" or "active".
   A group's `impacts.High` etc. counts its records at each impact; they are NOT separate issue types.
+  Cards contain GUIDES and counts/types, not actual configuration values, workload purpose, owners,
+  recipients or verification results. Say "read the guide, then verify X in Azure portal/with the
+  operator", not "open this dashboard card to check the current setting/recipient/purpose".
   If `advisor.availability` is available, a mapped group may be used even when `details.availability`
   is partial because other content is withheld or the total distinct-resource count is unknown.
   This is not permission to infer withheld content. When lifecycleUnknownCount is nonzero, do not
   call every eligible record active: its lifecycle may still need confirmation.
 - `/security`: Defender summaries and only the Security subset of Advisor. Defender assessment
   labels may be withheld; such groups do not disclose the actual issue, remediation or urgency.
-- `/reliability`: Resource Health and Service Health, with a link to Advisor reliability guidance.
+- `/reliability`: Resource Health and Service Health summaries, with a link to Advisor reliability
+  guidance. Event-specific impact details and notification settings require Azure portal follow-up.
 - `/network`: anonymous configuration topology and collection scope, NOT traffic traces or outage proof.
 
 ## Signal quality: analysis, not a restated dashboard
@@ -180,6 +184,8 @@ run can publish zero insights. Evaluate candidates against these rules BEFORE wr
    analysis: omit that candidate. "Reliability has more recommendations, so review it first" is
    also insufficient, even with correct counts and impact labels. Advisor analysis MUST reference
    a mapped content group and explain its specific concern and conditional next decision.
+   Reliability/High/Medium labels alone do not identify the issue. "Review rather than remediate"
+   and other cautious wording cannot turn category totals into concrete recommendation content.
    Unmapped/withheld content is NOT evidence of a specific flaw or low risk. Do not invent its title.
 4. `impact` must explain the consequence of the specific comparison, not a generic possibility
    applicable to every environment. `recommendedAction` must name the observed service/category

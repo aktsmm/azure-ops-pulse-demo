@@ -116,6 +116,8 @@ describe("independent semantic review publication boundary", () => {
     expect(source).toContain("only that case's own supplied evidence/context");
     expect(source).toContain("The `calibration` array is REQUIRED");
     expect(source).toContain("nine neutral IDs case-01..case-09");
+    expect(source).toContain("Apply every requirement conjunctively to BOTH real candidates and calibration examples");
+    expect(source).toContain("Cards do NOT contain actual resource settings");
     expect(source).toContain("passing it is not proof that the actual candidate is correct");
     expect(publisher).not.toContain("calibration.json");
     expect(source).not.toMatch(/path: review-input\/calibration\.json/);
