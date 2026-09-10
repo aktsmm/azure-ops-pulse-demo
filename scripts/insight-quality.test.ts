@@ -7,6 +7,7 @@ function insight(...sources: string[]) {
   return {
     ...base,
     impact: "対象1件の比較を根拠に確認対象を絞ります。",
+    recommendedAction: "カテゴリの変化と全体の変化を比較して確認順を判断してください。",
     numericEvidence: sources.map((source) => ({ source, value: "1", label: "対象件数" }))
   };
 }
@@ -54,6 +55,23 @@ describe("new insight admission quality", () => {
       .toThrow("tie the impact");
     expect(() => validateInsightQuality([{ ...candidate, impact: "未確認の99件に影響します。" }]))
       .toThrow("tie the impact");
+  });
+
+  it("directs Advisor-only analysis to the actual category selector", () => {
+    const candidate = insight("advisor.recommendations.0.count", "advisor.recommendations.1.count");
+    expect(() => validateInsightQuality([{ ...candidate, route: "/reliability" }]))
+      .toThrow("Advisor category/impact counts are displayed only at /security");
+    expect(() => validateInsightQuality([{ ...candidate, route: "/security" }])).not.toThrow();
+    expect(() => validateInsightQuality([{
+      ...candidate, route: "/security", recommendedAction: "信頼性ダッシュボードで確認してください。"
+    }])).toThrow("Advisor category/impact counts");
+  });
+
+  it("rejects cost actions asking for usage information the dashboard does not provide", () => {
+    const candidate = insight("cost.categories.0.sharePercent", "cost.deltaPercent");
+    expect(() => validateInsightQuality([{
+      ...candidate, recommendedAction: "コストダッシュボードで使用量の変化が原因か判断してください。"
+    }])).toThrow("not usage data");
   });
 
   it("does not count duplicate sources as independent evidence", () => {

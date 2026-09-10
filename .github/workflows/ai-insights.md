@@ -122,6 +122,18 @@ logs, artifacts, commit history, or external services.
 Previous AI output is deliberately removed before you start. Derive fresh analysis from the observed
 fields; do not recover or imitate previous insight text. An existing generated sentence is not evidence.
 
+## What the linked pages actually contain
+
+- `/cost`: category shares, approximate category costs, category change percentages, and overall
+  change. No usage quantities, per-resource billing, pricing, or breakdown within a service category.
+  Never tell the reader this page can determine usage causes. Recommend comparing category and
+  overall changes (including other categories) to choose which categories to review first.
+- `/security`: BOTH Defender summaries and the Azure Advisor category/impact selector. Advisor-only
+  insights MUST use this route, even for HighAvailability. Tell the reader to select the relevant
+  Advisor category here. Category counts are not distinct affected resources or detailed findings.
+- `/reliability`: Resource Health and Service Health, NOT Advisor recommendations.
+- `/network`: anonymous configuration topology and collection scope, NOT traffic traces or outage proof.
+
 ## Signal quality: analysis, not a restated dashboard
 
 Help the operator decide what to review first and why, using only the observed data. A successful
