@@ -2059,6 +2059,34 @@ function InsightCard({ insight }: { insight: AiInsight }) {
   );
 }
 
+function CollectionScopePanel({ data }: { data: PublicSnapshotV1 }) {
+  const metrics = data.network.metricCoverage;
+  return (
+    <Panel
+      title="収集範囲・制約（自動集計）"
+      description="AI インサイトではなく、取得状況の定型表示です。対象外は障害や監視設定の不備を意味しません。"
+    >
+      <div className="metric-grid three">
+        <MetricCard
+          label="Resource Health 対象外"
+          value={`${numberFormatter.format(data.reliability.coverage.notApplicableResources)} 件`}
+          note="対応リソースの評価率とは分けて扱います"
+        />
+        <MetricCard
+          label="ネットワークメトリック対象外"
+          value={metrics ? `${numberFormatter.format(metrics.notApplicableResources)} 件` : "未収集"}
+          note={metrics ? `調査対象 ${numberFormatter.format(metrics.sampledResources)} 件の内訳` : "メトリック対応状況を取得していません"}
+        />
+        <MetricCard
+          label="ネットワークメトリック取得失敗"
+          value={metrics ? `${numberFormatter.format(metrics.failedResources)} 件` : "未収集"}
+          note="対象外とは別の収集診断です。稼働障害の件数ではありません"
+        />
+      </div>
+    </Panel>
+  );
+}
+
 function AiInsightsPage({ data }: { data: PublicSnapshotV1 }) {
   const warnings = data.aiInsights.filter(
     (insight) => insight.severity === "critical" || insight.severity === "warning"
@@ -2078,14 +2106,14 @@ function AiInsightsPage({ data }: { data: PublicSnapshotV1 }) {
             <Bot size={22} aria-hidden="true" />
           </span>
           <div>
-            <strong>検証済み・読み取り専用の分析</strong>
+            <strong>数値根拠を照合した AI 分析</strong>
             <p>サニタイズ済みの構造化データだけを使用し、Azure の変更や修復は実行しません。</p>
           </div>
           <StatusBadge severity="info">公開 0 件</StatusBadge>
         </div>
         <Panel
-          title="公開済みの分析はまだありません"
-          description="分析は、記載されたすべての数値が公開スナップショットの値と一致した場合だけ公開されます。条件を満たさない候補は破棄されるため、ここが空になることがあります。"
+          title="公開できる AI インサイトはありません"
+          description="根拠のある比較・偏り・関連から、優先して確認する理由を説明できる候補に絞ります。一般論や収集範囲の言い換えだけなら、件数を埋めず 0 件とします。0 件は問題なしの証明ではありません。"
         >
           <div className="boundary-grid">
             <article>
@@ -2096,7 +2124,7 @@ function AiInsightsPage({ data }: { data: PublicSnapshotV1 }) {
             <article>
               <CircleCheck size={22} aria-hidden="true" />
               <strong>2. 数値根拠を照合</strong>
-              <p>各数値がスナップショット内のスカラー値と一致するかを検証し、一致しない候補は破棄します。</p>
+              <p>数値の一致と複数の根拠を確認し、収集範囲だけを根拠にした候補は公開しません。推論の正しさを保証する検証ではありません。</p>
             </article>
             <article>
               <ShieldCheck size={22} aria-hidden="true" />
@@ -2115,6 +2143,7 @@ function AiInsightsPage({ data }: { data: PublicSnapshotV1 }) {
             AI 分析ワークフローの実行結果を確認 <ExternalLink size={14} aria-hidden="true" />
           </a>
         </Panel>
+        <CollectionScopePanel data={data} />
         <Panel title="スナップショットから確認できる事実" description="以下は収集済みデータの集計であり、AI が生成した分析ではありません。">
           <div className="metric-grid four">
             <MetricCard label="リソース" value={`${numberFormatter.format(data.inventory.total)} 件`} note="公開インベントリの件数" />
@@ -2134,9 +2163,9 @@ function AiInsightsPage({ data }: { data: PublicSnapshotV1 }) {
           <Bot size={22} aria-hidden="true" />
         </span>
         <div>
-          <strong>検証済み・読み取り専用の分析</strong>
+          <strong>数値根拠を照合した AI 分析</strong>
           <p>
-            サニタイズ済みの構造化データだけを使用し、Azure の変更や修復は実行しません。
+            比較・偏り・関連から確認の優先順位を提案します。数値の一致は推論の正しさを保証しません。Azure の変更は実行しません。
           </p>
         </div>
         <StatusBadge severity={warnings ? "warning" : "info"}>
@@ -2146,7 +2175,7 @@ function AiInsightsPage({ data }: { data: PublicSnapshotV1 }) {
 
       <section className="metric-grid four" aria-label="AI 分析サマリー">
         <MetricCard
-          label="検証済み"
+          label="公開インサイト"
           value={`${numberFormatter.format(data.aiInsights.length)} 件`}
           note={`数値根拠 ${numberFormatter.format(evidenceCount)} 件を照合済み`}
           severity="healthy"
@@ -2202,6 +2231,8 @@ function AiInsightsPage({ data }: { data: PublicSnapshotV1 }) {
           <InsightCard insight={insight} key={insight.id} />
         ))}
       </div>
+
+      <CollectionScopePanel data={data} />
 
       <Panel title="分析の境界">
         <div className="boundary-grid">

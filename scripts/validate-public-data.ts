@@ -6,6 +6,7 @@ import { validateNumericEvidence } from "./evidence-validator";
 import { validatePublicJsonSchema } from "./json-schema-validator";
 import { validateInsightIds } from "./insight-identity";
 import { validateInsightPeriods } from "./insight-period";
+import { validateInsightQuality } from "./insight-quality";
 import { validateJapaneseInsights } from "./japanese-insights-validator";
 import { validateUiLanguage } from "./ui-language-audit";
 import { publicSnapshotSchema } from "./public-schema";
@@ -38,6 +39,9 @@ validateJapaneseInsights(parsed.aiInsights);
 validateUiLanguage(parsed);
 
 if (insightsOnly) {
+  // Admission policy for newly generated analysis. Historical snapshots remain readable/buildable
+  // until regeneration; both the agent self-check and trusted publisher use this path.
+  validateInsightQuality(parsed.aiInsights);
   const repositoryPath = relative(process.cwd(), file).replaceAll("\\", "/");
   if (repositoryPath.startsWith("../")) {
     throw new Error("Insights-only validation requires a file inside the repository");

@@ -118,6 +118,39 @@ Analyze only `public/data/snapshot.json`. It is the sole approved input and has 
 repository's deterministic public sanitization boundary. Do not inspect Azure, workflow secrets,
 logs, artifacts, commit history, or external services.
 
+## Signal quality: analysis, not a restated dashboard
+
+Help the operator decide what to review first and why, using only the observed data. A successful
+run can publish zero insights. Evaluate candidates against these rules BEFORE writing them:
+
+1. Include a meaningful comparison, concentration, or supported relationship between at least two
+   distinct numeric evidence paths. Explain why that comparison changes the review priority.
+   Two unrelated counts or the same value repeated under different labels do not qualify.
+2. Exclude collection coverage, unsupported resource types, missing metrics, and unavailable sources
+   as standalone findings. These belong to the UI's deterministic collection-scope panel. In
+   particular, NotApplicable is NOT failure, an outage, or a monitoring misconfiguration. Do not
+   compare Resource Health supported-resource coverage with total inventory as if they had the
+   same denominator. "Metrics are missing, so changes may be hard to see" is NOT an insight.
+3. Do not turn an isolated event/recommendation count into an incident narrative. If the snapshot
+   lacks affected-resource details or correlated observations, do not claim customer impact or
+   resource-level correlation. Aggregate data can support aggregate review priorities only.
+4. `impact` must explain the consequence of the specific comparison, not a generic possibility
+   applicable to every environment. `recommendedAction` must name the observed service/category
+   or condition, what to compare/check, and what decision that check informs, plus the matching
+   dashboard route. "Review monitoring", "check the dashboard", and "review periodically" alone
+   are insufficient. Human investigation is allowed; do not prescribe Azure changes.
+5. Use only time windows actually stated in the snapshot. A category share is concentration, not
+   proof of waste. A decrease is not deterioration. Without comparable prior observations, do not
+   claim a new issue, recurrence, duration, anomaly, acceleration, or worsening.
+6. Rank by decision value, merge overlapping findings, and omit weak candidates rather than padding
+   to four. Unrelated operational evidence added to a coverage warning does not make it analysis.
+
+Example of an eligible reasoning pattern (use actual snapshot values, never copy example numbers):
+one service dominates spend while its own change and the overall change differ. Explain that this
+service is the first place to examine the cost composition, while distinguishing concentration
+from waste and avoiding an exact savings estimate. State which comparison the operator should
+review and why. If no candidate meets these rules, publish `aiInsights: []`.
+
 ## Required result
 
 Update only the `aiInsights` array in `public/data/snapshot.json` with zero to four high-signal
@@ -139,7 +172,7 @@ Each insight must contain:
 - `observation`
 - `impact`
 - `numericEvidence`: one to six objects containing `label`, `value`, and `source`
-  - `source`: a dot path under `overview`, `cost`, `inventory`, `reliability`, `security`, or
+  - `source`: a dot path under `overview`, `cost`, `inventory`, `reliability`, `security`, `advisor`, or
     `network`. Array elements are addressed by a dot-separated index, never by brackets: write
     `cost.categories.0.sharePercent`, not `cost.categories[0].sharePercent`, and
     `overview.trends.1.points.3`, not `overview.trends[1].points[3]`
@@ -181,8 +214,10 @@ Do not finish, stage an artifact, or call a safe output before the success line 
 you tried is refused, that is a sandbox rule, not a broken runtime; re-read this paragraph and run
 the exact string above.
 
-Do not delete a supportable insight, and do not empty the array, to make the check pass. Silencing a
-gate by removing evidence the snapshot does support is a failure, not a fix.
+Correct errors in qualifying insights rather than deleting them just to silence a gate. However,
+a numeric match alone does not make an insight worth publishing: remove candidates that fail the
+signal-quality rules (including collection-scope-only candidates). Never add unrelated evidence
+to get around the quality gate. Zero qualifying candidates means an empty array is correct.
 
 ## Guardrails
 
@@ -203,10 +238,9 @@ gate by removing evidence the snapshot does support is a failure, not a fix.
    repeats those checks from a fresh checkout, and a failure there fails the run visibly. That step
    only ever respells a value onto one the schema already allows; it never guesses which value you
    meant.
-9. Publish only what the snapshot supports. If the evidence for an insight is insufficient, leave
-   that insight out; if no insight is supportable, write an empty array. Do not pad the array to
-   reach a count, and do not shrink it to quiet a gate: an empty array is correct only when the
-   snapshot supports nothing.
+9. Publish only what the snapshot supports AND the signal-quality rules qualify. Omit insufficient,
+   generic, or collection-only candidates. Do not pad the array to reach a count. An empty array is
+   correct when no qualifying analysis remains, even if the snapshot contains many valid counts.
 10. After `npm run check-insights` prints its success line, call the configured `noop` safe output to
    report that no GitHub mutation is needed. Do not call `upload-artifact`: its configured capability
    is staged and non-publishing, and it is not the `validated-ai-insights` handoff. The deterministic

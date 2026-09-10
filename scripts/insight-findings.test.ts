@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import { execFile, execFileSync } from "node:child_process";
 import {
   copyFileSync,
+  cpSync,
   mkdirSync,
   mkdtempSync,
   readFileSync,
@@ -301,8 +302,8 @@ describe("check-insights", () => {
   /**
    * A workspace the real command can run in. `check-insights` writes to `public/data/snapshot.json`
    * by design and compares the result against the committed baseline, so the published file is not
-   * a usable fixture: this builds a throwaway repository instead, links the code in rather than
-   * copying it, and commits a baseline whose only difference from the candidate is `aiInsights`.
+   * a usable fixture: this builds a throwaway repository instead and commits a baseline whose only
+   * difference from the candidate is `aiInsights`.
    */
   async function withWorkspace(
     candidate: unknown,
@@ -310,7 +311,10 @@ describe("check-insights", () => {
   ): Promise<void> {
     const workspace = mkdtempSync(join(tmpdir(), "insight-check-"));
     try {
-      for (const directory of ["scripts", "src", "schemas", "node_modules"]) {
+      // CLI entry-point guards compare argv with import.meta.url. A junction resolves only the
+      // latter to the original directory, silently skipping normalizers, so copy the entry points.
+      cpSync("scripts", join(workspace, "scripts"), { recursive: true });
+      for (const directory of ["src", "schemas", "node_modules"]) {
         symlinkSync(resolve(directory), join(workspace, directory), "junction");
       }
       copyFileSync("package.json", join(workspace, "package.json"));
@@ -370,6 +374,44 @@ describe("check-insights", () => {
       expect(result.status).toBe(0);
       expect(result.output).toContain("on 0 insight(s)");
       expect(result.output).not.toContain("[advisory]");
+    });
+  });
+
+  it("blocks collection-only claims on the real publication path", { timeout: SUBPROCESS_TIMEOUT }, async () => {
+    await withWorkspace({
+      ...snapshot,
+      aiInsights: [{
+        ...insightAt(0),
+        title: "評価対象外リソースの集計",
+        observation: "評価対象外と評価済みの件数を確認できます。",
+        numericEvidence: [
+          { source: "reliability.coverage.notApplicableResources", label: "対象外件数", value: `${snapshot.reliability.coverage.notApplicableResources} 件` },
+          { source: "reliability.coverage.evaluatedResources", label: "評価済み件数", value: `${snapshot.reliability.coverage.evaluatedResources} 件` }
+        ]
+      }]
+    }, (result) => {
+      expect(result.status).not.toBe(0);
+      expect(result.output).toContain("Insight quality gate failed");
+      expect(result.output).toContain("collection-scope-only");
+      expect(result.output).toContain("[advisory]");
+    });
+  });
+
+  it("admits a candidate with distinct cost comparison evidence", { timeout: SUBPROCESS_TIMEOUT }, async () => {
+    const category = snapshot.cost.categories[0]!;
+    expect(category.deltaPercent).not.toBeNull();
+    await withWorkspace({
+      ...snapshot,
+      aiInsights: [{
+        ...insightAt(0),
+        numericEvidence: [
+          { source: "cost.categories.0.sharePercent", label: "構成比", value: `${category.sharePercent}%` },
+          { source: "cost.categories.0.deltaPercent", label: "増減率", value: `${category.deltaPercent}%` }
+        ]
+      }]
+    }, (result) => {
+      expect(result.output).toContain("Insight check passed on 1 insight(s)");
+      expect(result.status).toBe(0);
     });
   });
 });
