@@ -2562,7 +2562,8 @@ button:disabled {
 }
 .freshness-detail p { margin: 8px 0; }
 .previous-analysis-notice {
-  padding: 16px;
+  padding: 12px;
+  font-size: 13px;
   border: 1px solid var(--cp-border);
   border-left: 4px solid var(--cp-warning);
   border-radius: 10px;
@@ -2570,6 +2571,7 @@ button:disabled {
   color: var(--cp-text);
 }
 .previous-analysis-notice p { margin: 4px 0; color: var(--cp-text-muted); }
+.previous-analysis-notice summary { cursor: pointer; }
 .previous-analysis-notice a { display: inline-block; margin-top: 8px; }
 .previous-analysis-availability { margin: 0; color: var(--cp-text-muted); }
 .network-address-evidence { min-width: 0; margin: 16px 0; padding: 16px; border: 1px solid var(--cp-border); border-radius: 10px; background: var(--cp-surface-soft); }

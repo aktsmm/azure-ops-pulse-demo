@@ -28,13 +28,13 @@ export function DecisionPriorities({ data, basePath = "" }: { data: PublicSnapsh
                 <span className="decision-domain">AI 分析 · {routeLabel(insight.route)}</span>
               </div>
               <h3>{insight.title}</h3>
+              <div className="decision-reason"><strong>確認する理由 · 想定される影響</strong><p>{insight.impact}</p></div>
+              <div className="decision-action"><strong>次の確認</strong><p>{insight.recommendedAction}</p></div>
               <div className="decision-primary-links">
                 {insightTargets(insight, data, basePath).map((target) =>
                   <Link key={target.href} className="text-button" to={target.href}>{target.label} <ChevronRight size={15} aria-hidden="true" /></Link>
                 )}
               </div>
-              <div className="decision-reason"><strong>確認する理由 · 想定される影響</strong><p>{insight.impact}</p></div>
-              <div className="decision-action"><strong>次の確認</strong><p>{insight.recommendedAction}</p></div>
               <details className="decision-impact">
                 <summary>観測の詳細</summary>
                 <p>{insight.observation}</p>

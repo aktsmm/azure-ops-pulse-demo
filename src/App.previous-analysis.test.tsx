@@ -62,6 +62,13 @@ describe("Previous approved analysis stays in its own evidence context", () => {
     expect(banner).toHaveTextContent(formatDateTimeJa(archive.generatedAt));
     expect(banner).toHaveTextContent(formatDateTimeJa(currentSnapshot().generatedAt));
     expect(banner).toHaveTextContent("生成・審査の実行状態は未確認");
+    expect(within(banner).getByText(/前回の公開分析 · 根拠時点/)).toBeVisible();
+    expect(within(banner).getByText(/最新収集:/)).toBeVisible();
+    const caveats = banner.querySelector("details")!;
+    expect(caveats).not.toHaveAttribute("open");
+    fireEvent.click(within(banner).getByText("当時のデータを表示 · 時点の注意"));
+    expect(caveats).toHaveAttribute("open");
+    expect(within(banner).getByText(/生成・審査の実行状態は未確認/)).toBeVisible();
     expect(screen.getAllByText("約 99,999 円").length).toBeGreaterThan(0);
     expect(screen.getByText("検証済み AI 分析").closest("article")).toHaveTextContent("0 件");
     expect(screen.getByRole("link", { name: "AI 分析をすべて見る" })).toHaveAttribute("href", "#/previous-analysis/ai-insights");
