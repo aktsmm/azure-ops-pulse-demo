@@ -14,6 +14,14 @@ function job(text: string, name: string): string {
 }
 
 describe("independent semantic review publication boundary", () => {
+  it("pins the calibrated reviewer model instead of inheriting automatic routing", () => {
+    expect(source).toMatch(/^model: gpt-5\.4$/m);
+    expect(lock).toMatch(/^\s+GH_AW_INFO_MODEL: "gpt-5\.4"$/m);
+    expect(job(lock, "agent")).toMatch(/^\s+COPILOT_MODEL: gpt-5\.4$/m);
+    expect(lock).not.toContain("vars.GH_AW_DEFAULT_MODEL_COPILOT");
+    expect(lock).not.toContain("vars.GH_AW_MODEL_AGENT_COPILOT");
+  });
+
   it("requires independent review between validation and publication on both entry points", () => {
     const review = job(publisher, "semantic-review");
     const publish = job(publisher, "publish");
