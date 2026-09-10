@@ -1557,7 +1557,82 @@
       "flows": []
     }
   },
-  "aiInsights": [],
+  "aiInsights": [
+    {
+      "severity": "info",
+      "title": "最大カテゴリのコストが全体より大きく減少",
+      "observation": "Azure Cognitive Search は当期コストの62.9%を占める最大カテゴリで、このカテゴリ単体の変化率は-4.9%です。一方で全カテゴリ合計の変化率は-0.4%にとどまっています。",
+      "impact": "最大シェアのカテゴリが全体変化率（-0.4%）よりも大きく減少（-4.9%）しているため、他のカテゴリのどれかが増加方向に動いている可能性があります。シェアは使用量の増減理由を示さないため、これだけでは原因は特定できません。",
+      "numericEvidence": [
+        {
+          "label": "最大カテゴリのコスト構成比",
+          "value": "62.9%",
+          "source": "cost.categories.0.sharePercent"
+        },
+        {
+          "label": "最大カテゴリの変化率",
+          "value": "-4.9%",
+          "source": "cost.categories.0.deltaPercent"
+        },
+        {
+          "label": "コスト全体の変化率",
+          "value": "-0.4%",
+          "source": "cost.deltaPercent"
+        }
+      ],
+      "recommendedAction": "/cost ダッシュボードで最大カテゴリの変化率と他カテゴリの変化率を見比べ、まずどのカテゴリを重点的にレビューするか判断してください。使用量増減の実際の原因は、Azure ポータルのコスト分析画面で当該カテゴリを確認してください。",
+      "confidence": 0.68,
+      "route": "/cost",
+      "period": "2026-09-10 スナップショット収集時点",
+      "id": "insight-7d47932c"
+    },
+    {
+      "severity": "warning",
+      "title": "Blob の誤削除・上書きからの復旧確認が必要な Storage アカウントが7件",
+      "observation": "Azure Advisor の可用性カテゴリの対応候補「Blob の誤削除・上書きからの復旧を確認」は影響度中の推奨事項が7件あり、対象は Storage アカウント7件です。",
+      "impact": "論理的な削除や上書きの保護が不十分だと、対象の7件の Storage アカウントで誤削除・上書きからの復旧ができない可能性があります。保持期間や復元テストが確認できるまでは、重要データへの影響有無を判断できません。",
+      "numericEvidence": [
+        {
+          "label": "対象リソース数",
+          "value": "7",
+          "source": "advisor.details.groups.0.affectedResourceCount"
+        },
+        {
+          "label": "影響度中の件数",
+          "value": "7",
+          "source": "advisor.details.groups.0.impacts.Medium"
+        }
+      ],
+      "recommendedAction": "/recommendations でこの推奨事項のガイドを確認したうえで、対象の Storage アカウントの論理的な削除の保持期間、上書き保護、復元テストの状況を Azure ポータルで確認し、復旧要件と保持コストを比較してから保留か対応かを判断してください。",
+      "confidence": 0.66,
+      "route": "/recommendations",
+      "period": "2026-09-10 スナップショット収集時点",
+      "id": "insight-db569e11"
+    },
+    {
+      "severity": "warning",
+      "title": "Storage の TLS 設定確認が必要な影響度高の推奨事項が1件",
+      "observation": "Azure Advisor の可用性カテゴリの対応候補「Storage の TLS 設定と接続互換性を確認」は影響度高の推奨事項が1件あり、対象は Storage アカウント1件です。",
+      "impact": "最小 TLS バージョンの設定を見直すと、古い TLS のみに対応したクライアントが接続できなくなる可能性があります。対象の1件について現在の接続クライアントのバージョンを確認しないまま変更すると、既存の接続に影響する可能性があります。",
+      "numericEvidence": [
+        {
+          "label": "対象リソース数",
+          "value": "1",
+          "source": "advisor.details.groups.9.affectedResourceCount"
+        },
+        {
+          "label": "影響度高の件数",
+          "value": "1",
+          "source": "advisor.details.groups.9.impacts.High"
+        }
+      ],
+      "recommendedAction": "/recommendations でこの推奨事項のガイドを確認したうえで、対象の Storage アカウントの最小 TLS 設定と実際に接続しているクライアントのバージョンを Azure ポータルで確認し、互換性テストを計画してから変更を判断してください。",
+      "confidence": 0.62,
+      "route": "/recommendations",
+      "period": "2026-09-10 スナップショット収集時点",
+      "id": "insight-e725a3e1"
+    }
+  ],
   "advisor": {
     "availability": "available",
     "message": "カテゴリ・影響度の件数は全ライフサイクルの推奨レコード数です。対応候補の内容別集計は完了・却下・延期を除外します。",
