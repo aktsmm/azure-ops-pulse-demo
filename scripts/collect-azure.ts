@@ -16,9 +16,7 @@ import {
   comparableCostPeriods,
   costCoverageLabel,
   costPeriodMessage,
-  mergeCostPages,
-  transformComparableCost,
-  type CostQueryProperties
+  transformComparableCost
 } from "./cost-transform";
 import {
   normalizeActivityOperationLabel,
@@ -35,7 +33,8 @@ import {
   type MetricProbeOutcome,
   type MetricValue
 } from "./azure-metrics";
-import { collectSource, countReport } from "./source-status";
+import { collectSource, collectSourceAsync, countReport } from "./source-status";
+import { queryCostPeriod } from "./cost-query";
 import { publicSnapshotSchema } from "./public-schema";
 import { CollectionError, classifyCollectionFailure, safeCollectionFailure } from "./collection-diagnostics";
 import { collectDefender } from "./defender-collection";
@@ -139,66 +138,6 @@ function graphQuery<T>(subscriptionId: string, query: string): T[] {
     skipToken = nextToken;
   }
   throw new Error("Azure Resource Graph exceeded the 100-page safety limit");
-}
-
-const COST_API_VERSION = "2025-03-01";
-
-/**
- * Cost Management query results are paged through `properties.nextLink`.
- * https://learn.microsoft.com/ja-jp/rest/api/cost-management/query/usage?view=rest-cost-management-2025-03-01
- */
-function queryCostPeriod(
-  subscriptionId: string,
-  start: Date,
-  end: Date
-): CostQueryProperties | null {
-  const body = JSON.stringify({
-    type: "ActualCost",
-    timeframe: "Custom",
-    timePeriod: { from: start.toISOString(), to: end.toISOString() },
-    dataset: {
-      granularity: "None",
-      aggregation: { totalCost: { name: "Cost", function: "Sum" } },
-      grouping: [{ type: "Dimension", name: "ServiceName" }]
-    }
-  });
-  const pages: CostQueryProperties[] = [];
-  let url = `https://management.azure.com/subscriptions/${subscriptionId}/providers/Microsoft.CostManagement/query?api-version=${COST_API_VERSION}`;
-  const seen = new Set<string>();
-  for (let page = 0; page < 50; page += 1) {
-    if (seen.has(url)) throw new CollectionError("invalid-response");
-    seen.add(url);
-    const result = runAzJsonAllowingEmpty<{ properties?: CostQueryProperties }>([
-      "rest",
-      "--method",
-      "post",
-      "--url",
-      url,
-      "--body",
-      body
-    ]);
-    if (result === null) {
-      if (pages.length) throw new CollectionError("invalid-response");
-      return null;
-    }
-    const properties = result.properties;
-    if (!properties || !Array.isArray(properties.rows) || !Array.isArray(properties.columns)) {
-      throw new CollectionError("invalid-response");
-    }
-    pages.push(properties);
-    const nextLink = properties.nextLink;
-    if (!nextLink) return mergeCostPages(pages);
-    let next: URL;
-    try { next = new URL(nextLink, "https://management.azure.com"); }
-    catch { throw new CollectionError("invalid-response"); }
-    const expectedPath = `/subscriptions/${subscriptionId}/providers/Microsoft.CostManagement/query`;
-    if (next.origin !== "https://management.azure.com" ||
-        next.pathname.toLowerCase() !== expectedPath.toLowerCase() || next.username || next.password) {
-      throw new CollectionError("invalid-response");
-    }
-    url = next.href;
-  }
-  throw new CollectionError("invalid-response");
 }
 
 const RESOURCE_HEALTH_API_VERSION = "2025-05-01";
@@ -339,9 +278,20 @@ const topology = collectSource(
 
 const costPeriods = comparableCostPeriods(new Date());
 
-const currentCost = collectSource(
+const costDependencies = {
+  token: () => {
+    const result = runAzJson<{ accessToken?: string }>([
+      "account", "get-access-token", "--resource", "https://management.azure.com/"
+    ]);
+    if (typeof result.accessToken !== "string" || !result.accessToken) {
+      throw new CollectionError("authentication");
+    }
+    return result.accessToken;
+  }
+};
+const currentCost = await collectSourceAsync(
   "Cost Management",
-  () => queryCostPeriod(subscriptionId, costPeriods.current.start, costPeriods.current.end),
+  () => queryCostPeriod(subscriptionId, costPeriods.current.start, costPeriods.current.end, costDependencies),
   (properties) => ({
     availability: properties ? "available" : "unavailable",
     ...(!properties ? { reason: "empty" as const } : {}),
@@ -351,9 +301,9 @@ const currentCost = collectSource(
   }),
   safeCollectionFailure
 );
-const previousCost = collectSource(
+const previousCost = await collectSourceAsync(
   "Cost Management prior period",
-  () => queryCostPeriod(subscriptionId, costPeriods.previous.start, costPeriods.previous.end),
+  () => queryCostPeriod(subscriptionId, costPeriods.previous.start, costPeriods.previous.end, costDependencies),
   (properties) => ({
     availability: properties ? "available" : "unavailable",
     ...(!properties ? { reason: "empty" as const } : {}),

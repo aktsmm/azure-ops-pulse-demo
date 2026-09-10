@@ -66,3 +66,18 @@ export function countReport(
 export function isPublishable(status: SourceStatus | undefined): boolean {
   return status?.availability === "available" || status?.availability === "partial";
 }
+
+export async function collectSourceAsync<T>(
+  source: string,
+  operation: () => Promise<T>,
+  report: (value: T) => CollectionReport,
+  unavailableMessage: string | ((error: unknown) => string)
+): Promise<CollectedSource<T>> {
+  let value: T;
+  try {
+    value = await operation();
+  } catch (error) {
+    return collectSource(source, () => { throw error; }, report, unavailableMessage);
+  }
+  return collectSource(source, () => value, report, unavailableMessage);
+}
