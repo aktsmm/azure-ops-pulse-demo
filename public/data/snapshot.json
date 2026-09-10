@@ -1557,7 +1557,115 @@
       "flows": []
     }
   },
-  "aiInsights": [],
+  "aiInsights": [
+    {
+      "severity": "warning",
+      "title": "Resource Health 評価範囲が全体の68%に留まっている",
+      "observation": "Resource Health の対象は82件中19件で、うち評価済みは13件（68%）にとどまり、63件は評価対象外です。稼働状況の把握はこの範囲に限定されます。",
+      "impact": "評価対象外のリソースで異常が発生しても、この指標だけでは検知できない可能性があります。可用性の全体像を見誤るおそれがあります。",
+      "numericEvidence": [
+        {
+          "label": "評価済みリソース数",
+          "value": "13 件",
+          "source": "reliability.coverage.evaluatedResources"
+        },
+        {
+          "label": "Resource Health 評価カバー率",
+          "value": "68%",
+          "source": "reliability.coverage.supportedCoveragePercent"
+        },
+        {
+          "label": "評価対象外リソース数",
+          "value": "63 件",
+          "source": "reliability.coverage.notApplicableResources"
+        }
+      ],
+      "recommendedAction": "評価対象外リソースの監視方法を個別に確認し、信頼性ダッシュボードで対象範囲を定期的に見直すことを推奨します。",
+      "confidence": 0.65,
+      "route": "/reliability",
+      "period": "2026-09-10 スナップショット収集時点",
+      "id": "insight-73cf75ce"
+    },
+    {
+      "severity": "warning",
+      "title": "コストの過半数が Azure Cognitive Search に集中",
+      "observation": "当月のコスト構成では Azure Cognitive Search が62.9%を占め、前期比では-5.4%の減少でした。全体コストも前期比-0.9%とほぼ横ばいです。",
+      "impact": "特定サービスへのコスト集中は、そのサービスの利用変動が全体コストへ大きく波及する可能性を示唆します。",
+      "numericEvidence": [
+        {
+          "label": "Azure Cognitive Search のコスト構成比",
+          "value": "62.9%",
+          "source": "cost.categories.0.sharePercent"
+        },
+        {
+          "label": "Azure Cognitive Search の前期比増減率",
+          "value": "-5.4%",
+          "source": "cost.categories.0.deltaPercent"
+        },
+        {
+          "label": "全体コストの前期比増減率",
+          "value": "-0.9%",
+          "source": "cost.deltaPercent"
+        }
+      ],
+      "recommendedAction": "コストダッシュボードで Azure Cognitive Search の利用状況を確認し、想定通りの推移か定期的に照合することを推奨します。",
+      "confidence": 0.55,
+      "route": "/cost",
+      "period": "2026-09-10 スナップショット収集時点",
+      "id": "insight-9456f228"
+    },
+    {
+      "severity": "info",
+      "title": "ネットワークリソースの多くでプラットフォームメトリックが未取得",
+      "observation": "ネットワーク監視対象10件のうち、メトリックを取得できたのは3件のみで、7件はプラットフォームメトリックに対応していませんでした。",
+      "impact": "メトリック未対応のリソースは、稼働状況の変化をこのダッシュボードから把握しにくい可能性があります。",
+      "numericEvidence": [
+        {
+          "label": "メトリック取得対象リソース数",
+          "value": "3 件",
+          "source": "network.metricCoverage.metricCapableResources"
+        },
+        {
+          "label": "メトリック未対応リソース数",
+          "value": "7 件",
+          "source": "network.metricCoverage.notApplicableResources"
+        },
+        {
+          "label": "サンプリング対象リソース数",
+          "value": "10 件",
+          "source": "network.metricCoverage.sampledResources"
+        }
+      ],
+      "recommendedAction": "ネットワークダッシュボードで対象リソースの種別を確認し、必要に応じて監視方法の見直しを検討することを推奨します。",
+      "confidence": 0.5,
+      "route": "/network",
+      "period": "2026-09-10 スナップショット収集時点",
+      "id": "insight-7e1ce485"
+    },
+    {
+      "severity": "warning",
+      "title": "Service Health でアクティブなイベントが2件検出",
+      "observation": "Service Health は集計で5件のイベントを報告し、うち2件がアクティブ、3件が解決済みです。",
+      "impact": "アクティブなイベントはサービス単位の状態のみが分かり、影響範囲の詳細は含まれないため、個別確認が必要になる可能性があります。",
+      "numericEvidence": [
+        {
+          "label": "アクティブなイベント件数",
+          "value": "2 件",
+          "source": "reliability.serviceHealth.activeEvents"
+        },
+        {
+          "label": "解決済みイベント件数",
+          "value": "3 件",
+          "source": "reliability.serviceHealth.resolvedEvents"
+        }
+      ],
+      "recommendedAction": "信頼性ダッシュボードでアクティブなイベントの詳細を確認し、影響の有無を精査することを推奨します。",
+      "confidence": 0.6,
+      "route": "/reliability",
+      "period": "2026-09-10 スナップショット収集時点",
+      "id": "insight-5015a506"
+    }
+  ],
   "advisor": {
     "availability": "available",
     "message": "Advisor の推奨事項をカテゴリと影響度で集計しました。タイトル・対象名は公開しません。",
