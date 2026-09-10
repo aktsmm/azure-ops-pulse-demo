@@ -1,11 +1,11 @@
 {
   "schemaVersion": "1.4.0",
-  "generatedAt": "2026-09-10T00:07:55.410Z",
+  "generatedAt": "2026-09-10T03:53:04.445Z",
   "mode": "AZURE",
   "freshness": {
     "state": "fresh",
     "ageMinutes": 0,
-    "lastSuccessfulCollection": "2026-09-10T00:07:55.410Z",
+    "lastSuccessfulCollection": "2026-09-10T03:53:04.445Z",
     "nextScheduledCollection": "Tuesday / Friday 06:00 JST"
   },
   "scope": {
@@ -27,7 +27,7 @@
     {
       "source": "Resource Health",
       "availability": "partial",
-      "message": "Resource Health evaluated 13 of 19 supported resources; 63 resources are outside Resource Health coverage."
+      "message": "Resource Health evaluated 12 of 19 supported resources; 63 resources are outside Resource Health coverage."
     },
     {
       "source": "Service Health",
@@ -48,7 +48,7 @@
     {
       "source": "Azure Advisor",
       "availability": "available",
-      "message": "Advisor の推奨事項をカテゴリと影響度で集計しました。タイトル・対象名は公開しません。"
+      "message": "カテゴリ・影響度の件数は全ライフサイクルの推奨レコード数です。対応候補の内容別集計は完了・却下・延期を除外します。"
     },
     {
       "source": "Network topology",
@@ -66,13 +66,13 @@
     "metrics": [
       {
         "label": "Resource Health の評価範囲",
-        "value": "68%",
-        "change": "対応 19 件中 13 件を評価済み（対象外 63 件）",
+        "value": "63%",
+        "change": "対応 19 件中 12 件を評価済み（対象外 63 件）",
         "direction": "flat",
         "severity": "info",
         "points": [
-          68,
-          68
+          63,
+          63
         ]
       },
       {
@@ -154,7 +154,7 @@
       {
         "id": "event-ff907070",
         "timestamp": "現在の収集期間",
-        "severity": "info",
+        "severity": "warning",
         "title": "Service Health イベントを検出",
         "detail": "影響を受けたサブスクリプションやリソースの詳細を除き、サービス単位の状態のみを表示します。",
         "route": "/reliability"
@@ -162,7 +162,7 @@
       {
         "id": "event-00907203",
         "timestamp": "現在の収集期間",
-        "severity": "warning",
+        "severity": "info",
         "title": "Service Health イベントを検出",
         "detail": "影響を受けたサブスクリプションやリソースの詳細を除き、サービス単位の状態のみを表示します。",
         "route": "/reliability"
@@ -203,7 +203,7 @@
       "availability": "available",
       "approximateAmount": "約¥2.2万"
     },
-    "deltaPercent": -0.9,
+    "deltaPercent": -0.4,
     "forecast": {
       "availability": "unavailable",
       "approximateAmount": null
@@ -218,7 +218,7 @@
         "name": "Azure Cognitive Search",
         "approximateAmount": "約¥1.4万",
         "sharePercent": 62.9,
-        "deltaPercent": -5.4
+        "deltaPercent": -4.9
       },
       {
         "name": "Load Balancer",
@@ -230,7 +230,7 @@
         "name": "Foundry Tools",
         "approximateAmount": "約¥2千",
         "sharePercent": 11.2,
-        "deltaPercent": -49.3
+        "deltaPercent": -49.1
       },
       {
         "name": "Storage",
@@ -1018,7 +1018,7 @@
         "resourceGroup": "rg-8c2924db",
         "type": "microsoft.operationalinsights/workspaces",
         "region": "japaneast",
-        "status": "Healthy",
+        "status": "Unknown",
         "owner": "identity-caac8562",
         "tags": {},
         "change": "Azure Resource Graph から収集"
@@ -1345,12 +1345,12 @@
       "totalResources": 82,
       "supportedResources": 19,
       "notApplicableResources": 63,
-      "evaluatedResources": 13,
-      "unevaluatedResources": 6,
-      "healthyResources": 13,
+      "evaluatedResources": 12,
+      "unevaluatedResources": 7,
+      "healthyResources": 12,
       "degradedResources": 0,
       "unavailableResources": 0,
-      "supportedCoveragePercent": 68
+      "supportedCoveragePercent": 63
     },
     "serviceHealth": {
       "availability": "available",
@@ -1557,72 +1557,10 @@
       "flows": []
     }
   },
-  "aiInsights": [
-    {
-      "severity": "info",
-      "title": "Azure Cognitive Search がコスト全体の下落を主導",
-      "observation": "Azure Cognitive Search はコスト全体の 62.9% を占める最大カテゴリで、その変化率は -5.4% でした。一方、全体の変化率は -0.9% にとどまっています。",
-      "impact": "最大シェア（62.9%）を持つ Azure Cognitive Search 単独の変化率（-5.4%）が全体の変化率（-0.9%）を大きく上回って動いているため、全体のコスト推移を左右しているのはこのカテゴリである可能性が高く、他カテゴリより先にレビューする優先度が高いと考えられます。",
-      "numericEvidence": [
-        {
-          "label": "対象カテゴリのコストシェア",
-          "value": "62.9%",
-          "source": "cost.categories.0.sharePercent"
-        },
-        {
-          "label": "対象カテゴリの費用変化率",
-          "value": "-5.4%",
-          "source": "cost.categories.0.deltaPercent"
-        },
-        {
-          "label": "全体のコスト変化率",
-          "value": "-0.9%",
-          "source": "cost.deltaPercent"
-        }
-      ],
-      "recommendedAction": "/cost ページで Azure Cognitive Search のカテゴリ別変化率（-5.4%）を Load Balancer や Foundry Tools など他カテゴリの変化率、および全体の変化率（-0.9%）と比較し、最大シェアを持つこのカテゴリを最優先でレビュー対象にするかどうかを判断してください。",
-      "confidence": 0.7,
-      "route": "/cost",
-      "period": "2026-09-10 スナップショット収集時点",
-      "id": "insight-355ae096"
-    },
-    {
-      "severity": "warning",
-      "title": "推奨事項は信頼性カテゴリに集中",
-      "observation": "Azure Advisor の推奨事項は信頼性カテゴリで影響度「高」21 件、影響度「中」27 件と多く、運用エクセレンス（影響度「低」1 件）やパフォーマンス（影響度「中」1 件）など他カテゴリは各 1 件にとどまっています。",
-      "impact": "信頼性カテゴリの影響度「高」が 21 件、影響度「中」が 27 件と他カテゴリ（各 1 件）に比べて突出しているため、限られたレビュー時間を割り当てる際は信頼性カテゴリの推奨事項を優先的に確認する価値が高いと考えられます。",
-      "numericEvidence": [
-        {
-          "label": "信頼性カテゴリ（影響度「高」）の推奨件数",
-          "value": "21件",
-          "source": "advisor.recommendations.0.count"
-        },
-        {
-          "label": "信頼性カテゴリ（影響度「中」）の推奨件数",
-          "value": "27件",
-          "source": "advisor.recommendations.1.count"
-        },
-        {
-          "label": "運用エクセレンス（影響度「低」）の推奨件数",
-          "value": "1件",
-          "source": "advisor.recommendations.2.count"
-        },
-        {
-          "label": "パフォーマンス（影響度「中」）の推奨件数",
-          "value": "1件",
-          "source": "advisor.recommendations.4.count"
-        }
-      ],
-      "recommendedAction": "/security ページの Azure Advisor カテゴリセレクターで「信頼性」を選択し、影響度「高」21 件・影響度「中」27 件の推奨事項を、件数が少ない運用エクセレンスやパフォーマンスより先に確認してください。",
-      "confidence": 0.72,
-      "route": "/security",
-      "period": "2026-09-10 スナップショット収集時点",
-      "id": "insight-595bcdaa"
-    }
-  ],
+  "aiInsights": [],
   "advisor": {
     "availability": "available",
-    "message": "Advisor の推奨事項をカテゴリと影響度で集計しました。タイトル・対象名は公開しません。",
+    "message": "カテゴリ・影響度の件数は全ライフサイクルの推奨レコード数です。対応候補の内容別集計は完了・却下・延期を除外します。",
     "recommendations": [
       {
         "category": "HighAvailability",
@@ -1649,6 +1587,367 @@
         "impact": "Medium",
         "count": 1
       }
-    ]
+    ],
+    "details": {
+      "availability": "partial",
+      "message": "内容は公式の種類 ID と照合した固定カタログです。影響度は期限ではありません。状態不明は未対応と断定せず、非公開の内容は Azure ポータルで確認してください。",
+      "mappedRecommendationCount": 26,
+      "withheldRecommendationCount": 0,
+      "excludedRecommendationCount": 25,
+      "lifecycleUnknownCount": 0,
+      "affectedResourceCount": null,
+      "groups": [
+        {
+          "id": "blob-soft-delete",
+          "category": "HighAvailability",
+          "contentStatus": "mapped",
+          "count": 7,
+          "impacts": {
+            "High": 0,
+            "Medium": 7,
+            "Low": 0,
+            "Unknown": 0
+          },
+          "affectedResourceCount": 7,
+          "resourceTypes": [
+            {
+              "type": "microsoft.storage/storageaccounts",
+              "count": 7
+            }
+          ],
+          "title": "Blob の誤削除・上書きからの復旧を確認",
+          "description": "論理的な削除や上書きはデータ複製だけでは防げません。復旧できる保持期間の確認が必要です。",
+          "recommendedAction": "Blob の論理的な削除と保持期間、上書き時の保護、復元テストを確認し、復旧要件と保持コストを比較します。",
+          "deferWhen": "再生成可能な一時データ、または別の検証済み復元手段が要件を満たす場合は保留し、重要データの追加時に再評価します。",
+          "caveat": "稼働用途・許容停止時間・復旧要件・費用は未収集です。適用可否と現在の状態を確認し、影響度だけで緊急対応を決めません。",
+          "sourceUrl": "https://learn.microsoft.com/ja-jp/azure/advisor/advisor-reference-reliability-recommendations"
+        },
+        {
+          "id": "container-apps-zone-redundancy",
+          "category": "HighAvailability",
+          "contentStatus": "mapped",
+          "count": 2,
+          "impacts": {
+            "High": 2,
+            "Medium": 0,
+            "Low": 0,
+            "Unknown": 0
+          },
+          "affectedResourceCount": 2,
+          "resourceTypes": [
+            {
+              "type": "microsoft.app/managedenvironments",
+              "count": 2
+            }
+          ],
+          "title": "Container Apps 環境のゾーン冗長性を確認",
+          "description": "環境やアプリの配置が単一ゾーンに依存すると、ゾーン障害時に稼働を継続できない可能性があります。",
+          "recommendedAction": "環境のゾーン設定、アプリのレプリカ数、ワークロードのノード数を確認し、移行方法と費用を復旧要件に照らして検討します。",
+          "deferWhen": "停止を許容する開発・検証用途で再作成手順が確認済みなら保留し、本番化や可用性要件変更時に再評価します。",
+          "caveat": "稼働用途・許容停止時間・復旧要件・費用は未収集です。適用可否と現在の状態を確認し、影響度だけで緊急対応を決めません。",
+          "sourceUrl": "https://learn.microsoft.com/ja-jp/azure/advisor/advisor-reference-reliability-recommendations"
+        },
+        {
+          "id": "cosmos-continuous-backup",
+          "category": "HighAvailability",
+          "contentStatus": "mapped",
+          "count": 1,
+          "impacts": {
+            "High": 0,
+            "Medium": 1,
+            "Low": 0,
+            "Unknown": 0
+          },
+          "affectedResourceCount": 1,
+          "resourceTypes": [
+            {
+              "type": "microsoft.documentdb/databaseaccounts",
+              "count": 1
+            }
+          ],
+          "title": "Cosmos DB の復元時点とバックアップ方式を確認",
+          "description": "定期バックアップでは復元できる時点が要件に合わない可能性があり、継続バックアップとの比較が必要です。",
+          "recommendedAction": "許容データ損失と復元対象期間、利用 API の対応条件を確認し、継続バックアップの復元テストと費用を比較します。",
+          "deferWhen": "現在のバックアップと復元テストが合意済みのデータ損失・復旧時間を満たすなら保留し、要件変更時に再評価します。",
+          "caveat": "稼働用途・許容停止時間・復旧要件・費用は未収集です。適用可否と現在の状態を確認し、影響度だけで緊急対応を決めません。",
+          "sourceUrl": "https://learn.microsoft.com/ja-jp/azure/advisor/advisor-reference-reliability-recommendations"
+        },
+        {
+          "id": "cosmos-missing-indexes",
+          "category": "Performance",
+          "contentStatus": "mapped",
+          "count": 1,
+          "impacts": {
+            "High": 0,
+            "Medium": 1,
+            "Low": 0,
+            "Unknown": 0
+          },
+          "affectedResourceCount": 1,
+          "resourceTypes": [
+            {
+              "type": "microsoft.documentdb/databaseaccounts",
+              "count": 1
+            }
+          ],
+          "title": "Cosmos DB の不足インデックスを確認",
+          "description": "インデックスの追加で、クエリの要求ユニット消費量や応答時間を改善できる可能性があります。具体的なクエリ・パス・実測値は未収集です。",
+          "recommendedAction": "Azure ポータルで推奨されたインデックス パスと現在のポリシーを確認し、対象クエリの応答時間・要求ユニット消費量を追加前後で比較します。読み書き双方の負荷を検証して適用を判断します。",
+          "deferWhen": "現行クエリの応答時間と要求ユニット消費量が合意済みの目標を満たし、追加インデックスの効果が検証で確認できない場合は保留し、クエリや負荷の変更時に再評価します。",
+          "caveat": "稼働用途・許容停止時間・復旧要件・費用は未収集です。適用可否と現在の状態を確認し、影響度だけで緊急対応を決めません。",
+          "sourceUrl": "https://learn.microsoft.com/ja-jp/azure/advisor/advisor-reference-performance-recommendations"
+        },
+        {
+          "id": "outbound-nat-capacity",
+          "category": "HighAvailability",
+          "contentStatus": "mapped",
+          "count": 1,
+          "impacts": {
+            "High": 0,
+            "Medium": 1,
+            "Low": 0,
+            "Unknown": 0
+          },
+          "affectedResourceCount": 1,
+          "resourceTypes": [
+            {
+              "type": "microsoft.network/virtualnetworks",
+              "count": 1
+            }
+          ],
+          "title": "送信接続の SNAT 容量と NAT Gateway を検討",
+          "description": "SNAT ポートが不足すると外部への接続が失敗する可能性があります。発生の有無はこの集計だけでは判断できません。",
+          "recommendedAction": "送信経路とピーク接続数、接続失敗の記録を確認し、NAT Gateway の採用を現在の経路・費用と比較します。",
+          "deferWhen": "外部送信が不要、または既存経路でピーク時の容量と接続成功を検証済みなら保留し、負荷増加時に再評価します。",
+          "caveat": "稼働用途・許容停止時間・復旧要件・費用は未収集です。適用可否と現在の状態を確認し、影響度だけで緊急対応を決めません。",
+          "sourceUrl": "https://learn.microsoft.com/ja-jp/azure/advisor/advisor-reference-reliability-recommendations"
+        },
+        {
+          "id": "registry-geo-replication",
+          "category": "HighAvailability",
+          "contentStatus": "mapped",
+          "count": 1,
+          "impacts": {
+            "High": 1,
+            "Medium": 0,
+            "Low": 0,
+            "Unknown": 0
+          },
+          "affectedResourceCount": 1,
+          "resourceTypes": [
+            {
+              "type": "microsoft.containerregistry/registries",
+              "count": 1
+            }
+          ],
+          "title": "Container Registry のリージョン障害対策を確認",
+          "description": "単一リージョンに依存すると、障害時にイメージ取得や新しい展開ができなくなる可能性があります。",
+          "recommendedAction": "障害時にイメージ取得が必要なリージョンと代替経路を確認し、Premium の geo レプリケーションを復旧要件・費用と比較します。",
+          "deferWhen": "リージョン障害中の新規展開を許容範囲内で停止でき、代替取得手段を検証済みなら保留し、DR 設計変更時に再評価します。",
+          "caveat": "稼働用途・許容停止時間・復旧要件・費用は未収集です。適用可否と現在の状態を確認し、影響度だけで緊急対応を決めません。",
+          "sourceUrl": "https://learn.microsoft.com/ja-jp/azure/advisor/advisor-reference-reliability-recommendations"
+        },
+        {
+          "id": "registry-premium-tier",
+          "category": "HighAvailability",
+          "contentStatus": "mapped",
+          "count": 1,
+          "impacts": {
+            "High": 1,
+            "Medium": 0,
+            "Low": 0,
+            "Unknown": 0
+          },
+          "affectedResourceCount": 1,
+          "resourceTypes": [
+            {
+              "type": "microsoft.containerregistry/registries",
+              "count": 1
+            }
+          ],
+          "title": "Container Registry の階層と本番要件を確認",
+          "description": "必要な処理容量や復元性の機能が現在の階層にない場合、イメージ取得や展開に影響する可能性があります。",
+          "recommendedAction": "本番の同時取得数・帯域・必要な冗長化機能を確認し、Premium の機能と追加費用が要件に見合うか比較します。",
+          "deferWhen": "現行階層で負荷と復旧要件を満たすことを検証済みなら保留し、利用量や配備リージョンの増加時に再確認します。",
+          "caveat": "稼働用途・許容停止時間・復旧要件・費用は未収集です。適用可否と現在の状態を確認し、影響度だけで緊急対応を決めません。",
+          "sourceUrl": "https://learn.microsoft.com/ja-jp/azure/advisor/advisor-reference-reliability-recommendations"
+        },
+        {
+          "id": "search-replica-capacity",
+          "category": "HighAvailability",
+          "contentStatus": "mapped",
+          "count": 1,
+          "impacts": {
+            "High": 0,
+            "Medium": 1,
+            "Low": 0,
+            "Unknown": 0
+          },
+          "affectedResourceCount": 1,
+          "resourceTypes": [
+            {
+              "type": "microsoft.search/searchservices",
+              "count": 1
+            }
+          ],
+          "title": "Azure AI Search のレプリカと可用性要件を確認",
+          "description": "レプリカが不足すると、メンテナンスや障害時のクエリ継続性に影響する可能性があります。",
+          "recommendedAction": "レプリカ数とクエリ・インデックス更新の用途、必要な SLA 条件を確認し、追加レプリカの費用と継続性を比較します。",
+          "deferWhen": "検索停止を許容する検証用途で、現行構成の性能と復旧を検証済みなら保留し、本番化や SLA 要件変更時に再確認します。",
+          "caveat": "稼働用途・許容停止時間・復旧要件・費用は未収集です。適用可否と現在の状態を確認し、影響度だけで緊急対応を決めません。",
+          "sourceUrl": "https://learn.microsoft.com/ja-jp/azure/advisor/advisor-reference-reliability-recommendations"
+        },
+        {
+          "id": "service-health-alert",
+          "category": "HighAvailability",
+          "contentStatus": "mapped",
+          "count": 1,
+          "impacts": {
+            "High": 1,
+            "Medium": 0,
+            "Low": 0,
+            "Unknown": 0
+          },
+          "affectedResourceCount": null,
+          "resourceTypes": [
+            {
+              "type": "microsoft.subscriptions/subscriptions",
+              "count": 1
+            }
+          ],
+          "title": "Service Health の通知経路を確認",
+          "description": "サービス障害や計画メンテナンスを担当者が認識できないと、初動が遅れる可能性があります。",
+          "recommendedAction": "対象サービス・リージョンを選び、Service Health アラートの有無、受信担当、通知テストを確認します。",
+          "deferWhen": "同等の通知と担当者への連絡経路が検証済みなら、新規作成を保留し、対象範囲の変更時に再確認します。",
+          "caveat": "稼働用途・許容停止時間・復旧要件・費用は未収集です。適用可否と現在の状態を確認し、影響度だけで緊急対応を決めません。",
+          "sourceUrl": "https://learn.microsoft.com/ja-jp/azure/advisor/advisor-reference-reliability-recommendations"
+        },
+        {
+          "id": "storage-tls-version",
+          "category": "HighAvailability",
+          "contentStatus": "mapped",
+          "count": 1,
+          "impacts": {
+            "High": 1,
+            "Medium": 0,
+            "Low": 0,
+            "Unknown": 0
+          },
+          "affectedResourceCount": 1,
+          "resourceTypes": [
+            {
+              "type": "microsoft.storage/storageaccounts",
+              "count": 1
+            }
+          ],
+          "title": "Storage の TLS 設定と接続互換性を確認",
+          "description": "古い TLS に依存するクライアントは、サービスの対応変更時に接続できなくなる可能性があります。",
+          "recommendedAction": "最小 TLS 設定とクライアントの実接続バージョンを確認し、公式の適用条件・日程と照合して互換性テストを計画します。",
+          "deferWhen": "対応済み TLS で全接続を検証し、対象外または解消済みと確認できた場合だけ変更を保留し、状態を再確認します。",
+          "caveat": "稼働用途・許容停止時間・復旧要件・費用は未収集です。適用可否と現在の状態を確認し、影響度だけで緊急対応を決めません。",
+          "sourceUrl": "https://learn.microsoft.com/ja-jp/azure/advisor/advisor-reference-reliability-recommendations"
+        },
+        {
+          "id": "storage-zone-redundancy",
+          "category": "HighAvailability",
+          "contentStatus": "mapped",
+          "count": 4,
+          "impacts": {
+            "High": 4,
+            "Medium": 0,
+            "Low": 0,
+            "Unknown": 0
+          },
+          "affectedResourceCount": 4,
+          "resourceTypes": [
+            {
+              "type": "microsoft.storage/storageaccounts",
+              "count": 4
+            }
+          ],
+          "title": "Storage のゾーン障害対策を確認",
+          "description": "単一データセンターに依存する構成では、障害時にデータへアクセスできなくなる可能性があります。",
+          "recommendedAction": "現在の冗長化方式と許容停止時間を確認し、対応リージョン・アカウント条件・移行方法・追加費用を比較します。",
+          "deferWhen": "再生成できる検証データなどでゾーン停止を許容すると所有者が合意済みなら保留し、本番化や復旧要件変更時に再確認します。",
+          "caveat": "稼働用途・許容停止時間・復旧要件・費用は未収集です。適用可否と現在の状態を確認し、影響度だけで緊急対応を決めません。",
+          "sourceUrl": "https://learn.microsoft.com/ja-jp/azure/advisor/advisor-reference-reliability-recommendations"
+        },
+        {
+          "id": "vm-availability-zones",
+          "category": "HighAvailability",
+          "contentStatus": "mapped",
+          "count": 3,
+          "impacts": {
+            "High": 3,
+            "Medium": 0,
+            "Low": 0,
+            "Unknown": 0
+          },
+          "affectedResourceCount": 3,
+          "resourceTypes": [
+            {
+              "type": "microsoft.compute/virtualmachines",
+              "count": 3
+            }
+          ],
+          "title": "VM のゾーン配置と停止許容範囲を確認",
+          "description": "配置先のゾーン障害に備えるには、VM 単体の配置変更だけでなくアプリ全体の冗長化・復旧設計が必要です。",
+          "recommendedAction": "現在の配置と依存先、冗長インスタンス、移行時の停止を確認し、ゾーン障害時に必要なサービスを継続できるか検討します。",
+          "deferWhen": "単一 VM の停止を許容し、復旧手順が許容時間を満たす検証・一時用途なら保留し、本番化時に再確認します。",
+          "caveat": "稼働用途・許容停止時間・復旧要件・費用は未収集です。適用可否と現在の状態を確認し、影響度だけで緊急対応を決めません。",
+          "sourceUrl": "https://learn.microsoft.com/ja-jp/azure/advisor/advisor-reference-reliability-recommendations"
+        },
+        {
+          "id": "vmss-automatic-repair",
+          "category": "HighAvailability",
+          "contentStatus": "mapped",
+          "count": 1,
+          "impacts": {
+            "High": 1,
+            "Medium": 0,
+            "Low": 0,
+            "Unknown": 0
+          },
+          "affectedResourceCount": 1,
+          "resourceTypes": [
+            {
+              "type": "microsoft.compute/virtualmachinescalesets",
+              "count": 1
+            }
+          ],
+          "title": "VMSS の自動修復と復旧手順を確認",
+          "description": "異常インスタンスを検知しても修復が手動のままだと、サービス復旧が遅れる可能性があります。",
+          "recommendedAction": "正常性シグナルと修復ポリシー、猶予時間、状態保持の影響を確認し、検証環境で障害時の復旧を試します。",
+          "deferWhen": "状態保持などの理由で自動修復が不適切でも、手動復旧が許容時間内に完了することを検証済みなら保留できます。",
+          "caveat": "稼働用途・許容停止時間・復旧要件・費用は未収集です。適用可否と現在の状態を確認し、影響度だけで緊急対応を決めません。",
+          "sourceUrl": "https://learn.microsoft.com/ja-jp/azure/advisor/advisor-reference-reliability-recommendations"
+        },
+        {
+          "id": "vmss-health-monitoring",
+          "category": "HighAvailability",
+          "contentStatus": "mapped",
+          "count": 1,
+          "impacts": {
+            "High": 0,
+            "Medium": 1,
+            "Low": 0,
+            "Unknown": 0
+          },
+          "affectedResourceCount": 1,
+          "resourceTypes": [
+            {
+              "type": "microsoft.compute/virtualmachinescalesets",
+              "count": 1
+            }
+          ],
+          "title": "VMSS のアプリ正常性監視を確認",
+          "description": "アプリの異常を検知できないと、安全な更新や自動修復の判断に必要な情報が不足します。",
+          "recommendedAction": "Application Health 拡張機能またはロードバランサーのプローブで、アプリの正常性が正しく判定されるか確認します。",
+          "deferWhen": "同等のアプリ正常性監視を実測で検証済みなら追加導入を保留し、更新・修復方式の変更時に再確認します。",
+          "caveat": "稼働用途・許容停止時間・復旧要件・費用は未収集です。適用可否と現在の状態を確認し、影響度だけで緊急対応を決めません。",
+          "sourceUrl": "https://learn.microsoft.com/ja-jp/azure/advisor/advisor-reference-reliability-recommendations"
+        }
+      ]
+    }
   }
 }
