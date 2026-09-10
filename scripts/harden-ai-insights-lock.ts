@@ -81,7 +81,10 @@ function validateSecretDeclaration(lines: string[]): void {
   }
 }
 
-export function hardenAgentWorkflowLock(content: string): string {
+export function hardenAgentWorkflowLock(
+  content: string,
+  workflow: "ai-insights" | "review-ai-insights" = "ai-insights"
+): string {
   const lines = content.replace(/\r\n/g, "\n").replace(/\n$/, "").split("\n");
 
   validateSecretDeclaration(lines);
@@ -143,19 +146,52 @@ export function hardenAgentWorkflowLock(content: string): string {
     }
   }
 
+  const handoff = workflow === "ai-insights"
+    ? { name: "validated-ai-insights", path: "public/data/snapshot.json" }
+    : { name: "semantic-ai-review", path: "review-output/semantic-review.json" };
+  const stagedPath = workflow === "ai-insights"
+    ? "public/data/snapshot.json"
+    : "review-output/verdict.json";
+  const handlerConfigs = [...hardened.matchAll(/^\s+GH_AW_SAFE_OUTPUTS_HANDLER_CONFIG: (".*")$/gm)];
+  if (handlerConfigs.length !== 1) throw new Error("Expected exactly one staged artifact configuration");
+  const handler = JSON.parse(JSON.parse(handlerConfigs[0]![1]!) as string) as {
+    upload_artifact?: Record<string, unknown>;
+  };
+  const upload = handler.upload_artifact;
   if (
-    !/name: validated-ai-insights\n\s+path: public\/data\/snapshot\.json\n\s+retention-days: 1/.test(
-      hardened
-    )
+    !upload ||
+    JSON.stringify(upload["allowed-paths"]) !== JSON.stringify([stagedPath]) ||
+    upload["max-size-bytes"] !== 1048576 ||
+    upload["max-uploads"] !== 1 ||
+    upload["retention-days"] !== 1 ||
+    upload["skip-archive"] !== true
   ) {
-    throw new Error("Validated candidate must use the exact one-day trusted handoff artifact");
+    throw new Error("Agent-facing staged artifact must retain its exact bounded configuration");
   }
-  if (
-    !/name: safe-outputs-upload-artifacts\n\s+path: \$\{\{ runner\.temp \}\}\/gh-aw\/safeoutputs\/upload-artifacts\/\n\s+retention-days: 1/.test(
-      hardened
-    )
-  ) {
-    throw new Error("Agent-facing staged output must remain separate from the trusted handoff");
+  // Check actual upload-step properties, not substrings a different step or extra path can satisfy.
+  for (const expected of [
+    handoff,
+    { name: "safe-outputs-upload-artifacts", path: "${{ runner.temp }}/gh-aw/safeoutputs/upload-artifacts/" }
+  ]) {
+    const matching = uploadBlocks.filter((block) =>
+      block.split("\n").some((line) => line === `          name: ${expected.name}`)
+    );
+    if (matching.length !== 1) {
+      throw new Error(`Expected exactly one trusted handoff artifact: ${expected.name}`);
+    }
+    const block = matching[0]!;
+    const properties = block.split("\n").filter((line) => /^ {10}\S/.test(line));
+    if (
+      properties.filter((line) => line.startsWith("          name:")).length !== 1 ||
+      properties.filter((line) => line.startsWith("          path:")).length !== 1 ||
+      !properties.includes(`          path: ${expected.path}`) ||
+      block.split("\n").some((line) => /^ {11,}\S/.test(line))
+    ) {
+      throw new Error(`Artifact ${expected.name} must use its exact bounded path`);
+    }
+    if (expected === handoff && !properties.includes("          if-no-files-found: error")) {
+      throw new Error("Trusted handoff artifact must fail when missing");
+    }
   }
 
   return hardened;

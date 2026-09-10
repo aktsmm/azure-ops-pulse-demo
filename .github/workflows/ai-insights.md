@@ -128,9 +128,10 @@ fields; do not recover or imitate previous insight text. An existing generated s
   change. No usage quantities, per-resource billing, pricing, or breakdown within a service category.
   Never tell the reader this page can determine usage causes. Recommend comparing category and
   overall changes (including other categories) to choose which categories to review first.
-- `/security`: BOTH Defender summaries and the Azure Advisor category/impact selector. Advisor-only
+- `/security`: BOTH Defender summaries and the Azure Advisor category selector. Advisor-only
   insights MUST use this route, even for HighAvailability. Tell the reader to select the relevant
-  Advisor category here. Category counts are not distinct affected resources or detailed findings.
+  Advisor category here: HighAvailability is labelled 「信頼性」. Impact is displayed in rows; there
+  is NO impact selector. Category counts are not distinct affected resources or detailed findings.
 - `/reliability`: Resource Health and Service Health, NOT Advisor recommendations.
 - `/network`: anonymous configuration topology and collection scope, NOT traffic traces or outage proof.
 
@@ -158,6 +159,9 @@ run can publish zero insights. Evaluate candidates against these rules BEFORE wr
    are insufficient. Human investigation is allowed; do not prescribe Azure changes.
    Anchor `impact` explicitly in at least one cited numeric value, including what the value means
    for the decision. Merely inserting a number into generic prose does not qualify.
+   Every numerical claim in title, observation, impact and action must appear in numericEvidence.
+   Do not invent savings percentages, timelines or thresholds. Do not quote computed sums/ratios
+   without an existing cited scalar; explain the comparison without a new calculated number.
    A cost action should compare the named category's change with the overall change to decide
    whether to focus review there or in the remaining categories, not ask for unspecified usage
    details that the dashboard does not contain.
@@ -166,6 +170,11 @@ run can publish zero insights. Evaluate candidates against these rules BEFORE wr
    claim a new issue, recurrence, duration, anomaly, acceleration, or worsening.
 6. Rank by decision value, merge overlapping findings, and omit weak candidates rather than padding
    to four. Unrelated operational evidence added to a coverage warning does not make it analysis.
+
+After generation, a separate reviewer evaluates the WHOLE claim, not just whether numbers match.
+It rejects generic prose with inserted numbers, unrelated evidence, invalid periods/denominators,
+causal or savings claims not observed, and actions the linked UI/data cannot support. Review is
+independent of this self-check. Do not create or modify review files, and do not claim approval.
 
 Example of an eligible reasoning pattern (use actual snapshot values, never copy example numbers):
 one service dominates spend while its own change and the overall change differ. Explain that this

@@ -6,6 +6,8 @@ function insight(...sources: string[]) {
   const base = buildDemoSnapshot().aiInsights[0]!;
   return {
     ...base,
+    title: "対象の比較",
+    observation: "対象1件と関連する指標を比較しています。",
     impact: "対象1件の比較を根拠に確認対象を絞ります。",
     recommendedAction: "カテゴリの変化と全体の変化を比較して確認順を判断してください。",
     numericEvidence: sources.map((source) => ({ source, value: "1", label: "対象件数" }))
@@ -55,6 +57,32 @@ describe("new insight admission quality", () => {
       .toThrow("tie the impact");
     expect(() => validateInsightQuality([{ ...candidate, impact: "未確認の99件に影響します。" }]))
       .toThrow("tie the impact");
+  });
+
+  it.each(["title", "observation", "impact", "recommendedAction"] as const)(
+    "rejects extra numerical claims in %s even when an evidence number is present", (field) => {
+      const candidate = insight("cost.categories.0.sharePercent", "cost.deltaPercent");
+      expect(() => validateInsightQuality([{
+        ...candidate, [field]: "構成比1%の確認で99%の削減ができます。"
+      }])).toThrow("every numeric claim");
+      expect(() => validateInsightQuality([{
+        ...candidate, [field]: "構成比１％の確認で９９％の削減ができます。"
+      }])).toThrow("every numeric claim");
+    }
+  );
+
+  it("allows a signed value to be described as a decrease, and embedded protocol names", () => {
+    const candidate = {
+      ...insight("cost.categories.0.deltaPercent", "cost.deltaPercent"),
+      title: "IPv4 の比較",
+      observation: "5.4%減少と、全体の0.9%減少を比較します。",
+      impact: "全体-0.9%とカテゴリ-5.4%の違いを確認します。",
+      numericEvidence: [
+        { source: "cost.categories.0.deltaPercent", value: "-5.4%", label: "カテゴリ" },
+        { source: "cost.deltaPercent", value: "-0.9%", label: "全体" }
+      ]
+    };
+    expect(() => validateInsightQuality([candidate])).not.toThrow();
   });
 
   it("directs Advisor-only analysis to the actual category selector", () => {

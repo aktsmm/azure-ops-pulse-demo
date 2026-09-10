@@ -48,11 +48,32 @@ AI インサイトは、根拠のある比較・偏り・関連から確認の�
 根拠が収集範囲やイベントの状態別総数だけではないこと、影響説明に根拠の数値を含むことを
 機械的に判定します。過去の生成文に引きずられないよう、AI 入力から既存の `aiInsights` だけを
 取り除き、収集値は維持して分析し直します。生成時と trusted publisher の両方で
-同じ判定を実行します。これは最低限の構造検査であり、一般論の完全な検出や推論の正しさを
-保証しません。文章の具体性・比較の妥当性は生成指示でも要求します。
+同じ判定を実行します。タイトル・観測・影響・推奨の数値も根拠に照合し、
+根拠外の削減率・期限・閾値・計算結果を本文へ追加した候補は拒否します。
+数値の符号を「減少」と言い換える表現は許容しますが、その解釈は後段のレビュー対象です。
 Advisor だけを根拠にする分析は実際の掲載先 `/security` へ案内し、コスト分析では
 この画面が持たない使用量情報から原因を判断するような推奨を公開ゲートで拒否します。
 過去のスナップショットは再生成まで読み込み・ビルド可能とし、手作業で分析を書き換えません。
+
+### 独立した意味レビュー
+
+生成用 AI の自己チェックとは別の `review-ai-insights` ワークフローで、
+匿名化済み候補全体を新しいコンテキストで評価します。各インサイトについて、
+**主張の根拠・根拠同士の関連性・推奨の実行可能性・断定の範囲**を判定します。
+正しい数値を挿入しただけの一般論、無関係な根拠の水増し、削減効果の捏造、
+期間・分母・増減方向の誤読、画面にないデータや操作の推奨は拒否対象です。
+
+レビューには、同じ基準で判定する固定の合成例 5 件（適切な例 2 件、不適切な例 3 件）も
+渡します。正解は入力に含めず、trusted publisher が判定結果を照合します。
+合成例は公開スナップショットへ混ぜません。レビューの欠落・失敗・否認・合成例の判定失敗は
+公開を止め、否認された文章を黙って削除して合格扱いにはしません。
+
+判定は候補ファイル全体の SHA-256 とインサイト ID 集合へ紐付けます。
+trusted publisher は別 run の結果や変更された候補を拒否し、最新 main との baseline、
+数値根拠、privacy、レビューを公開直前にも再検証します。判定 artifact は 1 日保持です。
+これは独立した AI 判定と回帰例による品質向上であり、**意味の正しさを数学的に保証する
+ものではありません**。レビューモデルも誤る可能性があり、実データ不足は補えません。
+公開までに AI レビュー 1 回分の時間と利用量が追加されます。
 
 | 工程 | 実行主体 | 現在の動作 | 公開前の境界 |
 | --- | --- | --- | --- |
@@ -61,7 +82,8 @@ Advisor だけを根拠にする分析は実際の掲載先 `/security` へ案�
 | Validation | 決定論的 TypeScript | JSON Schema、runtime schema、evidence、privacy を検証 | 失敗時は候補を公開領域へ昇格しない |
 | snapshot 公開 | GitHub Actions | 検証済み差分だけを `main` へ直接commitし、AI分析とPagesを明示的に起動 | Schema、evidence、privacy の全ゲート成功 |
 | AI 分析 | GitHub Agentic Workflow | 新しいsnapshotの公開後、最新 `main` で起動 | 入力は `public/data/snapshot.json` だけ |
-| AI 分析公開 | trusted publisher | AI候補を再検証し、差分があれば `main` へ直接commit | Schema、Japanese、evidence、baseline、privacy の全ゲート成功 |
+| AI 意味レビュー | 独立した Agentic Workflow | 候補と固定合成例を評価し、判定だけを出力 | 候補の変更・再生成・repository write は不可 |
+| AI 分析公開 | trusted publisher | AI候補と独立判定を再検証し、差分があれば `main` へ直接commit | Schema、Japanese、evidence、baseline、privacy、意味レビュー・合成例の全ゲート成功 |
 | Pages deploy | GitHub Actions | 検証済みの各公開commit後に build・検証・deploy | GitHub Pages environment |
 
 **公開更新は完全自動です。** ただし、収集・匿名化・決定論的検証・AI候補の再検証の
@@ -75,6 +97,7 @@ sequenceDiagram
   participant Collect as [決定論的] Collect Actions
   participant Agent as [AI reasoning] Agentic Workflow
   participant Publish as [決定論的] Trusted publisher
+  participant Review as [独立 AI] Semantic reviewer
   participant Pages as [決定論的] GitHub Pages
 
   Note over Collect: 火・金 06:00 JST
@@ -87,6 +110,9 @@ sequenceDiagram
   Agent->>Agent: 公開JSONだけを根拠付き分析
   Agent-->>Publish: bounded candidate artifact
   Publish->>Publish: fresh checkoutで全ゲート再実行
+  Publish->>Review: 正確なrun IDを指定し候補をレビュー
+  Review-->>Publish: 候補SHA・全件判定・合成例判定
+  Publish->>Publish: 判定照合 + 最新mainで公開直前の再検証
   Publish->>Publish: 検証済みAI分析をmainへ直接commit
   Publish->>Pages: workflow_dispatch
   Pages->>Pages: quality gates + build + privacy scan
@@ -110,7 +136,8 @@ AI分析とPages配信を明示的に実行します。Agentic Workflowの権限
 | --- | --- | --- |
 | [`collect-azure.yml`](.github/workflows/collect-azure.yml) | OIDC収集、匿名化候補の検証、snapshotの直接公開、AI/Pagesのdispatch | `id-token: write`、`contents: write`、`actions: write` |
 | [`ai-insights.md`](.github/workflows/ai-insights.md) / `.lock.yml` | 公開JSONだけを読む根拠付き分析 | `contents: read`、`copilot-requests: write` |
-| [`publish-ai-insights.yml`](.github/workflows/publish-ai-insights.yml) | fresh checkoutで候補を再検証しAI分析を直接公開、Pagesをdispatch | validateはread-only、publish jobだけ`contents: write`、`actions: write` |
+| [`review-ai-insights.md`](.github/workflows/review-ai-insights.md) / `.lock.yml` | 別コンテキストで意味レビュー、合成例を同時評価 | `contents: read`、`actions: read`、`copilot-requests: write` |
+| [`publish-ai-insights.yml`](.github/workflows/publish-ai-insights.yml) | 候補・独立レビューを再検証し公開、Pagesをdispatch | review dispatchに`actions: write`、publish jobだけ`contents: write` |
 | [`ci.yml`](.github/workflows/ci.yml) | lint、typecheck、tests、schema、build、privacy | `contents: read` |
 | [`pages.yml`](.github/workflows/pages.yml) | 検証済みproduction buildをPagesへdeploy | `pages/id-token: write` |
 
@@ -123,10 +150,11 @@ GitHub Actions 上で実行する hardened `.lock.yml` を生成する仕組み�
 `gh-aw v0.88.7` を固定し、strict compile と検証を行います。gh-aw は Public Preview
 として扱い、仕様変更を前提に固定versionと生成差分をレビューします。
 
-### AI に渡す唯一の入力
+### AI に渡す入力
 
 `public/data/snapshot.json` だけです。Azure、workflow secrets、logs、他artifact、
 commit history、外部サービスは分析対象にしません。入力はすでに公開用匿名化境界を通過しています。
+独立レビュー用 AI には、その検証済み候補と固定合成例だけを別コンテキストで渡します。
 
 ### AI ができること / できないこと
 
@@ -141,7 +169,8 @@ commit history、外部サービスは分析対象にしません。入力はす
 Agent job は repository write 権限を持ちません。候補は1日保持・1MiB以下・単一の
 `snapshot.json` artifact に限定されます。別workflowの trusted publisher が最新
 default branchをfresh checkoutし、JSON Schema、runtime schema、日本語、数値根拠、
-baseline差分、privacyを再検証します。repositoryのwrite権限は検証後の公開jobだけにあります。
+baseline差分、privacyと独立レビュー判定を再検証します。
+repositoryのwrite権限はすべての検証後の公開jobだけにあります。
 
 公開更新に毎回の人間承認は挟みません。ただし、分析が提案する運用上の優先度や
 対処の妥当性は人間が判断し、Azureへの変更を自動実行することはありません。
