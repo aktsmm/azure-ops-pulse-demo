@@ -16,6 +16,7 @@ permissions:
   copilot-requests: write
 
 engine: copilot
+model: gpt-5.4
 network: defaults
 strict: true
 timeout-minutes: 20
