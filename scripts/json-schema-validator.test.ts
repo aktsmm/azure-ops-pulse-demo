@@ -6,6 +6,7 @@ import { describe, expect, it } from "vitest";
 import type { ReliabilityCoverage } from "../src/data/contracts";
 import { costFixture } from "../src/test/cost-fixtures";
 import { withDefenderUnavailable } from "../src/test/reliability-fixtures";
+import { snapshotFixture } from "../src/test/snapshot-fixtures";
 import { buildDemoSnapshot } from "./build-demo-snapshot";
 import { publicSnapshotSchema } from "./public-schema";
 import {
@@ -52,7 +53,7 @@ const LEGACY_SCHEMA_FILES = [
 ] as const;
 
 function currentSnapshot(): MutableSnapshot {
-  return JSON.parse(readFileSync("public/data/snapshot.json", "utf8")) as MutableSnapshot;
+  return snapshotFixture();
 }
 
 function validateLegacyV1Snapshot(snapshot: unknown): void {

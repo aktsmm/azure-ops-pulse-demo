@@ -3,11 +3,10 @@ import { cleanup, fireEvent, render, screen, waitFor, within } from "@testing-li
 import { HashRouter } from "react-router-dom";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { readFileSync } from "node:fs";
-import published from "../public/data/snapshot.json";
-import type { PublicSnapshotV1 } from "./data/contracts";
+import { snapshotFixture } from "./test/snapshot-fixtures";
 import App from "./App";
 
-const snapshot = published as PublicSnapshotV1;
+const snapshot = snapshotFixture();
 afterEach(() => {
   cleanup();
   vi.unstubAllGlobals();

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import publishedSnapshot from "../../public/data/snapshot.json";
+import { snapshotFixture } from "../test/snapshot-fixtures";
 import { createDemoRawSnapshot } from "../../scripts/demo-data";
 import { publicSnapshotSchema } from "../../scripts/public-schema";
 import { JPY_DISCLOSURE_FLOOR, WITHHELD_JPY_AMOUNT_LABEL } from "./jpy-disclosure";
@@ -713,7 +713,7 @@ describe("public sanitization boundary", () => {
 });
 
 describe("published snapshot masking contract", () => {
-  const resources = publishedSnapshot.inventory.resources as Array<{
+  const resources = snapshotFixture().inventory.resources as Array<{
     name: string;
     resourceGroup: string;
     type: string;

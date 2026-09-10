@@ -1,7 +1,7 @@
 import { cleanup, renderHook, waitFor } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { webcrypto } from "node:crypto";
-import published from "../../public/data/snapshot.json";
+import { snapshotFixture } from "../test/snapshot-fixtures";
 import type { PublicSnapshotV1 } from "../data/contracts";
 import { usePreviousAnalysis } from "./usePreviousAnalysis";
 import { analysisDigest } from "../lib/analysis-continuity";
@@ -9,7 +9,7 @@ import { analysisDigest } from "../lib/analysis-continuity";
 afterEach(() => { cleanup(); vi.unstubAllGlobals(); });
 describe("Previous analysis request ownership", () => {
   it("does not reuse a previous response against a newly loaded current snapshot", async () => {
-    const archive = published as PublicSnapshotV1;
+    const archive = snapshotFixture();
     vi.stubGlobal("crypto", webcrypto);
     const current: PublicSnapshotV1 = { ...archive, generatedAt: "2026-09-11T00:00:00Z", aiInsights: [] };
     const sourceScopeSha256 = "a".repeat(64);

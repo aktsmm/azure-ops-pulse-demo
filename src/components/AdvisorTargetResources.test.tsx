@@ -1,11 +1,11 @@
 import "@testing-library/jest-dom/vitest";
 import { cleanup, fireEvent, render, screen } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
-import published from "../../public/data/snapshot.json";
-import type { AdvisorRecommendationGroup, PublicSnapshotV1 } from "../data/contracts";
+import { snapshotFixture } from "../test/snapshot-fixtures";
+import type { AdvisorRecommendationGroup } from "../data/contracts";
 import { AdvisorTargetResources } from "./AdvisorTargetResources";
 
-const data = published as PublicSnapshotV1;
+const data = snapshotFixture();
 const storage = data.inventory.resources.filter((resource) => resource.type === "microsoft.storage/storageaccounts");
 const group: AdvisorRecommendationGroup = {
   ...data.advisor!.details!.groups[0]!,

@@ -53,6 +53,36 @@ describe("reliability fixtures", () => {
     });
   }
 
+  it("drops stale exact Advisor targets and analysis when replacing the inventory", () => {
+    const base = structuredClone(publishedSnapshot);
+    const resource = base.inventory.resources[0]!;
+    const group = base.advisor!.details!.groups[0]!;
+    group.resourceRefs = [resource.id];
+    group.targets = [{ resourceRef: resource.id, type: resource.type, region: resource.region }];
+    group.scopeCounts = { resource: group.count, subscription: 0, unknown: 0 };
+    group.targetCoverage = {
+      totalResources: 1, publishedResources: 1, unresolvedResources: 0, truncated: false
+    };
+    expect(() => publicSnapshotSchema.parse(base)).not.toThrow();
+    const original = structuredClone(base);
+    const snapshot = reliabilityFixture({ supported: 4, evaluated: 4 }, base);
+    expect(snapshot.inventory.resources.some((item) => item.id === resource.id)).toBe(false);
+    const derived = snapshot.advisor!.details!.groups[0]!;
+    expect(derived.resourceRefs).toBeUndefined();
+    expect(derived.targets).toBeUndefined();
+    expect(derived.targetCoverage).toBeUndefined();
+    expect(derived.scopeCounts).toBeUndefined();
+    expect(snapshot.aiInsights).toEqual([]);
+    expect(snapshot.network.topology).toBeUndefined();
+    expect(() => publicSnapshotSchema.parse(snapshot)).not.toThrow();
+    expect(base).toEqual(original);
+    // Reintroducing the old exact mapping must still fail the unchanged production gate.
+    derived.resourceRefs = group.resourceRefs;
+    derived.targets = group.targets;
+    derived.targetCoverage = group.targetCoverage;
+    expect(() => publicSnapshotSchema.parse(snapshot)).toThrow("Advisor targets must match observed inventory context");
+  });
+
   it("publishes a contract-valid snapshot for legacy data without metric coverage", () => {
     // Snapshots taken before metric coverage existed still render through the UI fallback, so the
     // shape stays covered even though the current collector can no longer produce it.
@@ -151,7 +181,7 @@ describe("reliability fixtures", () => {
     ).toThrow(/non-negative integer/);
   });
 
-  it("still parses the snapshot that is actually published", () => {
+  it("parses the fixed approved baseline before deriving reliability scenarios", () => {
     expect(() => publicSnapshotSchema.parse(publishedSnapshot)).not.toThrow();
   });
 

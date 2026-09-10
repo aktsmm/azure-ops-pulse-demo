@@ -1,11 +1,11 @@
 import { createHash, webcrypto } from "node:crypto";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import published from "../../public/data/snapshot.json";
+import { snapshotFixture } from "../test/snapshot-fixtures";
 import type { PublicSnapshotV1 } from "../data/contracts";
 import { canonicalJson, analysisEvidence, scopedAnalysisEvidence } from "../../scripts/analysis-continuity-contract";
 import { analysisDigest, canonicalAnalysisJson, fetchAnalysisContinuity, MAX_CONTINUITY_BYTES, verifyAnalysisContinuity } from "./analysis-continuity";
 
-const archive = published as PublicSnapshotV1;
+const archive = snapshotFixture();
 const current: PublicSnapshotV1 = {
   ...archive, aiInsights: [], generatedAt: "2026-09-11T00:00:00Z",
   scope: { displayName: "Azure subscription", subscriptionId: "subscription-anonymous", tenantId: "tenant-anonymous" }
@@ -38,9 +38,19 @@ describe("Browser verification of publisher-owned continuity", () => {
   it("rejects unbound anonymous transitions and other known scopes", async () => {
     await expect(verifyAnalysisContinuity(archive, current)).rejects.toThrow();
     await expect(verifyAnalysisContinuity({ ...archive, scope: current.scope }, current)).rejects.toThrow();
-    const changed = { ...archive, scope: { ...archive.scope, subscriptionId: "12345678-****-****-****-****87654321" } };
-    await expect(verifyAnalysisContinuity(changed, { ...current, scope: archive.scope }, await bindingFor(changed))).rejects.toThrow();
     await expect(verifyAnalysisContinuity(archive, { ...current, scope: archive.scope })).rejects.toThrow();
+  });
+  it.each(["subscriptionId", "tenantId"] as const)("rejects a different known %s even with both hashes rebound", async (field) => {
+    const changed = {
+      ...archive, scope: { ...archive.scope, [field]: "12345678-****-****-****-****87654321" }
+    };
+    const present = { ...current, scope: archive.scope };
+    const originalBinding = await bindingFor();
+    const rebound = await bindingFor(changed, present);
+    expect(changed.scope[field]).not.toBe(present.scope[field]);
+    expect(rebound.archiveSha256).not.toBe(originalBinding.archiveSha256);
+    expect(rebound.currentEvidenceSha256).not.toBe(originalBinding.currentEvidenceSha256);
+    await expect(verifyAnalysisContinuity(changed, present, rebound)).rejects.toThrow("Analysis scopes differ");
   });
   it("rejects a different archive, changed evidence, null hash and malformed bindings", async () => {
     const binding = await bindingFor();
@@ -55,7 +65,9 @@ describe("Browser verification of publisher-owned continuity", () => {
     ]) await expect(verifyAnalysisContinuity(archive, current, invalid)).rejects.toThrow();
   });
   it("rejects stale bindings even when public legacy scopes still match", async () => {
-    await expect(verifyAnalysisContinuity(archive, { ...current, scope: archive.scope }, await bindingFor())).rejects.toThrow();
+    const changed = { ...current, scope: archive.scope };
+    expect(changed.scope).not.toEqual(current.scope);
+    await expect(verifyAnalysisContinuity(archive, changed, await bindingFor())).rejects.toThrow("Continuity content mismatch");
   });
   it("loads only the fixed same-origin binding URL with bounded responses and no-cache", async () => {
     const binding = await bindingFor();

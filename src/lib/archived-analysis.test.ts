@@ -1,9 +1,8 @@
 import { describe, expect, it } from "vitest";
-import published from "../../public/data/snapshot.json";
-import type { PublicSnapshotV1 } from "../data/contracts";
+import { snapshotFixture } from "../test/snapshot-fixtures";
 import { MAX_ARCHIVED_ANALYSIS_BYTES, readArchivedAnalysis } from "./archived-analysis";
 
-const archive = published as PublicSnapshotV1;
+const archive = snapshotFixture();
 const current = { ...archive, generatedAt: "2026-09-11T04:17:04.906Z", aiInsights: [] };
 const response = (value: unknown) => new Response(JSON.stringify(value));
 
@@ -16,6 +15,14 @@ describe("Bounded complete previous analysis", () => {
   });
   it("requires a trusted binding even when both legacy scope masks match", async () => {
     await expect(readArchivedAnalysis(response(archive), current)).rejects.toThrow();
+  });
+  it.each(["subscriptionId", "tenantId"] as const)("rejects a different known %s even if a verifier approves", async (field) => {
+    const otherScope = {
+      ...archive, scope: { ...archive.scope, [field]: "12345678-****-****-****-****87654321" }
+    };
+    expect(otherScope.scope[field]).not.toBe(current.scope[field]);
+    await expect(readArchivedAnalysis(response(otherScope), current, async () => true))
+      .rejects.toThrow("Incompatible analysis archive");
   });
   it("requires verified binding for anonymization migration without rewriting the archive", async () => {
     const migrated = { ...current, scope: { displayName: "Azure subscription", subscriptionId: "subscription-anonymous", tenantId: "tenant-anonymous" } };

@@ -3,13 +3,13 @@ import { cleanup, fireEvent, render, screen, waitFor, within } from "@testing-li
 import { HashRouter } from "react-router-dom";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { webcrypto } from "node:crypto";
-import published from "../public/data/snapshot.json";
+import { snapshotFixture } from "./test/snapshot-fixtures";
 import type { PublicSnapshotV1 } from "./data/contracts";
 import { formatDateTimeJa } from "./lib/display-formatters";
 import App from "./App";
 import { analysisDigest } from "./lib/analysis-continuity";
 
-const archive = published as PublicSnapshotV1;
+const archive = snapshotFixture();
 beforeEach(() => vi.stubGlobal("crypto", webcrypto));
 function currentSnapshot(): PublicSnapshotV1 {
   const current = structuredClone(archive);
