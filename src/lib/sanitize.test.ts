@@ -60,16 +60,16 @@ describe("public sanitization boundary", () => {
       nodes: [
         { id: rawId.toUpperCase(), type: inventory[0]!.type, scope: "inventory", referenceOnly: false },
         { id: childId, type: "microsoft.network/virtualnetworks/subnets", scope: "uncollected", referenceOnly: true },
-        { id: childId.toUpperCase(), type: "microsoft.network/virtualnetworks/subnets", scope: "uncollected", referenceOnly: true }
+        { id: `${childId.toUpperCase()}/`, type: "microsoft.network/virtualnetworks/subnets", scope: "uncollected", referenceOnly: true }
       ],
       edges: [
         { source: rawId, target: childId, kind: "contains" },
-        { source: rawId.toUpperCase(), target: childId.toUpperCase(), kind: "contains" }
+        { source: `${rawId.toUpperCase()}/`, target: `${childId.toUpperCase()}/`, kind: "contains" }
       ]
     }, inventory);
     expect(result.nodes).toHaveLength(2);
     expect(result.edges).toEqual([{
-      source: `res-${stableHash(rawId)}`,
+      source: `res-${stableHash(rawId.toLowerCase())}`,
       target: `res-${stableHash(childId.toLowerCase())}`,
       kind: "contains"
     }]);
@@ -370,7 +370,9 @@ describe("public sanitization boundary", () => {
     raw.subscriptionDisplayName = "private-subscription-name";
     const snapshot = sanitizeSnapshot(raw);
 
-    expect(snapshot.scope.displayName).toMatch(/^Azure subscription [0-9a-f]{8}$/);
+    expect(snapshot.scope.displayName).toBe("Azure subscription");
+    expect(snapshot.scope.subscriptionId).toBe("subscription-anonymous");
+    expect(snapshot.scope.tenantId).toBe("tenant-anonymous");
     expect(snapshot.scope.displayName).not.toContain(raw.subscriptionDisplayName);
     expect(new Set(snapshot.inventory.resources.map((resource) => resource.id)).size).toBe(
       snapshot.inventory.resources.length

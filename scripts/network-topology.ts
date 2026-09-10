@@ -1,7 +1,9 @@
 import type { NetworkTopology, RawResource, TopologyEdgeKind } from "../src/data/contracts";
 import { CollectionError } from "./collection-diagnostics";
+import { normalizeResourceId } from "../src/lib/sanitize";
+import { isPrivateIpv4, isPrivateCidr, publicIpv4Mask, sanitizeNetworkEvidence } from "../src/lib/network-evidence";
 
-// Only configuration references are consumed; addresses, names, tags and routing rules never leave memory.
+// Only references and structured address fields are consumed; names, tags and routing rules stay private.
 // https://learn.microsoft.com/ja-jp/azure/governance/resource-graph/samples/samples-by-category
 export const TOPOLOGY_QUERY = `Resources
 | where type in~ ('microsoft.network/virtualnetworks', 'microsoft.network/virtualnetworks/subnets',
@@ -11,6 +13,9 @@ export const TOPOLOGY_QUERY = `Resources
   'microsoft.network/applicationgateways', 'microsoft.network/publicipaddresses',
   'microsoft.compute/virtualmachines')
 | project id, type, location,
+  addressSpace=properties.addressSpace, addressPrefix=properties.addressPrefix,
+  addressPrefixes=properties.addressPrefixes, ipAddress=properties.ipAddress,
+  privateIPAddress=properties.privateIPAddress,
   subnets=properties.subnets, subnet=properties.subnet,
   virtualNetworkPeerings=properties.virtualNetworkPeerings,
   virtualMachine=properties.virtualMachine, networkProfile=properties.networkProfile,
@@ -35,6 +40,21 @@ const object = (value: unknown): Record<string, unknown> =>
   value !== null && typeof value === "object" && !Array.isArray(value)
     ? value as Record<string, unknown> : {};
 
+function addressEvidence(properties: unknown) {
+  const p = object(properties);
+  const configurations = ["ipConfigurations", "frontendIPConfigurations", "gatewayIPConfigurations"]
+    .flatMap((field) => Array.isArray(p[field]) ? p[field] as unknown[] : [])
+    .map((item) => object(object(item).properties));
+  const privateIpv4 = [p.privateIPAddress, ...configurations.map((item) => item.privateIPAddress)]
+    .filter((value): value is string => typeof value === "string" && isPrivateIpv4(value));
+  const prefixes = [p.addressPrefix,
+    ...(Array.isArray(p.addressPrefixes) ? p.addressPrefixes : []),
+    ...(Array.isArray(object(p.addressSpace).addressPrefixes) ? object(p.addressSpace).addressPrefixes as unknown[] : [])];
+  const privateCidrs = prefixes.filter((value): value is string => typeof value === "string" && isPrivateCidr(value));
+  const masked = typeof p.ipAddress === "string" ? publicIpv4Mask(p.ipAddress) : null;
+  return sanitizeNetworkEvidence({ privateIpv4, privateCidrs, publicIpv4Masked: masked ? [masked] : [], truncated: false });
+}
+
 function armType(id: string): string | null {
   const segments = id.split("/").filter(Boolean);
   const provider = segments.findIndex((part) => part.toLowerCase() === "providers");
@@ -53,7 +73,7 @@ export function buildNetworkTopology(
   subscriptionId: string,
   limits = { nodes: 400, edges: 800 }
 ): NetworkTopology {
-  const known = new Map(inventory.map((item) => [item.id.toLowerCase(), item]));
+  const known = new Map(inventory.map((item) => [normalizeResourceId(item.id), item]));
   const observed = new Map<string, TopologyRow>();
   let incomplete = false;
   let truncated = false;
@@ -73,7 +93,7 @@ export function buildNetworkTopology(
         typeof row.type !== "string" || row.type.toLowerCase() !== armType(row.id)) {
       throw new CollectionError("invalid-response");
     }
-    observed.set(row.id.toLowerCase(), row);
+    observed.set(normalizeResourceId(row.id), row);
     if (!row.properties || typeof row.properties !== "object" || Array.isArray(row.properties)) incomplete = true;
     if (row.type.toLowerCase() === "microsoft.network/virtualnetworks") {
       for (const value of list(object(row.properties).subnets)) {
@@ -82,7 +102,7 @@ export function buildNetworkTopology(
           incomplete = true;
           continue;
         }
-        observed.set(subnet.id.toLowerCase(), {
+        observed.set(normalizeResourceId(subnet.id), {
           id: subnet.id, type: "microsoft.network/virtualnetworks/subnets",
           location: row.location, properties: subnet.properties
         });
@@ -95,18 +115,18 @@ export function buildNetworkTopology(
         // Missing optional child IDs cannot be guessed from names. Parent-level references still work.
         if (child.id === undefined) continue;
         if (typeof child.id !== "string" || !armType(child.id) ||
-            !child.id.toLowerCase().startsWith(`${row.id.toLowerCase()}/`)) {
+            !normalizeResourceId(child.id).startsWith(`${normalizeResourceId(row.id)}/`)) {
           incomplete = true;
           continue;
         }
-        observed.set(child.id.toLowerCase(), {
+        observed.set(normalizeResourceId(child.id), {
           id: child.id, type: armType(child.id)!, location: row.location, properties: child.properties
         });
       }
     }
   }
   const addNode = (id: string): string | null => {
-    const key = id.toLowerCase();
+    const key = normalizeResourceId(id);
     if (nodes.has(key)) return nodes.get(key)!.id;
     const type = armType(id);
     if (!type) { incomplete = true; return null; }
@@ -120,6 +140,7 @@ export function buildNetworkTopology(
     nodes.set(key, {
       id: originalId, type: item?.type ?? observedItem?.type ?? type,
       ...(region ? { region } : {}),
+      ...(observedItem?.properties ? { network: addressEvidence(observedItem.properties) } : {}),
       referenceOnly,
       scope: referenceOnly ? ownScope ? "uncollected" : "external" : "inventory"
     });
@@ -129,7 +150,7 @@ export function buildNetworkTopology(
     if (value === undefined || value === null) return;
     const target = object(value).id;
     if (typeof target !== "string" || !target) { incomplete = true; return; }
-    const key = `${source.toLowerCase()}|${target.toLowerCase()}|${kind}`;
+    const key = `${normalizeResourceId(source)}|${normalizeResourceId(target)}|${kind}`;
     if (edges.has(key)) return;
     if (edges.size >= limits.edges) { truncated = true; return; }
     const sourceId = addNode(source);
@@ -144,7 +165,7 @@ export function buildNetworkTopology(
     for (const ref of list(p.loadBalancerBackendAddressPools)) link(source, ref, "backend");
     for (const ref of list(p.applicationGatewayBackendAddressPools)) link(source, ref, "backend");
   };
-  for (const row of [...observed.values()].sort((a, b) => a.id.toLowerCase().localeCompare(b.id.toLowerCase()))) {
+  for (const row of [...observed.values()].sort((a, b) => normalizeResourceId(a.id).localeCompare(normalizeResourceId(b.id)))) {
     // Unconnected VMs are outside this graph. The VM-side NIC reference also works when NIC inventory is missing.
     if (row.type.toLowerCase() === "microsoft.compute/virtualmachines") {
       for (const ref of list(object(object(row.properties).networkProfile).networkInterfaces)) {
@@ -212,7 +233,7 @@ export function buildNetworkTopology(
       link(row.id, pool, "backend");
       if (typeof poolObject.id !== "string") continue;
       // Embedded pool records are directly observed, not merely an inferred association.
-      const poolNode = nodes.get(poolObject.id.toLowerCase());
+      const poolNode = nodes.get(normalizeResourceId(poolObject.id));
       if (poolNode) { poolNode.referenceOnly = false; poolNode.scope = "inventory"; }
       for (const ip of list(object(poolObject.properties).backendIPConfigurations)) link(poolObject.id, ip, "backend");
     }

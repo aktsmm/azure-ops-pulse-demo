@@ -1,6 +1,13 @@
 import { describe, expect, it } from "vitest";
 import { buildDemoSnapshot } from "./build-demo-snapshot";
 import { insightQualityFindings, validateInsightQuality } from "./insight-quality";
+import { validateNumericEvidence } from "./evidence-validator";
+import { applyDeterministicInsightIds } from "./insight-identity";
+import { applyDeterministicInsightPeriods } from "./insight-period";
+import { validatePublicJsonSchema } from "./json-schema-validator";
+import { publicSnapshotSchema } from "./public-schema";
+import { validateJapaneseInsights } from "./japanese-insights-validator";
+import { validateUiLanguage } from "./ui-language-audit";
 
 function insight(...sources: string[]) {
   const base = buildDemoSnapshot().aiInsights[0]!;
@@ -32,11 +39,106 @@ describe("new insight admission quality", () => {
     )])).toThrow("collection-scope-only");
   });
 
+  it("does not turn optional Advisor target coverage into an operational finding", () => {
+    const snapshot = {
+      advisor: { availability: "available", details: {
+        availability: "partial", groups: [{ contentStatus: "mapped", count: 1 }]
+      } }
+    };
+    const candidate = {
+      ...insight(
+        "advisor.details.groups.0.targetCoverage.unresolvedResources",
+        "advisor.details.groups.0.scopeCounts.unknown"
+      ),
+      route: "/recommendations"
+    };
+    expect(() => validateInsightQuality([candidate], snapshot)).toThrow("collection-scope-only");
+    expect(() => validateInsightQuality([{
+      ...candidate,
+      numericEvidence: [{ source: "advisor.details.groups.0.count", value: "1", label: "推奨件数" }]
+    }], snapshot)).not.toThrow();
+  });
+
   it("does not mistake actual degraded resource counts for collection scope", () => {
     expect(() => validateInsightQuality([insight(
       "reliability.coverage.degradedResources",
       "reliability.coverage.supportedResources"
     )])).not.toThrow();
+  });
+
+  it("does not promote unknown Defender assessments or publication coverage into findings", () => {
+    expect(() => validateInsightQuality([insight(
+      "security.assessmentCoverage.unknownAssessments",
+      "security.assessmentCoverage.publishedGroups",
+      "security.recommendations.0.unknownCount"
+    )])).toThrow("collection-scope-only");
+    expect(() => validateInsightQuality([insight(
+      "security.recommendations.0.affectedCount",
+      "security.assessmentCoverage.unhealthyAssessments"
+    )])).not.toThrow();
+  });
+
+  it("allows one scalar for a concrete observed CVE, but never invents findings from empty or unknown coverage", () => {
+    const snapshot = { security: { vulnerabilities: {
+      availability: "partial",
+      totalFindings: 1,
+      findings: [{ cve: "CVE-2026-12345", cvssScore: 1, resourceRefs: [] }]
+    } } };
+    const countCandidate = { ...insight("security.vulnerabilities.totalFindings"), route: "/security" };
+    const scoreCandidate = { ...insight("security.vulnerabilities.findings.0.cvssScore"), route: "/security" };
+    expect(() => validateInsightQuality([countCandidate, scoreCandidate], snapshot)).not.toThrow();
+    expect(() => validateInsightQuality([{ ...countCandidate, route: "/recommendations" }], snapshot))
+      .toThrow("Vulnerability observations belong at /security");
+    snapshot.security.vulnerabilities.availability = "unavailable";
+    expect(() => validateInsightQuality([countCandidate], snapshot)).toThrow("at least two distinct");
+    snapshot.security.vulnerabilities.availability = "available";
+    snapshot.security.vulnerabilities.findings = [];
+    snapshot.security.vulnerabilities.totalFindings = 0;
+    expect(() => validateInsightQuality([countCandidate], snapshot)).toThrow("at least two distinct");
+    expect(() => validateInsightQuality([{
+      ...insight("security.vulnerabilities.totalFindings", "security.vulnerabilities.unhealthySubAssessments"),
+      route: "/security"
+    }], snapshot)).toThrow("requires an observed CVE row");
+    expect(() => validateInsightQuality([{
+      ...insight(
+        "security.vulnerabilities.unknownStatusSubAssessments",
+        "security.vulnerabilities.unmappedSubAssessments",
+        "security.vulnerabilities.unmappedTargetSubAssessments"
+      ),
+      route: "/security"
+    }], snapshot)).toThrow("collection-scope-only");
+  });
+
+  it("passes a synthetic concrete-CVE decision through the combined schema, evidence and language gates", () => {
+    const snapshot = buildDemoSnapshot("2026-09-10T00:00:00.000Z");
+    snapshot.security.vulnerabilities = {
+      availability: "partial", message: "取得済みの脆弱性を確認します。",
+      totalSubAssessments: 2, unhealthySubAssessments: 1, unmappedSubAssessments: 0,
+      unknownStatusSubAssessments: 1, totalFindings: 1, truncated: false,
+      findings: [{
+        cve: "CVE-2026-12345", severity: "High",
+        resourceRefs: [snapshot.inventory.resources[0]!.id], cvssScore: 8.1
+      }]
+    };
+    snapshot.aiInsights = [{
+      ...snapshot.aiInsights[0]!,
+      title: "観測された脆弱性の更新条件を確認",
+      observation: "CVE-2026-12345 のスコアは8.1です。",
+      impact: "スコア8.1は対象環境への適用可否を調べる確認材料です。悪用や業務影響を示したものではありません。",
+      recommendedAction: "/security の CVE-2026-12345 と対象を確認し、運用担当者が更新の適用条件と停止許容条件を確かめてください。",
+      numericEvidence: [{ label: "観測されたスコア", value: "8.1", source: "security.vulnerabilities.findings.0.cvssScore" }],
+      route: "/security"
+    }];
+    applyDeterministicInsightIds(snapshot);
+    applyDeterministicInsightPeriods(snapshot);
+    expect(() => {
+      validatePublicJsonSchema(snapshot);
+      publicSnapshotSchema.parse(snapshot);
+      validateNumericEvidence(snapshot);
+      validateInsightQuality(snapshot.aiInsights, snapshot);
+      validateJapaneseInsights(snapshot.aiInsights);
+      validateUiLanguage(snapshot);
+    }).not.toThrow();
   });
 
   it("accepts cost concentration with comparison evidence", () => {

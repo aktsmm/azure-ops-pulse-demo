@@ -66,6 +66,41 @@
       "type": "object",
       "required": ["id", "category", "contentStatus", "count", "impacts", "affectedResourceCount", "resourceTypes", "title", "description", "recommendedAction", "deferWhen", "caveat", "sourceUrl"],
       "properties": {
+        "resourceRefs": {
+          "type": "array", "maxItems": 100, "uniqueItems": true,
+          "items": { "type": "string", "pattern": "^res-[0-9a-f]{8}$" }
+        },
+        "targets": {
+          "type": "array", "maxItems": 100,
+          "items": {
+            "type": "object", "required": ["resourceRef"],
+            "properties": {
+              "resourceRef": { "type": "string", "pattern": "^res-[0-9a-f]{8}$" },
+              "type": { "type": "string", "pattern": "^[Mm][Ii][Cc][Rr][Oo][Ss][Oo][Ff][Tt]\\.[a-zA-Z0-9]+(/[a-zA-Z][a-zA-Z0-9]*)+$" },
+              "region": { "type": "string", "pattern": "^[a-zA-Z0-9-]+$" }
+            },
+            "additionalProperties": false
+          }
+        },
+        "scopeCounts": {
+          "type": "object", "required": ["resource", "subscription", "unknown"],
+          "properties": {
+            "resource": { "$ref": "#/$defs/count" },
+            "subscription": { "$ref": "#/$defs/count" },
+            "unknown": { "$ref": "#/$defs/count" }
+          },
+          "additionalProperties": false
+        },
+        "targetCoverage": {
+          "type": "object", "required": ["totalResources", "publishedResources", "unresolvedResources", "truncated"],
+          "properties": {
+            "totalResources": { "$ref": "#/$defs/count" },
+            "publishedResources": { "$ref": "#/$defs/count" },
+            "unresolvedResources": { "$ref": "#/$defs/count" },
+            "truncated": { "type": "boolean" }
+          },
+          "additionalProperties": false
+        },
         "id": { "enum": [
           "service-health-alert", "vmss-automatic-repair", "vmss-health-monitoring", "outbound-nat-capacity",
           "storage-zone-redundancy", "blob-soft-delete", "vm-availability-zones", "container-apps-zone-redundancy",

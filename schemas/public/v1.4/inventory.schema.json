@@ -13,6 +13,7 @@
         "required": ["id", "name", "resourceGroup", "type", "region", "status", "owner", "tags", "change"],
         "properties": {
           "id": { "type": "string", "pattern": "^res-[0-9a-f]{8}$" },
+          "network": { "$ref": "#/properties/resources/items/$defs/networkAddress" },
           "name": {
             "description": "Irreversible alias built from the published resource type and a stable hash of the Azure name. No part of the Azure name is disclosed.",
             "type": "string",
@@ -33,7 +34,46 @@
           "tags": { "type": "object", "additionalProperties": { "type": "string" } },
           "change": { "type": "string" }
         },
-        "additionalProperties": false
+        "additionalProperties": false,
+        "$defs": {
+          "ipv4": {
+            "type": "string",
+            "pattern": "^(?:(?:0|[1-9][0-9]?|1[0-9]{2}|2[0-4][0-9]|25[0-5])\\.){3}(?:0|[1-9][0-9]?|1[0-9]{2}|2[0-4][0-9]|25[0-5])$"
+          },
+          "networkAddress": {
+            "type": "object",
+            "required": ["privateIpv4", "privateCidrs", "publicIpv4Masked", "truncated"],
+            "properties": {
+              "privateIpv4": {
+                "type": "array", "maxItems": 32,
+                "items": { "allOf": [
+                  { "$ref": "#/properties/resources/items/$defs/ipv4" },
+                  { "type": "string", "pattern": "^(?:10\\.|172\\.(?:1[6-9]|2[0-9]|3[01])\\.|192\\.168\\.)" }
+                ] }
+              },
+              "privateCidrs": {
+                "type": "array", "maxItems": 32,
+                "items": {
+                  "type": "string",
+                  "allOf": [
+                    { "pattern": "^(?:(?:0|[1-9][0-9]?|1[0-9]{2}|2[0-4][0-9]|25[0-5])\\.){3}(?:0|[1-9][0-9]?|1[0-9]{2}|2[0-4][0-9]|25[0-5])/(?:[0-9]|[12][0-9]|3[0-2])$" },
+                    { "anyOf": [
+                      { "pattern": "^10\\..*/(?:[89]|[12][0-9]|3[0-2])$" },
+                      { "pattern": "^172\\.(?:1[6-9]|2[0-9]|3[01])\\..*/(?:1[2-9]|2[0-9]|3[0-2])$" },
+                      { "pattern": "^192\\.168\\..*/(?:1[6-9]|2[0-9]|3[0-2])$" }
+                    ] }
+                  ]
+                }
+              },
+              "publicIpv4Masked": {
+                "type": "array", "maxItems": 32,
+                "items": { "type": "string", "pattern": "^(?:0|[1-9][0-9]?|1[0-9]{2}|2[0-4][0-9]|25[0-5])\\.(?:0|[1-9][0-9]?|1[0-9]{2}|2[0-4][0-9]|25[0-5])\\.\\*\\.\\*$" }
+              },
+              "truncated": { "type": "boolean" }
+            },
+            "additionalProperties": false
+          }
+        }
       }
     },
     "byType": { "type": "array" },

@@ -68,7 +68,7 @@ describe("independent Defender fields", () => {
 
   it("retains safe assessments when only score fails", () => {
     const result = collectDefender(defenderQuery({
-      assessments: [{ properties: { displayName: "private-project", status: { code: "Unhealthy", severity: "High" } } }],
+      assessments: [{ properties: { displayName: "private-project", status: { code: "Unhealthy" }, metadata: { severity: "High" } } }],
       scores: new CollectionError("throttled")
     }));
     expect(result.security.recommendations).toHaveLength(1);

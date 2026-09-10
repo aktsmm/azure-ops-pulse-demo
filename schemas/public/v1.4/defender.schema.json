@@ -2,10 +2,70 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://aktsmm.github.io/azure-ops-pulse-demo/schemas/public/v1.4/defender.schema.json",
   "title": "Azure Ops Pulse Defender aggregate v1.4",
-  "description": "Recommendation titles and aggregate counts only; no assets or exploit detail.",
+  "description": "Assessment aggregates and optional observed CVE evidence; no private identities or source free text.",
   "type": "object",
   "required": ["secureScore", "activeAlerts", "recommendations", "compliance"],
   "properties": {
+    "vulnerabilities": {
+      "type": "object",
+      "required": ["availability", "message", "totalSubAssessments", "unhealthySubAssessments", "unmappedSubAssessments", "unknownStatusSubAssessments", "totalFindings", "truncated", "findings"],
+      "properties": {
+        "availability": { "enum": ["available", "partial", "unavailable"] },
+        "message": { "type": "string" },
+        "totalSubAssessments": { "type": ["integer", "null"], "minimum": 0 },
+        "unhealthySubAssessments": { "type": ["integer", "null"], "minimum": 0 },
+        "unmappedSubAssessments": { "type": ["integer", "null"], "minimum": 0 },
+        "unmappedTargetSubAssessments": { "type": ["integer", "null"], "minimum": 0 },
+        "unknownStatusSubAssessments": { "type": ["integer", "null"], "minimum": 0 },
+        "totalFindings": { "type": ["integer", "null"], "minimum": 0 },
+        "truncated": { "type": "boolean" },
+        "findings": {
+          "type": "array", "maxItems": 100,
+          "items": {
+            "type": "object", "required": ["cve", "severity", "resourceRefs"],
+            "properties": {
+              "cve": { "type": "string", "pattern": "^CVE-[0-9]{4}-[0-9]{4,7}$" },
+              "severity": { "enum": ["High", "Medium", "Low", "Unknown"] },
+              "resourceRefs": { "type": "array", "maxItems": 100, "uniqueItems": true, "items": { "type": "string", "pattern": "^res-[0-9a-f]{8}$" } },
+              "patchable": { "type": "boolean" },
+              "cvssScore": { "type": "number", "minimum": 0, "maximum": 10 }
+            },
+            "additionalProperties": false
+          }
+        }
+      },
+      "allOf": [{
+        "if": { "properties": { "availability": { "const": "unavailable" } } },
+        "then": { "properties": {
+          "totalSubAssessments": { "type": "null" }, "unhealthySubAssessments": { "type": "null" },
+          "unmappedSubAssessments": { "type": "null" }, "unknownStatusSubAssessments": { "type": "null" },
+          "unmappedTargetSubAssessments": { "type": "null" },
+          "totalFindings": { "type": "null" }, "truncated": { "const": false }, "findings": { "type": "array", "maxItems": 0 }
+        } },
+        "else": { "properties": {
+          "totalSubAssessments": { "type": "integer" }, "unhealthySubAssessments": { "type": "integer" },
+          "unmappedSubAssessments": { "type": "integer" }, "unknownStatusSubAssessments": { "type": "integer" },
+          "unmappedTargetSubAssessments": { "type": "integer" },
+          "totalFindings": { "type": "integer" }
+        } }
+      }],
+      "additionalProperties": false
+    },
+    "assessmentCoverage": {
+      "type": "object",
+      "required": ["totalAssessments", "unhealthyAssessments", "healthyAssessments", "notApplicableAssessments", "unknownAssessments", "totalGroups", "publishedGroups", "truncated"],
+      "properties": {
+        "totalAssessments": { "type": "integer", "minimum": 0 },
+        "unhealthyAssessments": { "type": "integer", "minimum": 0 },
+        "healthyAssessments": { "type": "integer", "minimum": 0 },
+        "notApplicableAssessments": { "type": "integer", "minimum": 0 },
+        "unknownAssessments": { "type": "integer", "minimum": 0 },
+        "totalGroups": { "type": "integer", "minimum": 0 },
+        "publishedGroups": { "type": "integer", "minimum": 0 },
+        "truncated": { "type": "boolean" }
+      },
+      "additionalProperties": false
+    },
     "fieldAvailability": {
       "type": "object",
       "required": ["secureScore", "assessments", "activeAlerts"],
@@ -18,7 +78,20 @@
     },
     "secureScore": { "type": ["number", "null"], "minimum": 0, "maximum": 100 },
     "activeAlerts": { "type": ["integer", "null"], "minimum": 0 },
-    "recommendations": { "type": "array" },
+    "recommendations": {
+      "type": "array",
+      "items": {
+        "type": "object", "required": ["title", "severity", "affectedCount", "status"],
+        "properties": {
+          "title": { "type": "string" },
+          "severity": { "enum": ["critical", "warning", "healthy", "info"] },
+          "affectedCount": { "type": "integer", "minimum": 0 },
+          "unknownCount": { "type": "integer", "minimum": 0 },
+          "status": { "enum": ["Open", "In progress", "Resolved"] }
+        },
+        "additionalProperties": false
+      }
+    },
     "compliance": { "type": "array" }
   },
   "allOf": [

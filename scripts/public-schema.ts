@@ -2,6 +2,7 @@ import { z } from "zod";
 import { WITHHELD_JPY_AMOUNT_LABEL, isWithheldJpyAmount } from "../src/lib/jpy-disclosure";
 import { resourceAliasLabel } from "../src/lib/sanitize";
 import { SOURCE_REASONS } from "../src/data/contracts";
+import { isPrivateIpv4, isPrivateCidr, MASKED_PUBLIC_IPV4_PATTERN } from "../src/lib/network-evidence";
 import { ADVISOR_CATEGORIES, ADVISOR_IMPACTS, ADVISOR_CATALOG, ADVISOR_RESOURCE_TYPES, ADVISOR_DETAILS_MESSAGE, advisorContent } from "../src/lib/advisor-catalog";
 
 const severity = z.enum(["critical", "warning", "healthy", "info"]);
@@ -23,7 +24,63 @@ const costPeriodDiagnosticSchema = z.object({
   }
 });
 const advisorCount = z.number().int().nonnegative().max(Number.MAX_SAFE_INTEGER);
+const networkEvidenceSchema = z.object({
+  privateIpv4: z.array(z.string().refine(isPrivateIpv4)).max(32),
+  privateCidrs: z.array(z.string().refine(isPrivateCidr)).max(32),
+  publicIpv4Masked: z.array(z.string().regex(new RegExp(MASKED_PUBLIC_IPV4_PATTERN))).max(32),
+  truncated: z.boolean()
+}).strict();
+const resourceRefSchema = z.string().regex(/^res-[0-9a-f]{8}$/);
+const vulnerabilitySchema = z.object({
+  availability, message: z.string(),
+  totalSubAssessments: advisorCount.nullable(), unhealthySubAssessments: advisorCount.nullable(),
+  unmappedSubAssessments: advisorCount.nullable(), unknownStatusSubAssessments: advisorCount.nullable(),
+  unmappedTargetSubAssessments: advisorCount.nullable().optional(),
+  totalFindings: advisorCount.nullable(), truncated: z.boolean(),
+  findings: z.array(z.object({
+    cve: z.string().regex(/^CVE-\d{4}-\d{4,7}$/), severity: z.enum(["High", "Medium", "Low", "Unknown"]),
+    resourceRefs: z.array(resourceRefSchema).max(100),
+    patchable: z.boolean().optional(), cvssScore: z.number().min(0).max(10).optional()
+  }).strict()).max(100)
+}).strict().superRefine((value, context) => {
+  const counts = [value.totalSubAssessments, value.unhealthySubAssessments, value.unmappedSubAssessments, value.unknownStatusSubAssessments, value.totalFindings];
+  const invalid = value.availability === "unavailable"
+    ? counts.some((count) => count !== null) || value.findings.length > 0 || value.truncated
+    : counts.some((count) => count === null) ||
+      value.unhealthySubAssessments! + value.unknownStatusSubAssessments! > value.totalSubAssessments! ||
+      value.unmappedSubAssessments! > value.unhealthySubAssessments! || value.findings.length > value.totalFindings! ||
+      (!value.truncated && value.totalFindings !== value.findings.length) ||
+      (value.truncated && value.availability !== "partial");
+  const targetCount = value.unmappedTargetSubAssessments;
+  const invalidTargets = targetCount !== undefined && (value.availability === "unavailable"
+    ? targetCount !== null
+    : targetCount === null || targetCount > value.unhealthySubAssessments! - value.unmappedSubAssessments! ||
+      (targetCount > 0 && value.availability !== "partial"));
+  if (invalid || invalidTargets || new Set(value.findings.map((finding) => `${finding.cve}:${finding.severity}`)).size !== value.findings.length) {
+    context.addIssue({ code: z.ZodIssueCode.custom, message: "Vulnerability evidence coverage must reconcile" });
+  }
+});
+const assessmentCoverageSchema = z.object({
+  totalAssessments: advisorCount, unhealthyAssessments: advisorCount,
+  healthyAssessments: advisorCount, notApplicableAssessments: advisorCount, unknownAssessments: advisorCount,
+  totalGroups: advisorCount, publishedGroups: advisorCount, truncated: z.boolean()
+}).strict().superRefine((value, context) => {
+  if (value.totalAssessments !== value.unhealthyAssessments + value.healthyAssessments + value.notApplicableAssessments + value.unknownAssessments ||
+      value.publishedGroups > value.totalGroups || value.truncated !== (value.publishedGroups < value.totalGroups)) {
+    context.addIssue({ code: z.ZodIssueCode.custom, message: "Assessment coverage must reconcile" });
+  }
+});
 const advisorGroupSchema = z.object({
+  resourceRefs: z.array(resourceRefSchema).max(100).optional(),
+  targets: z.array(z.object({
+    resourceRef: resourceRefSchema,
+    type: z.string().regex(/^microsoft\.[a-z0-9]+(?:\/[a-z][a-z0-9]*)+$/i).optional(),
+    region: z.string().regex(/^[a-z0-9-]+$/i).optional()
+  }).strict()).max(100).optional(),
+  scopeCounts: z.object({ resource: advisorCount, subscription: advisorCount, unknown: advisorCount }).strict().optional(),
+  targetCoverage: z.object({
+    totalResources: advisorCount, publishedResources: advisorCount, unresolvedResources: advisorCount, truncated: z.boolean()
+  }).strict().optional(),
   id: z.string(),
   category: z.enum(ADVISOR_CATEGORIES),
   contentStatus: z.enum(["mapped", "withheld"]),
@@ -37,6 +94,16 @@ const advisorGroupSchema = z.object({
   title: z.string(), description: z.string(), recommendedAction: z.string(),
   deferWhen: z.string(), caveat: z.string(), sourceUrl: z.string()
 }).strict().superRefine((group, context) => {
+  const refs = group.resourceRefs;
+  const coverage = group.targetCoverage;
+  if ((refs && (new Set(refs).size !== refs.length || group.targets?.length !== refs.length ||
+      group.targets.some((target, index) => target.resourceRef !== refs[index]))) ||
+      (group.scopeCounts && Object.values(group.scopeCounts).reduce((sum, count) => sum + count, 0) !== group.count) ||
+      (coverage && (coverage.publishedResources !== refs?.length ||
+        coverage.totalResources < coverage.publishedResources + coverage.unresolvedResources ||
+        coverage.truncated !== (coverage.totalResources > coverage.publishedResources + coverage.unresolvedResources)))) {
+    context.addIssue({ code: z.ZodIssueCode.custom, message: "Advisor target coverage must reconcile" });
+  }
   const content = advisorContent(group.contentStatus === "mapped" ? group.id : "", group.category);
   if (Object.entries(content).some(([key, text]) => group[key as keyof typeof content] !== text) ||
       Object.values(group.impacts).reduce((sum, count) => sum + count, 0) !== group.count ||
@@ -99,6 +166,7 @@ const topologySchema = z.object({
   availability,
   message: z.string(),
   nodes: z.array(z.object({
+    network: networkEvidenceSchema.optional(),
     id: z.string().regex(/^res-[0-9a-f]{8}$/),
     type: z.string().regex(/^microsoft\.[a-z0-9]+(?:\/[a-z][a-z0-9]*)+$/i),
     region: z.string().regex(/^[a-z0-9-]+$/i).optional(),
@@ -424,6 +492,7 @@ export const publicSnapshotSchema = z
               id: z.string().regex(/^res-[0-9a-f]{8}$/),
               name: z.string().regex(/^[A-Za-z0-9]+-[0-9a-f]{8}$/),
               resourceGroup: z.string().regex(/^rg-[0-9a-f]{8}$/),
+              network: networkEvidenceSchema.optional(),
               type: z.string(),
               region: z.string(),
               status: statusBadge,
@@ -483,6 +552,8 @@ export const publicSnapshotSchema = z
       }),
     security: z
       .object({
+        assessmentCoverage: assessmentCoverageSchema.optional(),
+        vulnerabilities: vulnerabilitySchema.optional(),
         fieldAvailability: z.object({
           secureScore: availability,
           assessments: availability,
@@ -496,6 +567,7 @@ export const publicSnapshotSchema = z
               title: z.string(),
               severity,
               affectedCount: z.number().nonnegative(),
+              unknownCount: advisorCount.optional(),
               status: z.enum(["Open", "In progress", "Resolved"])
             })
             .strict()
@@ -506,6 +578,10 @@ export const publicSnapshotSchema = z
       })
       .strict()
       .superRefine((value, context) => {
+        if (value.assessmentCoverage && (value.assessmentCoverage.publishedGroups !== value.recommendations.length ||
+            value.fieldAvailability?.assessments === "unavailable")) {
+          context.addIssue({ code: z.ZodIssueCode.custom, message: "Assessment coverage requires collected assessment rows" });
+        }
         const fields = value.fieldAvailability;
         if (!fields) return;
         if ((fields.secureScore === "unavailable") !== (value.secureScore === null) ||
@@ -576,6 +652,20 @@ export const publicSnapshotSchema = z
   })
   .strict()
   .superRefine((snapshot, context) => {
+    const inventory = new Map(snapshot.inventory.resources.map((item) => [item.id, item]));
+    if (snapshot.security.vulnerabilities?.findings.some((finding) => finding.resourceRefs.some((ref) => !inventory.has(ref)))) {
+      context.addIssue({ code: z.ZodIssueCode.custom, message: "Vulnerability target references must match inventory" });
+    }
+    for (const group of snapshot.advisor?.details?.groups ?? []) {
+      if (group.resourceRefs?.some((ref) => !inventory.has(ref)) ||
+          group.targets?.some((target) => {
+            const item = inventory.get(target.resourceRef);
+            return !item || (target.type !== undefined && target.type !== item.type) ||
+              (target.region !== undefined && target.region !== item.region);
+          })) {
+        context.addIssue({ code: z.ZodIssueCode.custom, message: "Advisor targets must match observed inventory context" });
+      }
+    }
     for (const [name, value] of [
       ["Azure Advisor", snapshot.advisor],
       ["Network topology", snapshot.network.topology]

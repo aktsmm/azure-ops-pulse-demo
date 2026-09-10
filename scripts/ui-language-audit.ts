@@ -109,6 +109,7 @@ export const DEFENDER_AGGREGATE_METRIC_LABELS = ["Defender recommendations", "Op
  */
 const COST_CATEGORY_NAME =
   /^[A-Z0-9][A-Za-z0-9.&()/-]*(?:[ -](?:[A-Z0-9][A-Za-z0-9.&()/-]*|for|of|and))*(?: credit)?$/u;
+const CVE_IDENTIFIER = /^CVE-\d{4}-\d{4,7}$/u;
 
 /**
  * Latin values that are a whole-field answer rather than prose, allowed only on the fields that can
@@ -213,6 +214,12 @@ function publishedIdentifiers(snapshot: PublicSnapshotV1): string[] {
     if (COST_CATEGORY_NAME.test(category.name.trim())) add(category.name);
   }
   for (const service of snapshot.reliability.services) add(service.name);
+  const vulnerabilities = snapshot.security.vulnerabilities;
+  if (vulnerabilities && ["available", "partial"].includes(vulnerabilities.availability)) {
+    for (const finding of vulnerabilities.findings) {
+      if (CVE_IDENTIFIER.test(finding.cve)) add(finding.cve);
+    }
+  }
   for (const insight of snapshot.aiInsights) add(insight.route);
   for (const event of snapshot.overview.eventTimeline) add(event.route);
 
@@ -226,9 +233,11 @@ function publishedIdentifiers(snapshot: PublicSnapshotV1): string[] {
  * which is below the reporting length and so read as clean.
  */
 function stripWholeWord(text: string, name: string): string {
-  const escaped = name.replace(/[.*+?^${}()|[\]\\/-]/gu, "\\$&");
+  const escaped = name.replace(/[.*+?^${}()|[\]\\]/gu, "\\$&");
+  // An observed CVE must not certify a different identifier sharing its numeric prefix.
+  const boundary = CVE_IDENTIFIER.test(name) ? "[A-Za-z0-9_-]" : "[A-Za-z]";
   return text.replace(
-    new RegExp(`(?<![A-Za-z])${escaped}(?![A-Za-z])`, "gu"),
+    new RegExp(`(?<!${boundary})${escaped}(?!${boundary})`, "gu"),
     " "
   );
 }

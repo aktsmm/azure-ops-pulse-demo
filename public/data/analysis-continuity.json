@@ -1,0 +1,7 @@
+{
+  "kind": "azure-ops-pulse-analysis-continuity",
+  "version": 1,
+  "archiveSha256": "166ef2bac811de00ff771bf8b03137c94f6f9183a7e4d609ab78c7b52546f6f0",
+  "currentEvidenceSha256": "4461cf9134128413a27c47ac9c7afa5f55ed2b23747cc296e00cfa1d11d0f158",
+  "sourceScopeSha256": "5f46d706c3911beabbd701afe58b6057b573fa2e6b3c8ace6bb9d5a5387c919c"
+}

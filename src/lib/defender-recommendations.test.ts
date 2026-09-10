@@ -23,10 +23,19 @@ function assessment(
   code: string,
   severity?: string
 ): DefenderAssessmentRow {
-  return { properties: { displayName, status: { code, severity } } };
+  return { properties: { displayName, status: { code }, metadata: { severity } } };
 }
 
 describe("Defender recommendation summarisation", () => {
+  it("uses official metadata severity and never status severity", () => {
+    expect(summarizeAssessments([{ properties: {
+      displayName: "finding", status: { code: "Unhealthy", severity: "High" },
+      metadata: { severity: "Medium" }
+    } }])[0]?.severity).toBe("warning");
+    expect(summarizeAssessments([{ properties: {
+      displayName: "finding", status: { code: "Unhealthy", severity: "High" }
+    } }])[0]?.severity).toBe("info");
+  });
   it("never publishes a string Azure supplied, whatever the assessment claims about itself", () => {
     // `assessmentType` is a caller-supplied request field on the customer-writable metadata
     // endpoint and accepts `BuiltIn`, so no field on the response can establish authorship.
@@ -84,10 +93,10 @@ describe("Defender recommendation summarisation", () => {
     ]);
   });
 
-  it("treats an unrecognised status code as open rather than reporting it resolved", () => {
+  it("keeps an unrecognised status unevaluated without counting a confirmed finding", () => {
     const published = summarizeAssessments([assessment("finding", "Unknown")]);
 
-    expect(published[0]).toMatchObject({ affectedCount: 1, status: "Open" });
+    expect(published[0]).toMatchObject({ affectedCount: 0, unknownCount: 1, status: "In progress" });
   });
 
   it("orders rows deterministically so ordinals do not shuffle between runs", () => {
@@ -106,7 +115,7 @@ describe("Defender recommendation summarisation", () => {
 
   it("tolerates rows with no properties at all", () => {
     expect(summarizeAssessments([{}, { properties: {} }])).toEqual([
-      { title: withheldRecommendationTitle(1), severity: "info", affectedCount: 2, status: "Open" }
+      { title: withheldRecommendationTitle(1), severity: "info", affectedCount: 0, unknownCount: 2, status: "In progress" }
     ]);
   });
 

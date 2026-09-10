@@ -106,6 +106,8 @@ export function ResourceExplorer({ resources, onSelect }: {
           </select>
         </label>
       </div>
+      <details className="resource-filter-disclosure">
+      <summary>詳細フィルター{filterCount ? ` · ${filterCount} 条件を選択中` : ""}</summary>
       <div className="resource-filters">
         {([
           ["リソース種別", type, setType, options("type"), true],
@@ -130,6 +132,7 @@ export function ResourceExplorer({ resources, onSelect }: {
           </select>
         </label>
       </div>
+      </details>
       <div className="resource-results">
         <span role="status">{filtered.length} / {resources.length} 件{filterCount ? `・絞り込み ${filterCount} 条件` : ""}</span>
         <button type="button" className="text-button" disabled={!filterCount && !query} onClick={reset}>条件をクリア</button>
@@ -152,9 +155,9 @@ export function ResourceExplorer({ resources, onSelect }: {
                           <span><strong>{resourceTypeLabel(resource.type)}</strong><small>{resource.name}</small></span>
                         </button>
                       </td>
-                      <td>{resource.region}</td>
-                      <td><span className={`status-badge severity-${resourceStatusSeverity(resource.status)}`}>{resourceStatusLabel(resource.status)}</span></td>
-                      <td className="resource-group-cell">{resource.resourceGroup}</td>
+                      <td data-label="リージョン">{resource.region}</td>
+                      <td data-label="Resource Health"><span className={`status-badge severity-${resourceStatusSeverity(resource.status)}`}>{resourceStatusLabel(resource.status)}</span></td>
+                      <td data-label="リソース グループ" className="resource-group-cell">{resource.resourceGroup}</td>
                       <td aria-hidden="true"><ChevronRight size={16} /></td>
                     </tr>
                   ))}</tbody>

@@ -1,7 +1,8 @@
 import { useState } from "react";
 import { ExternalLink, Info } from "lucide-react";
-import type { AdvisorDetails, AdvisorRecommendationGroup, Availability } from "../data/contracts";
+import type { AdvisorDetails, AdvisorRecommendationGroup, Availability, ResourceItem } from "../data/contracts";
 import { resourceTypeLabel } from "../lib/resource-catalog";
+import { AdvisorTargetResources } from "./AdvisorTargetResources";
 
 export interface AdvisorRecommendationView {
   category: string;
@@ -22,7 +23,10 @@ function groupImpactCount(group: AdvisorRecommendationGroup, impact: string): nu
   return impact === "all" ? group.count : group.impacts[impact as keyof typeof group.impacts] ?? 0;
 }
 
-function RecommendationCard({ group, impact }: { group: AdvisorRecommendationGroup; impact: string }) {
+export function RecommendationCard({ group, impact, resources = [], onResourceSelect }: {
+  group: AdvisorRecommendationGroup; impact: string; resources?: ResourceItem[];
+  onResourceSelect?: (resource: ResourceItem) => void;
+}) {
   const mapped = group.contentStatus === "mapped";
   return (
     <article className="advisor-detail-card">
@@ -64,7 +68,11 @@ function RecommendationCard({ group, impact }: { group: AdvisorRecommendationGro
       {group.resourceTypes.length > 0 && (
         <p className="advisor-footnote">リソース種別別のレコード数: {group.resourceTypes.map((item) => `${resourceTypeLabel(item.type)} ${item.count} 件`).join("・")}</p>
       )}
-      <p className="advisor-footnote">件数と対象リソース数はグループ全体の値です。同じリソースが複数グループに含まれるため、グループ間のリソース数は合算できません。</p>
+      <details className="advisor-rollup">
+        <summary>件数の読み方・対象リソースの確認</summary>
+        <p className="advisor-footnote">件数と対象リソース数はグループ全体の値です。同じリソースが複数グループに含まれるため、グループ間のリソース数は合算できません。</p>
+      </details>
+      <AdvisorTargetResources group={group} resources={resources} onSelect={onResourceSelect} />
       <div className="advisor-detail-links">
         {mapped && <a className="text-button" href={group.sourceUrl} target="_blank" rel="noreferrer">確認ガイドの出典 <ExternalLink size={14} aria-hidden="true" /></a>}
         <a className="text-button" href={PORTAL_URL} target="_blank" rel="noreferrer">Azure portal で内容と対象を確認 <ExternalLink size={14} aria-hidden="true" /></a>
@@ -74,7 +82,7 @@ function RecommendationCard({ group, impact }: { group: AdvisorRecommendationGro
 }
 
 export function AdvisorPanel({
-  availability, recommendations = [], diagnosis, categoryScope, selectedCategory, onCategoryChange, details
+  availability, recommendations = [], diagnosis, categoryScope, selectedCategory, onCategoryChange, details, resources = [], onResourceSelect
 }: {
   availability?: Availability;
   recommendations?: AdvisorRecommendationView[];
@@ -83,6 +91,8 @@ export function AdvisorPanel({
   selectedCategory?: string;
   onCategoryChange?: (category: string) => void;
   details?: AdvisorDetails;
+  resources?: ResourceItem[];
+  onResourceSelect?: (resource: ResourceItem) => void;
 }) {
   const [localCategory, setLocalCategory] = useState("all");
   const [impact, setImpact] = useState("all");
@@ -226,7 +236,7 @@ export function AdvisorPanel({
               <p className="advisor-footnote">検索は下の内容一覧に適用します。上のカテゴリ集計と公開範囲は検索では変わりません。</p>
               {filteredGroups.length ? (
                 <div className="advisor-detail-list">
-                  {filteredGroups.map((group) => <RecommendationCard key={`${group.category}-${group.id}`} group={group} impact={impact} />)}
+                  {filteredGroups.map((group) => <RecommendationCard key={`${group.category}-${group.id}`} group={group} impact={impact} resources={resources} onResourceSelect={onResourceSelect} />)}
                 </div>
               ) : (
                 <p className="source-footnote">検索・フィルターに一致する内容グループはありません。未収集・非公開の内容や、詳細から除外されたレコードは検索できません。対応不要の判断ではありません。</p>

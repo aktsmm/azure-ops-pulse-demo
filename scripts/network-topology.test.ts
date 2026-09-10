@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { RawResource } from "../src/data/contracts";
-import { sanitizeTopology, stableHash } from "../src/lib/sanitize";
+import { sanitizeTopology, resourceRef } from "../src/lib/sanitize";
 import { buildNetworkTopology, TOPOLOGY_QUERY, type TopologyRow } from "./network-topology";
 
 const sub = "00000000-0000-0000-0000-000000000001";
@@ -55,12 +55,13 @@ describe("explicit topology references", () => {
     expect(result.edges).toContainEqual({ source: privateEndpoint, target: subnet, kind: "subnet" });
   });
 
-  it("publishes no raw names, ARM IDs, IPs, or properties and matches existing inventory IDs", () => {
+  it("publishes structured RFC1918 only, no raw names or ARM IDs, and normalized inventory IDs", () => {
     const result = sanitizeTopology(buildNetworkTopology(fixture, inventory, sub), inventory);
-    expect(JSON.stringify(result)).not.toMatch(/private-|subscriptions|10\.92|properties/);
+    expect(JSON.stringify(result)).not.toMatch(/private-|subscriptions|properties/);
+    expect(result.nodes.find((item) => item.type === "microsoft.network/virtualnetworks")?.network?.privateCidrs).toEqual(["10.92.0.0/16"]);
     expect(result.nodes.find((item) => item.type === "microsoft.compute/virtualmachines")?.id)
-      .toBe(`res-${stableHash(vm)}`);
-    expect(result.edges.some((edge) => edge.target === `res-${stableHash(vm)}`)).toBe(true);
+      .toBe(resourceRef(vm));
+    expect(result.edges.some((edge) => edge.target === resourceRef(vm))).toBe(true);
   });
 
   it("marks external and uncollected endpoints reference-only without inventing regions", () => {

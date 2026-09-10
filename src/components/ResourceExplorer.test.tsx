@@ -17,10 +17,19 @@ describe("Resource explorer", () => {
     fireEvent.change(screen.getByRole("textbox", { name: "リソースを検索" }), { target: { value: "ＶＭ" } });
     expect(screen.getByRole("status")).toHaveTextContent("1 / 3 件");
     expect(screen.getByText("仮想マシン (VM)", { selector: "strong" })).toBeInTheDocument();
+    fireEvent.click(screen.getByText("詳細フィルター"));
     fireEvent.change(screen.getByRole("combobox", { name: "リージョン" }), { target: { value: "westus" } });
     expect(screen.getByText("条件に一致するリソースはありません")).toBeInTheDocument();
     fireEvent.click(screen.getByRole("button", { name: "条件をクリア" }));
     expect(screen.getByRole("status")).toHaveTextContent("3 / 3 件");
+  });
+  it("keeps region, health and group labels available for the mobile resource layout", () => {
+    render(<ResourceExplorer resources={resources} onSelect={vi.fn()} />);
+    const row = screen.getByRole("button", { name: "resource-vmの詳細を開く" }).closest("tr")!;
+    expect(row.querySelector('[data-label="リージョン"]')).toHaveTextContent("japaneast");
+    expect(row.querySelector('[data-label="Resource Health"]')).toHaveTextContent("正常");
+    expect(row.querySelector('[data-label="リソース グループ"]')).toHaveTextContent("rg-east");
+    expect(screen.getByText("詳細フィルター").closest("details")).not.toHaveAttribute("open");
   });
   it("supports category buttons, grouping and resource selection", () => {
     const select = vi.fn();

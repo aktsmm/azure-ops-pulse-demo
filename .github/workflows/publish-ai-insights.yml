@@ -228,21 +228,28 @@ jobs:
           npx tsx scripts/validate-public-data.ts .candidate/snapshot.json --insights-only --baseline=public/data/snapshot.json
           npx tsx scripts/privacy-scan.ts .candidate
           npx tsx scripts/validate-semantic-review.ts .candidate/snapshot.json .candidate-review/semantic-review.json
+          # Only after exact review/baseline checks may the trusted publisher refresh the archive
+          # and its source-scoped binding. Zero-insight results retain the previous whole analysis.
+          npx tsx scripts/bind-analysis-continuity.ts reviewed .candidate/snapshot.json
           cp .candidate/snapshot.json public/data/snapshot.json
+          npx tsx scripts/privacy-scan.ts public/data
           # An analysis that supported no insight is a real outcome, not a routine no-op, so it says
           # so in the run rather than reading as "nothing changed".
           insight_count="$(node -e 'process.stdout.write(String(JSON.parse(require("fs").readFileSync(".candidate/snapshot.json","utf8")).aiInsights.length))')"
           if [ "$insight_count" -eq 0 ]; then
-            echo "::warning::The analysis published no insights. The dashboard will show its empty state."
+            echo "::warning::The analysis published no current insights. Any retained analysis remains explicitly dated; its evidence is not current."
           fi
-          if git diff --quiet -- public/data/snapshot.json; then
+          git add public/data/snapshot.json public/data/analysis-continuity.json
+          if [ -f public/data/last-analysis.json ]; then
+            git add public/data/last-analysis.json
+          fi
+          if git diff --cached --quiet -- public/data/snapshot.json public/data/last-analysis.json public/data/analysis-continuity.json; then
             echo "No validated AI insight change ($insight_count insight(s) in the candidate)."
             echo "published=false" >> "$GITHUB_OUTPUT"
             exit 0
           fi
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add public/data/snapshot.json
           git commit -m "Publish validated public AI insights"
           git push origin "HEAD:${{ github.event.repository.default_branch }}"
           echo "published=true" >> "$GITHUB_OUTPUT"

@@ -38,6 +38,7 @@ import { queryCostPeriod } from "./cost-query";
 import { publicSnapshotSchema } from "./public-schema";
 import { CollectionError, classifyCollectionFailure, safeCollectionFailure } from "./collection-diagnostics";
 import { collectDefender } from "./defender-collection";
+import { collectVulnerabilities } from "./defender-vulnerabilities";
 import { ADVISOR_QUERY, summarizeAdvisor, type AdvisorRow } from "./advisor";
 import { TOPOLOGY_QUERY, buildNetworkTopology, type TopologyRow } from "./network-topology";
 import { costPeriodDiagnostics } from "./cost-diagnostics";
@@ -229,9 +230,10 @@ const activity = collectSource(
 );
 
 const security = collectDefender(<T>(query: string) => graphQuery<T>(subscriptionId, query));
+security.security.vulnerabilities = collectVulnerabilities(<T>(query: string) => graphQuery<T>(subscriptionId, query), rawResources);
 const advisor = collectSource(
   "Azure Advisor",
-  () => summarizeAdvisor(graphQuery<AdvisorRow>(subscriptionId, ADVISOR_QUERY)),
+  () => summarizeAdvisor(graphQuery<AdvisorRow>(subscriptionId, ADVISOR_QUERY), rawResources),
   (value) => ({
     ...value,
     ...(value.availability === "partial" ? { reason: "partial-collection" as const }
@@ -592,6 +594,7 @@ const raw: RawSnapshot = {
   budgetLimitJpy: null,
   normalizedCostTrend: [],
   costCategories: costData.categories,
+  costCategoryMagnitudeJpy: costData.categoryMagnitudeJpy,
   resources,
   reliability: {
     availability:

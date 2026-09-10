@@ -172,6 +172,11 @@ Judge four booleans:
   mapped recommendation content and a decision that depends on the actual concern, not "more
   records, therefore review first". One numeric citation is sufficient for a concrete mapped
   recommendation with meaningful conditional guidance; do not demand padding with another count.
+  Catalog prose with a count inserted is not new analysis. Require a snapshot-specific comparison
+  OR a prerequisite whose confirmation changes the next decision for the cited mapped concern.
+  A conditional proceed/defer decision may qualify with a single mapped group; it need not invent
+  another metric, a resource relationship or a cross-domain correlation. When multiple insights
+  repeat the same guide/decision, judge whether each actually adds a distinct operational choice.
   One positive observed active-alert, degraded/unavailable-resource, blocked-flow or degraded-
   connection count can also support a concrete triage decision without invented impact or cause.
 - `actionable`: the action names the observed category/condition, a concrete comparison/check and
@@ -187,6 +192,13 @@ Judge four booleans:
   are explicit; do not reject them simply because the next step is outside this read-only dashboard.
   Low impact or a small count does NOT justify ignoring a recommendation. Conditional deferral
   requires explicit conditions to confirm, not assumptions about workload use or risk tolerance.
+  A useful demo deferral names what makes the workload reproducible or an alternative control
+  adequate and when to reconsider; it does not infer disposability from the word demo.
+  Resource-level joins require explicit matching references in the supplied snapshot. Same resource
+  type, similar aliases, equal counts or category membership alone cannot establish a shared target.
+  Optional target references and addresses are context, not measured quantities. A matching digit
+  embedded in an identifier, type or address is not valid support for a numerical claim.
+  Configuration relationships describe configuration, not observed traffic, compromise or outage.
   Catalog guidance is a reviewed rule, not measured evidence that the suggested consequence has
   occurred. Unknown/unclassified recommendation content cannot support a specific issue or fix.
 
@@ -197,9 +209,18 @@ The dashboard capabilities are part of this trusted rubric:
   portal Cost Analysis is allowed; claiming the dashboard already contains usage or causes is not.
 - `/recommendations`: Advisor content cards, category and impact filters, reviewed conditional
   confirmation guides. HighAvailability is 「信頼性」. Advisor-only insights belong here.
-  Cards do NOT contain actual resource settings, workload purpose, owners, notification recipients
-  or test results. A guide can be read here; verifying those facts requires an explicitly named
-  operator/Azure portal follow-up, not a claim that the card displays them.
+  A guide does NOT establish actual protective settings, workload purpose, owners, notification
+  recipients or test results. Verifying missing facts requires an explicitly named operator/Azure
+  portal follow-up, not a claim that the card displays them.
+  Optional `advisor.details.groups[].resourceRefs` and `targets[{resourceRef,type?,region?}]`
+  identify a bounded inventory-matched subset. Join only on exact `inventory.resources[].id` or matching
+  `network.topology.nodes[].id`. `scopeCounts` counts records by resource/subscription/unknown
+  scope (groups may mix scopes); `targetCoverage` measures target publication coverage, not risk.
+  An absent optional field in an older snapshot means unknown, not zero or healthy.
+  Optional resource/node `network` fields (`privateIpv4`, `privateCidrs`, `publicIpv4Masked`,
+  `truncated`) supply structured address context, not proof of reachability, allowed traffic,
+  actual protective settings or exposure. Do not require invented target/configuration details
+  when a meaningful mapped single-group decision already satisfies the rubric.
   Category counts and content-group counts are records, not incidents or distinct resources.
   Only an explicit affectedResourceCount is a deduplicated resource count; null is unknown.
   The legacy `advisor.recommendations` total includes all lifecycle states, including completed,
@@ -211,6 +232,25 @@ The dashboard capabilities are part of this trusted rubric:
 - `/security`: Defender summaries and only Advisor's Security category. Withheld Defender titles
   do not establish the actual issue. Assessment-record counts are not deduplicated resource counts.
   Explicitly available Defender fields remain usable when other fields make the source partial.
+  Optional `security.assessmentCoverage` counts assessment statuses and published groups;
+  `affectedCount` counts confirmed Unhealthy records, while `unknownCount`/`unknownAssessments`
+  establish neither health nor a confirmed finding. `In progress` for an unknown assessment does
+  not establish ongoing remediation. Positive known unhealthy records may support a bounded
+  investigation despite other unknown statuses; they do not reveal withheld issue details.
+  Optional `security.vulnerabilities` is an independently collected field with its own availability;
+  another Defender field's failure does not invalidate available/partial published CVE rows.
+  A concrete observed CVE row with severity, exact inventory-matched resourceRefs and optional
+  cvssScore/patchable can support a decision with one real numeric source (score or totalFindings);
+  do not demand unrelated evidence. Vulnerability-only actions belong at `/security`.
+  A per-row score identifies that row; totalFindings is aggregate context and cannot be attributed
+  as the affected-resource count of one named CVE.
+  CVE identity, severity and a reported patchable flag do not prove exploitation, exposure, business
+  impact, patch applicability or safe rollout. Require operator verification of the missing conditions.
+  Successful zero means no observed result in this scope, not secure. Unknown/unmapped records,
+  unavailable fields and truncated rows cannot be invented into findings or an estate-wide all-clear.
+  `unmappedTargetSubAssessments` means CVE-bearing Unhealthy records without inventory-matched
+  targets, not unsupported CVE content (`unmappedSubAssessments`) or unique affected resources.
+  Empty resourceRefs do not authorize guessed target links; identifying them is an external follow-up.
 - `/reliability`: Resource Health and Service Health, with a link to Advisor's reliability category.
   Positive observed degraded/unavailable resource counts are usable under partial collection; they
   do not establish whole-estate health, unobserved customer impact or an all-clear.

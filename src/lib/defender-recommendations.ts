@@ -1,4 +1,4 @@
-import type { SecurityRecommendation, Severity } from "../data/contracts";
+import type { SecurityRecommendation, Severity, AssessmentCoverage } from "../data/contracts";
 
 export const WITHHELD_RECOMMENDATION_TITLE = "Defender の推奨事項（タイトル非公開）";
 
@@ -29,6 +29,7 @@ export interface DefenderAssessmentRow {
   properties?: {
     displayName?: string;
     status?: { severity?: string; code?: string };
+    metadata?: { severity?: string };
   };
 }
 
@@ -45,21 +46,20 @@ interface AssessmentGroup {
   severity: RecommendationSeverity;
   affectedCount: number;
   open: boolean;
+  unknownCount: number;
 }
 
 /**
- * `Healthy` and `NotApplicable` assessments are not findings, so they contribute a row without
- * inflating the affected count. Any other status code — including `Unknown` — is treated as open,
- * because reporting an unevaluated resource as resolved would be the same class of lie this
- * dashboard exists to avoid.
+ * Only documented Unhealthy assessments are confirmed findings. Missing or unfamiliar codes
+ * remain unevaluated rather than being silently counted as unhealthy or resolved.
  */
 function isOpenAssessment(code: string | undefined): boolean {
-  return code !== "Healthy" && code !== "NotApplicable";
+  return code === "Unhealthy";
 }
 
 function assessmentSeverity(row: DefenderAssessmentRow, open: boolean): RecommendationSeverity {
   if (!open) return "info";
-  const severity = row.properties?.status?.severity?.toLowerCase();
+  const severity = row.properties?.metadata?.severity?.toLowerCase();
   if (severity === "high") return "critical";
   if (severity === "medium") return "warning";
   return "info";
@@ -77,17 +77,19 @@ export function summarizeAssessments(
   for (const row of rows) {
     const key = row.properties?.displayName?.trim() ?? "";
     const open = isOpenAssessment(row.properties?.status?.code);
+    const unknownCount = !["Healthy", "NotApplicable", "Unhealthy"].includes(row.properties?.status?.code ?? "") ? 1 : 0;
     const severity = assessmentSeverity(row, open);
     const current = groups.get(key);
     if (!current) {
-      groups.set(key, { key, severity, affectedCount: open ? 1 : 0, open });
+      groups.set(key, { key, severity, affectedCount: open ? 1 : 0, open, unknownCount });
       continue;
     }
     groups.set(key, {
       key,
       severity: SEVERITY_RANK[severity] > SEVERITY_RANK[current.severity] ? severity : current.severity,
       affectedCount: current.affectedCount + (open ? 1 : 0),
-      open: current.open || open
+      open: current.open || open,
+      unknownCount: current.unknownCount + unknownCount
     });
   }
 
@@ -105,6 +107,20 @@ export function summarizeAssessments(
       title: withheldRecommendationTitle(index + 1),
       severity: group.severity,
       affectedCount: group.affectedCount,
-      status: group.open ? ("Open" as const) : ("Resolved" as const)
+      status: group.open ? ("Open" as const) : group.unknownCount ? ("In progress" as const) : ("Resolved" as const),
+      ...(group.unknownCount ? { unknownCount: group.unknownCount } : {})
     }));
+}
+
+export function assessmentCoverage(rows: readonly DefenderAssessmentRow[], publishedGroups: number): AssessmentCoverage {
+  const count = (code: string) => rows.filter((row) => row.properties?.status?.code === code).length;
+  const unhealthyAssessments = count("Unhealthy");
+  const healthyAssessments = count("Healthy");
+  const notApplicableAssessments = count("NotApplicable");
+  const totalGroups = new Set(rows.map((row) => row.properties?.displayName?.trim() ?? "")).size;
+  return {
+    totalAssessments: rows.length, unhealthyAssessments, healthyAssessments, notApplicableAssessments,
+    unknownAssessments: rows.length - unhealthyAssessments - healthyAssessments - notApplicableAssessments,
+    totalGroups, publishedGroups, truncated: publishedGroups < totalGroups
+  };
 }
