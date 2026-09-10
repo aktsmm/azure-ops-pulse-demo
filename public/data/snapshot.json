@@ -1,11 +1,11 @@
 {
   "schemaVersion": "1.4.0",
-  "generatedAt": "2026-09-09T21:24:27.033Z",
+  "generatedAt": "2026-09-09T23:51:07.753Z",
   "mode": "AZURE",
   "freshness": {
     "state": "fresh",
     "ageMinutes": 0,
-    "lastSuccessfulCollection": "2026-09-09T21:24:27.033Z",
+    "lastSuccessfulCollection": "2026-09-09T23:51:07.753Z",
     "nextScheduledCollection": "Tuesday / Friday 06:00 JST"
   },
   "scope": {
@@ -1514,90 +1514,72 @@
   "aiInsights": [
     {
       "severity": "warning",
-      "title": "Resource Health の評価範囲は 68% にとどまる",
-      "observation": "Resource Health は対応する 19 リソースのうち 13 件のみを評価しており、63 件は評価対象外です。可用性の把握が一部にとどまっている可能性があります。",
-      "impact": "評価対象外のリソースで問題が発生しても、ダッシュボード上では検知できない可能性があります。",
+      "title": "Resource Health カバレッジが 68% にとどまる",
+      "observation": "Resource Health は対象 19 リソース中 13 件のみを評価しており、63 件が対象外、6 件が未評価のままです。",
+      "impact": "評価対象外・未評価のリソースでは異常検知が働かず、障害の見落としにつながる可能性があります。",
       "numericEvidence": [
         {
-          "label": "評価済み割合",
+          "label": "Resource Health 評価カバレッジ率",
           "value": "68%",
           "source": "reliability.coverage.supportedCoveragePercent"
         },
         {
           "label": "評価対象外リソース数",
-          "value": "63件",
+          "value": "63 件",
           "source": "reliability.coverage.notApplicableResources"
+        },
+        {
+          "label": "未評価リソース数",
+          "value": "6 件",
+          "source": "reliability.coverage.unevaluatedResources"
         }
       ],
-      "recommendedAction": "評価対象外のリソースについて、代替の監視手段がないか人手で確認することを推奨します。",
+      "recommendedAction": "対象外・未評価リソースの一覧を確認し、監視要否をダッシュボードで見直してください。",
       "confidence": 0.7,
       "route": "/reliability",
       "period": "2026-09-10 スナップショット収集時点",
-      "id": "insight-eb0e90cf"
-    },
-    {
-      "severity": "info",
-      "title": "Logic Apps ワークフローがリソース構成の中心を占める",
-      "observation": "全 82 リソースのうち 22 件が microsoft.logic/workflows で、単一のリソース種別としては最大の割合を占めています。",
-      "impact": "自動化ロジックが Logic Apps に集中しているため、変更や障害の影響範囲が広がる可能性があります。",
-      "numericEvidence": [
-        {
-          "label": "ワークフロー数",
-          "value": "22件",
-          "source": "inventory.byType.16.count"
-        },
-        {
-          "label": "総リソース数",
-          "value": "82件",
-          "source": "inventory.total"
-        }
-      ],
-      "recommendedAction": "Logic Apps の構成やオーナーシップについて人手でレビューすることを推奨します。",
-      "confidence": 0.6,
-      "route": "/resources",
-      "period": "2026-09-10 スナップショット収集時点",
-      "id": "insight-4b702c21"
+      "id": "insight-0886d270"
     },
     {
       "severity": "warning",
-      "title": "ネットワークリソースのメトリック取得率が低い",
-      "observation": "ネットワーク関連の 10 リソースのうち、メトリックを取得できたのは 3 件のみで、7 件は対象外でした。",
-      "impact": "ネットワークの稼働状況を数値で継続的に把握できない範囲が広い可能性があります。",
+      "title": "Cost Management のデータ収集がスロットリングで停止",
+      "observation": "コスト系ソースは要求数制限により収集できず、利用不可のソースが 1 件記録されています。",
+      "impact": "コストの推移・予算消化・カテゴリ内訳が確認できず、コスト面の意思決定材料が不足する可能性があります。",
+      "numericEvidence": [
+        {
+          "label": "利用不可ソースの件数",
+          "value": "1 件",
+          "source": "overview.metrics.3.value"
+        }
+      ],
+      "recommendedAction": "収集タイミングをずらすか再試行し、Cost Management ダッシュボードで最新状況を確認してください。",
+      "confidence": 0.6,
+      "route": "/cost",
+      "period": "2026-09-10 スナップショット収集時点",
+      "id": "insight-8dc77654"
+    },
+    {
+      "severity": "info",
+      "title": "ネットワーク リソースのメトリック収集は一部のみ",
+      "observation": "ネットワーク インベントリ 10 件中、メトリックを取得できたのは 3 件で、7 件は対象外でした。",
+      "impact": "対象外リソースでは稼働状況の可視化ができず、異常の兆候を見逃す可能性があります。",
       "numericEvidence": [
         {
           "label": "メトリック取得可能リソース数",
-          "value": "3件",
+          "value": "3 件",
           "source": "network.metricCoverage.metricCapableResources"
         },
         {
           "label": "メトリック対象外リソース数",
-          "value": "7件",
+          "value": "7 件",
           "source": "network.metricCoverage.notApplicableResources"
         }
       ],
-      "recommendedAction": "対象外リソースについて、代替の監視手段がないか人手で検討することを推奨します。",
-      "confidence": 0.6,
+      "recommendedAction": "対象外リソースの種別を確認し、Azure Monitor でのメトリック有効化を検討してください。",
+      "confidence": 0.55,
       "route": "/network",
       "period": "2026-09-10 スナップショット収集時点",
-      "id": "insight-bd989d8e"
-    },
-    {
-      "severity": "warning",
-      "title": "Azure Advisor が可用性関連の重要度が高い推奨事項を検出",
-      "observation": "Azure Advisor は可用性に関するカテゴリで重要度が高い推奨事項を 21 件検出しています。",
-      "impact": "可用性に関わる推奨事項が多いことは、構成上のリスクが複数存在している可能性と関連しています。",
-      "numericEvidence": [
-        {
-          "label": "重要度が高い推奨事項の件数",
-          "value": "21件",
-          "source": "advisor.recommendations.0.count"
-        }
-      ],
-      "recommendedAction": "Azure Advisor の可用性に関するカテゴリの推奨事項を人手でレビューすることを推奨します。",
-      "confidence": 0.65,
-      "route": "/reliability",
-      "period": "2026-09-10 スナップショット収集時点",
-      "id": "insight-216cce21"
+      "id": "insight-2fb85d8c"
     }
   ],
   "advisor": {
