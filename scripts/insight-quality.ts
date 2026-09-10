@@ -26,6 +26,14 @@ export function insightQualityFindings(insights: readonly AiInsight[]): string[]
     if (!impactNumbers.some((number) => evidenceNumbers.includes(number))) {
       findings.push(`aiInsights.${index}.impact: tie the impact to at least one cited numeric value and explain its decision consequence, rather than a generic possibility.`);
     }
+    if (sources.size > 0 && [...sources].every((source) => source.startsWith("advisor.")) &&
+        (insight.route !== "/security" || /信頼性ダッシュボード/u.test(insight.recommendedAction))) {
+      findings.push(`aiInsights.${index}.route: Advisor category/impact counts are displayed only at /security. Direct the reader to the security dashboard's Advisor category selector, not the reliability dashboard.`);
+    }
+    if (sources.size > 0 && [...sources].every((source) => source.startsWith("cost.")) &&
+        /使用量|利用量|使用状況|利用状況/u.test(insight.recommendedAction)) {
+      findings.push(`aiInsights.${index}.recommendedAction: this snapshot has category shares and cost changes, not usage data. Recommend comparing the named category with overall and other category changes to decide review priority; do not ask the dashboard to determine usage causes.`);
+    }
     return findings;
   });
 }
