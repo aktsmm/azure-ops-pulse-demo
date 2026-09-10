@@ -27,6 +27,8 @@ jobs:
         run: bash .github/actions/await-pages-deployment/scenarios.test.sh
       - name: Analysis handover scenarios
         run: bash .github/actions/await-analysis-run/scenarios.test.sh
+      - name: Independent semantic review handover scenarios
+        run: bash .github/actions/await-semantic-review/scenarios.test.sh
       - name: Typecheck
         run: npm run typecheck
       - name: Unit tests
@@ -39,4 +41,3 @@ jobs:
           npx tsx scripts/validate-public-data.ts "$RUNNER_TEMP/demo-snapshot.json"
       - name: Build and privacy gate
         run: npm run build
-

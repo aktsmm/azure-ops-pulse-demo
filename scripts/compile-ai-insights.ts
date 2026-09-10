@@ -26,7 +26,7 @@ const RELEASE_ASSETS: Partial<Record<`${NodeJS.Platform}-${string}`, ReleaseAsse
   }
 };
 
-const LOCK_PATH = resolve(".github/workflows/ai-insights.lock.yml");
+const WORKFLOWS = ["ai-insights", "review-ai-insights"] as const;
 const ACTIONS_LOCK_PATH = resolve(".github/aw/actions-lock.json");
 
 async function sha256(path: string): Promise<string> {
@@ -107,17 +107,20 @@ async function main(): Promise<void> {
     throw new Error(`Expected gh-aw ${GH_AW_VERSION}, received: ${version.trim()}`);
   }
 
-  run(compiler, [
-    "compile",
-    "ai-insights",
-    "--strict",
-    "--validate",
-    "--no-check-update",
-    "--approve"
-  ]);
+  for (const workflow of WORKFLOWS) {
+    run(compiler, [
+      "compile",
+      workflow,
+      "--strict",
+      "--validate",
+      "--no-check-update",
+      "--approve"
+    ]);
 
-  const compiled = await readFile(LOCK_PATH, "utf8");
-  await writeFile(LOCK_PATH, hardenAgentWorkflowLock(compiled), "utf8");
+    const lockPath = resolve(`.github/workflows/${workflow}.lock.yml`);
+    const compiled = await readFile(lockPath, "utf8");
+    await writeFile(lockPath, hardenAgentWorkflowLock(compiled, workflow), "utf8");
+  }
   await pinGhAwSetupAction();
 }
 

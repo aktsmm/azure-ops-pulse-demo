@@ -1,0 +1,30 @@
+name: Dispatch and await independent semantic review
+description: Fail closed unless the exact dispatched reviewer run succeeds.
+inputs:
+  publication-run-id:
+    description: Current publication or collection run containing trusted-ai-insights.
+    required: true
+  branch:
+    description: Repository default branch.
+    required: true
+  github-token:
+    description: Ephemeral token with actions write permission.
+    required: true
+  timeout-minutes:
+    description: Maximum review wait in minutes.
+    default: "35"
+outputs:
+  run-id:
+    description: Verified independent reviewer run.
+    value: ${{ steps.review.outputs.run-id }}
+runs:
+  using: composite
+  steps:
+    - id: review
+      shell: bash
+      env:
+        GH_TOKEN: ${{ inputs.github-token }}
+        PUBLICATION_RUN_ID: ${{ inputs.publication-run-id }}
+        BRANCH: ${{ inputs.branch }}
+        TIMEOUT_MINUTES: ${{ inputs.timeout-minutes }}
+      run: bash "$GITHUB_ACTION_PATH/await-review.sh"

@@ -26,6 +26,17 @@ export function insightQualityFindings(insights: readonly AiInsight[]): string[]
     if (!impactNumbers.some((number) => evidenceNumbers.includes(number))) {
       findings.push(`aiInsights.${index}.impact: tie the impact to at least one cited numeric value and explain its decision consequence, rather than a generic possibility.`);
     }
+    // Matching a number is only grounding of the quantity, not of its unit, direction, causal
+    // interpretation or usefulness. Those claims are independently judged by the semantic reviewer.
+    const citedMagnitudes = new Set(evidenceNumbers.map((number) => number.replace(/^-/, "")));
+    for (const field of ["title", "observation", "impact", "recommendedAction"] as const) {
+      const text = insight[field].normalize("NFKC").replaceAll("−", "-")
+        // Embedded version/protocol tokens are labels, not measured quantities (IPv4, TLS1.2).
+        .replace(/\b[A-Za-z][A-Za-z._/-]*\d+[A-Za-z\d._/-]*\b/gu, "");
+      if (numericTokens(text).some((number) => !citedMagnitudes.has(number.replace(/^-/, "")))) {
+        findings.push(`aiInsights.${index}.${field}: every numeric claim in prose must be present in this insight's numericEvidence. Omit unsupported numbers or add their actual scalar sources; do not invent savings, durations, thresholds or derived totals.`);
+      }
+    }
     if (sources.size > 0 && [...sources].every((source) => source.startsWith("advisor.")) &&
         (insight.route !== "/security" || /信頼性ダッシュボード/u.test(insight.recommendedAction))) {
       findings.push(`aiInsights.${index}.route: Advisor category/impact counts are displayed only at /security. Direct the reader to the security dashboard's Advisor category selector, not the reliability dashboard.`);
