@@ -9,15 +9,15 @@ export function PreviousAnalysisNotice({ current, archive }: {
   return (
     <aside className="previous-analysis-notice" aria-label="前回の公開分析の時点">
       <strong>前回の公開分析 · 根拠時点 {formatDateTimeJa(archive.generatedAt)} JST</strong>
-      <p>最新の収集: {formatDateTimeJa(current.freshness.lastSuccessfulCollection)} JST。その収集に対応する公開分析は 0 件です。</p>
-      <p>以下の分析と詳細は当時のデータです。現在の状態と混ぜずに表示しています。生成・審査の実行状態は未確認です。</p>
-      {(archive.scope.subscriptionId !== current.scope.subscriptionId || archive.scope.tenantId !== current.scope.tenantId) && (
-        <details>
-          <summary>公開スコープの匿名化方式について</summary>
+      <p>最新収集: {formatDateTimeJa(current.freshness.lastSuccessfulCollection)} JST · 公開分析 0 件</p>
+      <details>
+        <summary>当時のデータを表示 · 時点の注意</summary>
+        <p>以下の分析と詳細は当時のデータです。現在の状態と混ぜずに表示しています。生成・審査の実行状態は未確認です。</p>
+        {(archive.scope.subscriptionId !== current.scope.subscriptionId || archive.scope.tenantId !== current.scope.tenantId) && (
           <p>公開 ID の匿名化方式が異なるため、この画面の ID から同一スコープを再照合することはできません。保持された前回の公開分析として表示しています。</p>
-        </details>
-      )}
-      <Link to="/overview">現在の収集結果へ</Link>
+        )}
+        <Link to="/overview">現在の収集結果へ</Link>
+      </details>
     </aside>
   );
 }

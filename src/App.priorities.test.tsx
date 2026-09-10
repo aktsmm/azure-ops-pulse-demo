@@ -32,6 +32,8 @@ describe("Decision-first overview pilot", () => {
     expect(cards[0]).toHaveTextContent(high.recommendedAction);
     expect(within(cards[0]!).getByText(high.impact)).toBeVisible();
     expect(within(cards[0]!).getByText(high.recommendedAction)).toBeVisible();
+    expect(cards[0]!.querySelector(".decision-action")!.compareDocumentPosition(
+      cards[0]!.querySelector(".decision-primary-links")!) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
     expect(within(cards[0]!).getByText(high.observation).closest("details")).not.toHaveAttribute("open");
     expect(priorities.compareDocumentPosition(document.getElementById("automation-pipeline")!) &
       Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
