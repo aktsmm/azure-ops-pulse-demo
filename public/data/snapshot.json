@@ -1,11 +1,11 @@
 {
   "schemaVersion": "1.4.0",
-  "generatedAt": "2026-09-10T03:53:04.445Z",
+  "generatedAt": "2026-09-10T04:17:04.906Z",
   "mode": "AZURE",
   "freshness": {
     "state": "fresh",
     "ageMinutes": 0,
-    "lastSuccessfulCollection": "2026-09-10T03:53:04.445Z",
+    "lastSuccessfulCollection": "2026-09-10T04:17:04.906Z",
     "nextScheduledCollection": "Tuesday / Friday 06:00 JST"
   },
   "scope": {
