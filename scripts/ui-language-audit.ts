@@ -50,6 +50,14 @@ const PRODUCT_NAMES = [
   "Cosmos DB",
   "Application Gateway",
   "Network Watcher",
+  "Azure AI Search",
+  "Container Apps",
+  "Container Registry",
+  "Application Health",
+  "NAT Gateway",
+  "Blob",
+  "Premium",
+  "geo レプリケーション",
   "Microsoft",
   "Azure",
   "Defender",
@@ -68,7 +76,7 @@ const PRODUCT_NAMES = [
  * `BCP`, `IP`, and `API` replay false positives from runs 33143695720, 33454461097, and
  * 33474896360.
  */
-const TECHNICAL_ABBREVIATIONS = ["API", "BCP", "IP"];
+const TECHNICAL_ABBREVIATIONS = ["API", "BCP", "IP", "VM", "VMSS", "SNAT", "TLS", "SLA", "DR"];
 
 /**
  * A measurement is digits and a Latin unit, which is how a reader expects to see it. The same shape
@@ -366,6 +374,12 @@ export function findUiLanguageLeaks(snapshot: PublicSnapshotV1): UiLanguageLeak[
   // and the DEMO fixture writes its own copy. So both modes are held to the same rule here.
   for (const [index, recommendation] of snapshot.security.recommendations.entries()) {
     check(`security.recommendations[${index}].title`, recommendation.title);
+  }
+
+  for (const [index, group] of (snapshot.advisor?.details?.groups ?? []).entries()) {
+    for (const field of ["title", "description", "recommendedAction", "deferWhen", "caveat"] as const) {
+      check(`advisor.details.groups[${index}].${field}`, group[field]);
+    }
   }
 
   // The cost page prints category names. They are also the one identifier source worded outside

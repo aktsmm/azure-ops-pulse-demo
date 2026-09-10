@@ -48,7 +48,7 @@ describe("Reliability page", () => {
     const coverage = publishedSnapshot.reliability.coverage;
 
     const heading = await screen.findByRole("heading", {
-      name: `${coverage.totalResources} 件のうち ${coverage.supportedResources} 件が Resource Health で監視できます`
+      name: `${coverage.totalResources} 件のうち ${coverage.supportedResources} 件が Resource Health の評価対象です`
     });
 
     expect(heading).toBeInTheDocument();
@@ -60,18 +60,18 @@ describe("Reliability page", () => {
   it("says failures are not judged yet instead of reporting zero incidents", async () => {
     renderAt("/reliability", reliabilityFixture({ supported: 14, evaluated: 0, notApplicable: 48 }));
 
-    expect(await screen.findByText("確認された障害")).toBeInTheDocument();
+    expect(await screen.findByText("状態低下・利用不可のリソース")).toBeInTheDocument();
     expect(screen.getByText("判定前")).toBeInTheDocument();
     expect(
       screen.getByText(
-        "評価済みが 0 件のため、障害の有無は判定していません（0 件とは表示しません）"
+        "評価済みが 0 件のため、状態低下・利用不可の有無は判定していません（0 件とは表示しません）"
       )
     ).toBeInTheDocument();
   });
 
   it("never tells visitors that a collection source is unimplemented", async () => {
     renderAt("/reliability", publishedSnapshot);
-    await screen.findByRole("heading", { name: /Resource Health で監視できます$/ });
+    await screen.findByRole("heading", { name: /Resource Health の評価対象です$/ });
 
     expect(document.body.textContent).not.toContain("未実装");
     expect(document.body.textContent).not.toContain("Unavailable from public snapshot");
@@ -107,12 +107,13 @@ describe("Reliability page", () => {
       reliabilityFixture({ supported: 14, evaluated: 10, degraded: 2, notApplicable: 48 })
     );
 
-    const failureCard = (await screen.findByText("確認された障害")).closest(".metric-card");
+    const failureCard = (await screen.findByText("状態低下・利用不可のリソース")).closest(".metric-card");
     if (!failureCard) throw new Error("Failure metric card was not rendered");
 
     expect(screen.queryByText("判定前")).not.toBeInTheDocument();
     expect(failureCard.textContent).toContain("2 件");
     expect(failureCard.textContent).toContain("低下 2 件・利用不可 0 件");
+    expect(failureCard.textContent).toContain("業務影響や障害件数ではありません");
     expect(screen.getByText("10/14 件")).toBeInTheDocument();
   });
 });

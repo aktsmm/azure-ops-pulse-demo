@@ -39,6 +39,7 @@ export const INSIGHT_ROUTES = [
   "/resources",
   "/reliability",
   "/security",
+  "/recommendations",
   "/network",
   "/ai-insights"
 ] as const;

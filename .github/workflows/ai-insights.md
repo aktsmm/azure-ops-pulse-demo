@@ -122,17 +122,38 @@ logs, artifacts, commit history, or external services.
 Previous AI output is deliberately removed before you start. Derive fresh analysis from the observed
 fields; do not recover or imitate previous insight text. An existing generated sentence is not evidence.
 
+This is an operator-facing DEMO, not a compliance disclaimer generator. Make the observed concern,
+practical improvement option and trade-off understandable. Approved product names, recommendation
+content, resource types and anonymous topology are useful context: do not suppress them merely
+because identifiers were removed. Demo use can justify conditional deferral, not an assumption
+that every resource or its data is disposable. Put the useful conclusion first and keep uncertainty
+brief and decision-specific rather than repeating a general warning in every field.
+
 ## What the linked pages actually contain
 
 - `/cost`: category shares, approximate category costs, category change percentages, and overall
   change. No usage quantities, per-resource billing, pricing, or breakdown within a service category.
   Never tell the reader this page can determine usage causes. Recommend comparing category and
   overall changes (including other categories) to choose which categories to review first.
-- `/security`: BOTH Defender summaries and the Azure Advisor category selector. Advisor-only
-  insights MUST use this route, even for HighAvailability. Tell the reader to select the relevant
-  Advisor category here: HighAvailability is labelled 「信頼性」. Impact is displayed in rows; there
-  is NO impact selector. Category counts are not distinct affected resources or detailed findings.
-- `/reliability`: Resource Health and Service Health, NOT Advisor recommendations.
+  A concrete follow-up outside this dashboard (for example checking the selected category in Azure
+  portal Cost Analysis) is allowed if you name where to obtain the missing evidence and do not claim
+  it is already observed here.
+- `/recommendations`: Azure Advisor content groups, category and impact filters, and reviewed
+  rule-based confirmation guides. Advisor-only insights MUST use this route. HighAvailability is
+  labelled 「信頼性」. Use the concrete recommendation card, not simply a category's total.
+  Counts are recommendation records, NOT incidents or distinct resources. Only an explicit
+  affectedResourceCount is a deduplicated resource count; null means unknown.
+  `advisor.recommendations` includes ALL collected lifecycle states. Completed, dismissed and
+  postponed records are counted in `details.excludedRecommendationCount`, not actionable cards.
+  `details.groups` excludes them. Do not call the all-state total "open" or "active".
+  A group's `impacts.High` etc. counts its records at each impact; they are NOT separate issue types.
+  If `advisor.availability` is available, a mapped group may be used even when `details.availability`
+  is partial because other content is withheld or the total distinct-resource count is unknown.
+  This is not permission to infer withheld content. When lifecycleUnknownCount is nonzero, do not
+  call every eligible record active: its lifecycle may still need confirmation.
+- `/security`: Defender summaries and only the Security subset of Advisor. Defender assessment
+  labels may be withheld; such groups do not disclose the actual issue, remediation or urgency.
+- `/reliability`: Resource Health and Service Health, with a link to Advisor reliability guidance.
 - `/network`: anonymous configuration topology and collection scope, NOT traffic traces or outage proof.
 
 ## Signal quality: analysis, not a restated dashboard
@@ -141,8 +162,13 @@ Help the operator decide what to review first and why, using only the observed d
 run can publish zero insights. Evaluate candidates against these rules BEFORE writing them:
 
 1. Include a meaningful comparison, concentration, or supported relationship between at least two
-   distinct numeric evidence paths. Explain why that comparison changes the review priority.
-   Two unrelated counts or the same value repeated under different labels do not qualify.
+   distinct numeric evidence paths. Exception: a concrete, mapped Advisor recommendation can use
+   one numeric evidence path when its reviewed content explains a meaningful operator decision,
+   the condition making review important, and what must be confirmed before deferral. Do not add
+   unrelated counts or repeat the same quantity just to reach two paths.
+   A positive observed active-alert, degraded/unavailable-resource, blocked-flow or degraded-
+   connection count may also use one path: explain the specific next triage decision, not an
+   unproven incident or cause. Do not require a second unrelated metric to discuss a real signal.
 2. Exclude collection coverage, unsupported resource types, missing metrics, and unavailable sources
    as standalone findings. These belong to the UI's deterministic collection-scope panel. In
    particular, NotApplicable is NOT failure, an outage, or a monitoring misconfiguration. Do not
@@ -151,25 +177,39 @@ run can publish zero insights. Evaluate candidates against these rules BEFORE wr
 3. Do not turn an isolated event/recommendation count into an incident narrative. If the snapshot
    lacks affected-resource details or correlated observations, do not claim customer impact or
    resource-level correlation. Active and resolved event totals alone are a status summary, not
-   analysis: omit that candidate. Aggregate data can support aggregate review priorities only.
+   analysis: omit that candidate. "Reliability has more recommendations, so review it first" is
+   also insufficient, even with correct counts and impact labels. Advisor analysis MUST reference
+   a mapped content group and explain its specific concern and conditional next decision.
+   Unmapped/withheld content is NOT evidence of a specific flaw or low risk. Do not invent its title.
 4. `impact` must explain the consequence of the specific comparison, not a generic possibility
    applicable to every environment. `recommendedAction` must name the observed service/category
    or condition, what to compare/check, and what decision that check informs, plus the matching
    dashboard route. "Review monitoring", "check the dashboard", and "review periodically" alone
-   are insufficient. Human investigation is allowed; do not prescribe Azure changes.
+   are insufficient. Human investigation and concrete conditional improvement options are allowed;
+   do not execute changes or portray a suggested change as mandatory without its prerequisites.
    Anchor `impact` explicitly in at least one cited numeric value, including what the value means
    for the decision. Merely inserting a number into generic prose does not qualify.
    Every numerical claim in title, observation, impact and action must appear in numericEvidence.
    Do not invent savings percentages, timelines or thresholds. Do not quote computed sums/ratios
    without an existing cited scalar; explain the comparison without a new calculated number.
    A cost action should compare the named category's change with the overall change to decide
-   whether to focus review there or in the remaining categories, not ask for unspecified usage
-   details that the dashboard does not contain.
+   whether to focus review there or in the remaining categories. If a next decision needs usage
+   data, specify an external follow-up and distinguish that missing evidence from observations.
+   For Advisor, use the checked-in guide as conditional product guidance, NOT a newly measured
+   environment fact or an AI-discovered root cause. State what is unknown (such as production/test
+   use, downtime tolerance, alternative controls or additional cost) when it changes the decision.
+   A low impact label or small count alone NEVER means "ignore", "safe" or "no action required".
+   Ask the operator to confirm these missing requirements outside the dashboard; do not pretend
+   the dashboard contains them. Distinguish review from applying changes.
 5. Use only time windows actually stated in the snapshot. A category share is concentration, not
    proof of waste. A decrease is not deterioration. Without comparable prior observations, do not
    claim a new issue, recurrence, duration, anomaly, acceleration, or worsening.
 6. Rank by decision value, merge overlapping findings, and omit weak candidates rather than padding
    to four. Unrelated operational evidence added to a coverage warning does not make it analysis.
+   Consider cost, security, reliability, network and concrete Advisor content before ranking.
+   Prefer distinct decisions (for example data recovery, compatibility, capacity and spend) over
+   repeating the same redundancy advice for several products. This is not a per-domain quota:
+   unavailable data must not become an invented finding just to fill a category.
 
 After generation, a separate reviewer evaluates the WHOLE claim, not just whether numbers match.
 It rejects generic prose with inserted numbers, unrelated evidence, invalid periods/denominators,
@@ -213,7 +253,7 @@ Each insight must contain:
 - `recommendedAction`
 - `confidence`: a JSON number from 0 through 1, such as `0.78`. It is not a percentage: `78` is
   rejected rather than read as 78%
-- `route`: one of `/overview`, `/cost`, `/resources`, `/reliability`, `/security`, `/network`,
+- `route`: one of `/overview`, `/cost`, `/resources`, `/reliability`, `/security`, `/recommendations`, `/network`,
   `/ai-insights`
 
 Do not write `id` or `period`. Neither carries analysis. `period` records when the snapshot was
@@ -256,8 +296,15 @@ to get around the quality gate. Zero qualifying candidates means an empty array 
 2. Make no root-cause claim unless the snapshot directly proves it. Prefer correlation and bounded
    language such as "may", "is associated with", or "warrants review".
 3. Never invent metrics, identifiers, asset names, endpoints, users, costs, or Defender details.
-4. Never cite a `null` value or any metric whose corresponding source is `partial` or `unavailable`.
-5. Do not recommend or execute Azure remediation. Recommend human review and a dashboard route.
+4. Never cite a `null` value or a metric whose collection source is `partial` or `unavailable`.
+   The specifically documented Advisor mapped-group exception above permits partial content mapping,
+   not failed or incomplete source collection.
+   A Defender field explicitly marked available remains usable when only OTHER fields make the
+   source partial. Positive observed degraded/unavailable Resource Health counts also remain useful
+   under partial collection, but cannot establish whole-estate health or an all-clear.
+5. Never execute Azure remediation. Explain supported improvement options and their conditions,
+   cost/availability trade-offs and human approval, with a relevant dashboard route. Investigation
+   may continue outside the dashboard when the missing evidence and its location are explicit.
 6. Do not add exact JPY amounts. Use only existing approximate labels and percentages.
 7. Do not alter identifiers, resource rows, source status, freshness, or any field outside
    `aiInsights`.

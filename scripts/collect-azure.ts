@@ -41,15 +41,7 @@ import { collectDefender } from "./defender-collection";
 import { ADVISOR_QUERY, summarizeAdvisor, type AdvisorRow } from "./advisor";
 import { TOPOLOGY_QUERY, buildNetworkTopology, type TopologyRow } from "./network-topology";
 import { costPeriodDiagnostics } from "./cost-diagnostics";
-
-interface GraphResponse<T> {
-  data?: T[];
-  count?: number;
-  totalRecords?: number;
-  total_records?: number;
-  skipToken?: string;
-  skip_token?: string;
-}
+import { collectGraphPages, type GraphResponse } from "./resource-graph";
 
 class AzureCliError extends CollectionError {
   readonly unsupportedMetricNamespace: boolean;
@@ -107,12 +99,12 @@ function runAzJsonAllowingEmpty<T>(args: string[]): T | null {
 }
 
 function graphQuery<T>(subscriptionId: string, query: string): T[] {
-  const rows: T[] = [];
-  let skipToken: string | undefined;
-  for (let page = 0; page < 100; page += 1) {
+  return collectGraphPages((skipToken) => {
     const args = [
       "graph",
       "query",
+      "--subscription",
+      subscriptionId,
       "--subscriptions",
       subscriptionId,
       "--first",
@@ -121,23 +113,8 @@ function graphQuery<T>(subscriptionId: string, query: string): T[] {
       query
     ];
     if (skipToken) args.push("--skip-token", skipToken);
-    const response = runAzJson<GraphResponse<T>>(args);
-    if (!Array.isArray(response.data)) throw new CollectionError("invalid-response");
-    rows.push(...response.data);
-    const nextToken = response.skipToken ?? response.skip_token;
-    const totalRecords = response.totalRecords ?? response.total_records;
-    if (!nextToken) {
-      if (typeof totalRecords === "number" && rows.length < totalRecords) {
-        throw new Error("Azure Resource Graph pagination ended before all records were collected");
-      }
-      return rows;
-    }
-    if (nextToken === skipToken) {
-      throw new Error("Azure Resource Graph returned a repeated pagination token");
-    }
-    skipToken = nextToken;
-  }
-  throw new Error("Azure Resource Graph exceeded the 100-page safety limit");
+    return runAzJson<GraphResponse<T>>(args);
+  });
 }
 
 const RESOURCE_HEALTH_API_VERSION = "2025-05-01";

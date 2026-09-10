@@ -2,6 +2,61 @@ import { describe, expect, it } from "vitest";
 import { validateEvidenceItem } from "./evidence-validator";
 
 describe("AI numeric evidence validation", () => {
+  it("keeps a successfully collected Defender field usable when another field is unavailable", () => {
+    const snapshot = {
+      sources: [{ source: "Defender for Cloud", availability: "partial" }],
+      security: { activeAlerts: 1, secureScore: null, fieldAvailability: { activeAlerts: "available", secureScore: "unavailable" } }
+    };
+    const evidence = { source: "security.activeAlerts", label: "アクティブアラート", value: "1件" };
+    expect(() => validateEvidenceItem(snapshot, "内容を確認", evidence)).not.toThrow();
+    snapshot.security.fieldAvailability.activeAlerts = "unavailable";
+    expect(() => validateEvidenceItem(snapshot, "内容を確認", evidence)).toThrow();
+    snapshot.security.fieldAvailability.activeAlerts = "available";
+    snapshot.sources[0]!.availability = "unavailable";
+    expect(() => validateEvidenceItem(snapshot, "内容を確認", evidence)).toThrow();
+  });
+
+  it("allows observed degraded resources in partial health data, but not an all-clear zero", () => {
+    const snapshot = {
+      sources: [{ source: "Resource Health", availability: "partial" }],
+      reliability: { coverage: { degradedResources: 1 } }
+    };
+    const evidence = { source: "reliability.coverage.degradedResources", label: "状態低下", value: "1件" };
+    expect(() => validateEvidenceItem(snapshot, "観測された状態低下", evidence)).not.toThrow();
+    snapshot.reliability.coverage.degradedResources = 0;
+    expect(() => validateEvidenceItem(snapshot, "正常とは判断しない", { ...evidence, value: "0件" })).toThrow();
+    snapshot.reliability.coverage.degradedResources = 1;
+    snapshot.sources[0]!.availability = "unavailable";
+    expect(() => validateEvidenceItem(snapshot, "未収集", evidence)).toThrow();
+  });
+
+  it("does not admit a flow count from unavailable telemetry", () => {
+    expect(() => validateEvidenceItem({
+      sources: [], network: { telemetry: { availability: "unavailable", blockedFlows: 1 } }
+    }, "未収集", { source: "network.telemetry.blockedFlows", label: "拒否", value: "1件" })).toThrow("Flow telemetry");
+  });
+
+  it("distinguishes missing detail collection from partial content mapping", () => {
+    const snapshot = {
+      sources: [{ source: "Azure Advisor", availability: "available" }],
+      advisor: { availability: "available", details: {
+        availability: "available", groups: [{ count: 3, affectedResourceCount: null }]
+      } }
+    };
+    const evidence = { label: "推奨レコード数", value: "3件", source: "advisor.details.groups.0.count" };
+    expect(() => validateEvidenceItem(snapshot, "具体的な推奨", evidence)).not.toThrow();
+    expect(() => validateEvidenceItem(snapshot, "対象数は未確認", {
+      label: "対象数", value: "0件", source: "advisor.details.groups.0.affectedResourceCount"
+    })).toThrow("invalid scalar");
+    snapshot.advisor.details.availability = "partial";
+    expect(() => validateEvidenceItem(snapshot, "個別に収集された推奨", evidence)).not.toThrow();
+    for (const availability of ["missing", "unavailable"]) {
+      snapshot.advisor.details.availability = availability;
+      expect(() => validateEvidenceItem(snapshot, "具体的な推奨", evidence))
+        .toThrow("Advisor detail collection is not available");
+    }
+  });
+
   it("accepts one normalized numeric value supported by the cited scalar", () => {
     expect(() =>
       validateEvidenceItem(

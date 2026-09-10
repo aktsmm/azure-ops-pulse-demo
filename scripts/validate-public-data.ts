@@ -41,7 +41,7 @@ validateUiLanguage(parsed);
 if (insightsOnly) {
   // Admission policy for newly generated analysis. Historical snapshots remain readable/buildable
   // until regeneration; both the agent self-check and trusted publisher use this path.
-  validateInsightQuality(parsed.aiInsights);
+  validateInsightQuality(parsed.aiInsights, parsed);
   const repositoryPath = relative(process.cwd(), file).replaceAll("\\", "/");
   if (repositoryPath.startsWith("../")) {
     throw new Error("Insights-only validation requires a file inside the repository");

@@ -1,6 +1,6 @@
 import type { AiInsight, PublicSnapshotV1 } from "../src/data/contracts";
 
-function valueAtPath(root: unknown, path: string): unknown {
+export function valueAtPath(root: unknown, path: string): unknown {
   let current = root;
   for (const segment of path.split(".")) {
     if (current === null || typeof current !== "object") return undefined;
@@ -27,13 +27,18 @@ function requireAvailableEvidenceSource(snapshot: unknown, sourcePath: string): 
   const sources = (snapshot as { sources?: unknown }).sources;
   if (!Array.isArray(sources)) return;
 
+  if (sourcePath.startsWith("network.telemetry.") &&
+      valueAtPath(snapshot, "network.telemetry.availability") !== "available") {
+    throw new Error(`Flow telemetry is not available for ${sourcePath}`);
+  }
   const requiredSource = sourcePath.startsWith("security.")
     ? "Defender for Cloud"
     : sourcePath.startsWith("advisor.")
       ? "Azure Advisor"
       : sourcePath.startsWith("network.topology.")
         ? "Network topology"
-    : sourcePath === "overview.postureScore" || sourcePath === "reliability.incidents"
+    : sourcePath.startsWith("reliability.coverage.") ||
+      sourcePath === "overview.postureScore" || sourcePath === "reliability.incidents"
       ? "Resource Health"
       : null;
   if (!requiredSource) return;
@@ -45,19 +50,30 @@ function requireAvailableEvidenceSource(snapshot: unknown, sourcePath: string): 
       (source as { source?: unknown }).source === requiredSource &&
       typeof (source as { availability?: unknown }).availability === "string"
   );
-  if (status?.availability !== "available") {
+  const defenderField = sourcePath.startsWith("security.recommendations.") ? "assessments" : sourcePath.split(".")[1];
+  const individuallyAvailable = sourcePath.startsWith("security.") &&
+    valueAtPath(snapshot, `security.fieldAvailability.${defenderField}`) === "available";
+  const observedHealthCount = /^reliability\.coverage\.(?:degradedResources|unavailableResources)$/u.test(sourcePath) &&
+    typeof valueAtPath(snapshot, sourcePath) === "number" && Number(valueAtPath(snapshot, sourcePath)) > 0;
+  if (status?.availability !== "available" &&
+      !(status?.availability === "partial" && (individuallyAvailable || observedHealthCount))) {
     throw new Error(`Evidence source ${requiredSource} is not available for ${sourcePath}`);
   }
   if (sourcePath.startsWith("security.")) {
     const security = (snapshot as { security?: { fieldAvailability?: Record<string, string> } }).security;
-    const field = sourcePath.startsWith("security.recommendations.") ? "assessments" : sourcePath.split(".")[1];
-    if (security?.fieldAvailability && security.fieldAvailability[field] !== "available") {
+    if (security?.fieldAvailability && security.fieldAvailability[defenderField] !== "available") {
       throw new Error(`Defender field is not available for ${sourcePath}`);
     }
   }
   if ((sourcePath.startsWith("advisor.") && valueAtPath(snapshot, "advisor.availability") !== "available") ||
       (sourcePath.startsWith("network.topology.") && valueAtPath(snapshot, "network.topology.availability") !== "available")) {
     throw new Error(`Collection is not available for ${sourcePath}`);
+  }
+  if (sourcePath.startsWith("advisor.details.")) {
+    const detailAvailability = valueAtPath(snapshot, "advisor.details.availability");
+    if (detailAvailability !== "available" && detailAvailability !== "partial") {
+      throw new Error(`Advisor detail collection is not available for ${sourcePath}`);
+    }
   }
   if (
     sourcePath === "reliability.incidents" &&

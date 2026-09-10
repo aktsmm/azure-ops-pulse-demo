@@ -70,7 +70,7 @@ export function collectInsightFindings(candidate: unknown): string[] {
     (leak) => `${leak.path}  untranslated: ${leak.residue}`
   );
   appendSection(findings, "rendered UI language", leakFindings);
-  appendSection(findings, "insight quality", insightQualityFindings(snapshot.aiInsights));
+  appendSection(findings, "insight quality", insightQualityFindings(snapshot.aiInsights, snapshot));
 
   return findings;
 }

@@ -7,6 +7,7 @@ import { publicSnapshotSchema } from "../scripts/public-schema";
 import { buildDemoSnapshot } from "../scripts/build-demo-snapshot";
 import { publishedSnapshot } from "./test/reliability-fixtures";
 import { costFixture } from "./test/cost-fixtures";
+import { ADVISOR_DETAILS_MESSAGE, advisorContent } from "./lib/advisor-catalog";
 import App from "./App";
 
 const ROUTES = [
@@ -15,6 +16,7 @@ const ROUTES = [
   "/resources",
   "/reliability",
   "/security",
+  "/recommendations",
   "/network",
   "/ai-insights"
 ];
@@ -26,13 +28,16 @@ const ROUTES = [
 const SENTINEL = "SENTINELDIAGNOSTICSTRING";
 
 /**
- * The collectors write these three fields for operators reading the raw JSON, and they stay in
- * English on purpose. The rendered-language audit skips them for that reason, which is only sound
- * while the dashboard never prints them. Asserting `src/App.tsx` does not contain the property
+ * Raw diagnostic messages are for operators reading JSON. Advisor details additionally carry a
+ * schema-fixed catalog message: validate its literal first, then inject a sentinel at the fetch
+ * boundary to prove that even stale or unexpected runtime messages never reach the rendered tree.
+ * The dashboard describes availability itself rather than printing these message properties.
+ * Asserting `src/App.tsx` does not contain the property
  * names is not enough: destructuring the object, renaming the value or handing the whole source
  * record to a child component all keep the text on screen while the string search passes.
  */
 const DIAGNOSTIC_FIELDS = [
+  "advisor.details.message",
   "advisor.message",
   "network.telemetry.message",
   "network.topology.message",
@@ -61,7 +66,14 @@ function withDiagnosticSentinels(snapshot: PublicSnapshotV1): PublicSnapshotV1 {
   return {
     ...snapshot,
     cost: { ...snapshot.cost },
-    advisor: { availability: "unavailable", recommendations: [], message: SENTINEL },
+    advisor: {
+      availability: "unavailable", recommendations: [], message: SENTINEL,
+      details: {
+        availability: "unavailable", message: ADVISOR_DETAILS_MESSAGE, groups: [],
+        mappedRecommendationCount: 0, withheldRecommendationCount: 0,
+        excludedRecommendationCount: 0, lifecycleUnknownCount: 0, affectedResourceCount: null
+      }
+    },
     reliability: {
       ...snapshot.reliability,
       serviceHealth: { ...snapshot.reliability.serviceHealth, message: SENTINEL }
@@ -81,11 +93,13 @@ function withDiagnosticSentinels(snapshot: PublicSnapshotV1): PublicSnapshotV1 {
 
 async function renderAt(route: string, snapshot: PublicSnapshotV1) {
   publicSnapshotSchema.parse(snapshot);
+  const fetchedSnapshot = structuredClone(snapshot);
+  if (fetchedSnapshot.advisor?.details) fetchedSnapshot.advisor.details.message = SENTINEL;
   vi.stubGlobal(
     "fetch",
     vi.fn().mockResolvedValue({
       ok: true,
-      json: async () => snapshot
+      json: async () => fetchedSnapshot
     })
   );
   window.history.replaceState(null, "", `#${route}`);
@@ -117,6 +131,7 @@ describe("Operator diagnostics stay out of the rendered page", () => {
     expect(within(panel).getByText(/通貨が公開対象の JPY と一致しません/)).toBeInTheDocument();
     expect(within(panel).getByText(/アクセスが拒否されました/)).toBeInTheDocument();
     expect(document.body.innerHTML).not.toContain(SENTINEL);
+    expect(document.body.innerHTML).not.toContain(ADVISOR_DETAILS_MESSAGE);
   });
 
   it("does not blame the current period for a previous-period failure", async () => {
@@ -145,7 +160,46 @@ describe("Operator diagnostics stay out of the rendered page", () => {
     // The serialized tree rather than its text, so a diagnostic parked in `title`, `aria-label` or
     // any other attribute — read out by a screen reader, shown as a tooltip — counts as rendered.
     expect(document.body.innerHTML).not.toContain(SENTINEL);
+    expect(document.body.innerHTML).not.toContain(ADVISOR_DETAILS_MESSAGE);
   });
+
+  it.each(["available", "partial", "unavailable"] as const)(
+    "hides details.message in the %s detail branch without hiding collected guide fields",
+    async (availability) => {
+      const snapshot = buildDemoSnapshot("2026-09-09T00:00:00.000Z");
+      const content = advisorContent("storage-zone-redundancy", "HighAvailability");
+      snapshot.sources = [
+        ...snapshot.sources.filter((source) => source.source !== "Azure Advisor"),
+        { source: "Azure Advisor", availability: "available", message: SENTINEL }
+      ];
+      snapshot.advisor = {
+        availability: "available", message: SENTINEL,
+        recommendations: [{ category: "HighAvailability", impact: "High", count: 1 }],
+        details: {
+          availability, message: ADVISOR_DETAILS_MESSAGE,
+          mappedRecommendationCount: availability === "unavailable" ? 0 : 1,
+          withheldRecommendationCount: 0, excludedRecommendationCount: 0,
+          lifecycleUnknownCount: 0, affectedResourceCount: availability === "unavailable" ? null : 1,
+          groups: availability === "unavailable" ? [] : [{
+            ...content, count: 1, impacts: { High: 1, Medium: 0, Low: 0, Unknown: 0 },
+            affectedResourceCount: 1, resourceTypes: [{ type: "microsoft.storage/storageaccounts", count: 1 }]
+          }]
+        }
+      };
+      await renderAt("/recommendations", snapshot);
+      expect(document.body.innerHTML).not.toContain(SENTINEL);
+      expect(document.body.innerHTML).not.toContain(ADVISOR_DETAILS_MESSAGE);
+      if (availability === "unavailable") {
+        expect(screen.getByText("内容詳細は未収集です")).toBeInTheDocument();
+        expect(screen.queryByText(content.title)).not.toBeInTheDocument();
+      } else {
+        const card = screen.getByRole("heading", { name: content.title }).closest("article")!;
+        for (const value of [content.description, content.recommendedAction, content.deferWhen, content.caveat]) {
+          expect(card).toHaveTextContent(value);
+        }
+      }
+    }
+  );
 
   it("names every message the contract carries", () => {
     // `toHaveLength(3)` would restate the literal above and could never fail. Deriving the set means

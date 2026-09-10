@@ -56,7 +56,7 @@ describe("Optional collection data reaches the dashboard", () => {
         recommendations: [{ category: "Security", impact: "High", count: 3 }]
       }
     });
-    expect(await screen.findByText("該当する推奨事項 3 件")).toBeInTheDocument();
+    expect(await screen.findByText("推奨事項レコード 3 件")).toBeInTheDocument();
     expect(screen.getByText("Defender for Cloud は未収集です")).toBeInTheDocument();
   });
   it("does not turn a failed assessments subquery into zero recommendations", async () => {
@@ -73,7 +73,7 @@ describe("Optional collection data reaches the dashboard", () => {
       }
     });
     expect(await screen.findByText("55%")).toBeInTheDocument();
-    expect(screen.getByText("未解決の推奨事項").closest("article")).toHaveTextContent("未収集");
+    expect(screen.getByText("公開中の評価グループ").closest("article")).toHaveTextContent("未収集");
     expect(screen.getByText("Defender 推奨事項は未収集です")).toBeInTheDocument();
   });
 });

@@ -91,7 +91,7 @@ describe("snapshot-bound independent semantic review", () => {
   });
 
   it("fails closed if the reviewer accepts a weak case or rejects a meaningful one", () => {
-    for (const changed of ["case-01", "case-02", "case-03", "case-04", "case-05"]) {
+    for (const changed of Object.keys(EXPECTED_CALIBRATION)) {
       const value = {
         ...verdict(), calibration: calibration.map((entry) =>
           entry.caseId === changed ? { ...entry, acceptable: !entry.acceptable } : entry)
@@ -103,7 +103,7 @@ describe("snapshot-bound independent semantic review", () => {
 
   it("requires each calibration case exactly once and never supplies expected answers to the model", () => {
     const value = verdict();
-    expect(() => bind({ ...value, calibration: [calibration[0], ...calibration.slice(0, 4)] }))
+    expect(() => bind({ ...value, calibration: [calibration[0], ...calibration.slice(0, -1)] }))
       .toThrow("each calibration case exactly once");
     expect(() => bind({ ...value, calibration: [] })).toThrow("schema rejected");
     const modelInput = semanticCalibrationCases();

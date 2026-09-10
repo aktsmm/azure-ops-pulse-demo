@@ -10,6 +10,7 @@ import {
   metricWhenSourcePublished,
   resourceStatusLabel,
   resourceStatusSeverity,
+  routeLabel,
   summarizeResourceHealth
 } from "./display-formatters";
 import { classifyEndpoint } from "./sanitize";
@@ -34,6 +35,11 @@ describe("activity title rendering", () => {
 });
 
 describe("Japanese display formatters", () => {
+  it("labels category-scoped recommendation routes without losing their destination", () => {
+    expect(routeLabel("/recommendations")).toBe("推奨事項");
+    expect(routeLabel("/recommendations?category=Cost")).toBe("推奨事項");
+    expect(routeLabel("/unknown")).toBe("関連画面");
+  });
   it("keeps Unknown informational instead of treating it as unhealthy", () => {
     expect(resourceStatusLabel("Unknown")).toBe("未評価");
     expect(resourceStatusSeverity("Unknown")).toBe("info");
