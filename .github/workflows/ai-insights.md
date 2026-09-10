@@ -61,6 +61,8 @@ tools:
 steps:
   - name: Install deterministic validation dependencies
     run: npm ci --ignore-scripts
+  - name: Remove previous analysis from the input, retaining all observed data
+    run: npx tsx scripts/prepare-ai-input.ts
 
 post-steps:
   - name: Normalize the derived insight fields, then validate schema, prose, evidence and privacy
@@ -117,6 +119,8 @@ safe-outputs:
 Analyze only `public/data/snapshot.json`. It is the sole approved input and has already crossed the
 repository's deterministic public sanitization boundary. Do not inspect Azure, workflow secrets,
 logs, artifacts, commit history, or external services.
+Previous AI output is deliberately removed before you start. Derive fresh analysis from the observed
+fields; do not recover or imitate previous insight text. An existing generated sentence is not evidence.
 
 ## Signal quality: analysis, not a restated dashboard
 
@@ -133,12 +137,18 @@ run can publish zero insights. Evaluate candidates against these rules BEFORE wr
    same denominator. "Metrics are missing, so changes may be hard to see" is NOT an insight.
 3. Do not turn an isolated event/recommendation count into an incident narrative. If the snapshot
    lacks affected-resource details or correlated observations, do not claim customer impact or
-   resource-level correlation. Aggregate data can support aggregate review priorities only.
+   resource-level correlation. Active and resolved event totals alone are a status summary, not
+   analysis: omit that candidate. Aggregate data can support aggregate review priorities only.
 4. `impact` must explain the consequence of the specific comparison, not a generic possibility
    applicable to every environment. `recommendedAction` must name the observed service/category
    or condition, what to compare/check, and what decision that check informs, plus the matching
    dashboard route. "Review monitoring", "check the dashboard", and "review periodically" alone
    are insufficient. Human investigation is allowed; do not prescribe Azure changes.
+   Anchor `impact` explicitly in at least one cited numeric value, including what the value means
+   for the decision. Merely inserting a number into generic prose does not qualify.
+   A cost action should compare the named category's change with the overall change to decide
+   whether to focus review there or in the remaining categories, not ask for unspecified usage
+   details that the dashboard does not contain.
 5. Use only time windows actually stated in the snapshot. A category share is concentration, not
    proof of waste. A decrease is not deterioration. Without comparable prior observations, do not
    claim a new issue, recurrence, duration, anomaly, acceleration, or worsening.

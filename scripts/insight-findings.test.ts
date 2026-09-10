@@ -404,6 +404,7 @@ describe("check-insights", () => {
       ...snapshot,
       aiInsights: [{
         ...insightAt(0),
+        impact: `構成比${category.sharePercent}%のサービスから内訳を確認することで、全体の増減を比較する対象を絞れます。`,
         numericEvidence: [
           { source: "cost.categories.0.sharePercent", label: "構成比", value: `${category.sharePercent}%` },
           { source: "cost.categories.0.deltaPercent", label: "増減率", value: `${category.deltaPercent}%` }
