@@ -4,6 +4,7 @@ import { validateEvidenceItem } from "./evidence-validator";
 import { validateJapaneseInsights } from "./japanese-insights-validator";
 import { publicSnapshotSchema } from "./public-schema";
 import { findUiLanguageLeaks } from "./ui-language-audit";
+import { insightQualityFindings } from "./insight-quality";
 
 /**
  * Advisory listing of every gate finding the authoritative validator could locate, not just the one
@@ -69,6 +70,7 @@ export function collectInsightFindings(candidate: unknown): string[] {
     (leak) => `${leak.path}  untranslated: ${leak.residue}`
   );
   appendSection(findings, "rendered UI language", leakFindings);
+  appendSection(findings, "insight quality", insightQualityFindings(snapshot.aiInsights));
 
   return findings;
 }

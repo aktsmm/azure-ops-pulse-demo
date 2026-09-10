@@ -551,9 +551,12 @@ describe("AI insight publication gate", () => {
     expect(promptBody).toContain("Do not finish, stage an artifact, or call a safe output");
     expect(promptBody).toContain("call the configured `noop` safe output");
     expect(promptBody).toContain("Do not call `upload-artifact`");
-    // Feedback the agent can act on is also feedback it can silence. Emptying the array passes every
-    // gate, so the instruction that it is a failure rather than a fix is part of the change.
-    expect(promptBody).toContain("do not empty the array, to make the check pass");
+    // Retain useful candidates, but do not force the agent to keep low-signal warnings just because
+    // their numbers are real. Empty output is valid only when no qualifying analysis remains.
+    expect(promptBody).toContain("Correct errors in qualifying insights rather than deleting them");
+    expect(promptBody).toContain("Zero qualifying candidates means an empty array is correct");
+    expect(promptBody).toContain("Never add unrelated evidence");
+    expect(promptBody).toContain("NotApplicable is NOT failure");
 
     // And the trusted publisher derives the period itself before repeating the gates, so the pass
     // that ran in the workspace the agent can write to is feedback rather than authority. That the

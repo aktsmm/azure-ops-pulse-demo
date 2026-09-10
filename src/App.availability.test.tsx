@@ -42,7 +42,9 @@ describe("Unavailable data is explained rather than invented", () => {
   });
   it("separates deterministic snapshot facts from AI and links to actual run results", async () => {
     mount("/ai-insights");
-    expect(await screen.findByText("公開済みの分析はまだありません")).toBeInTheDocument();
+    expect(await screen.findByText("公開できる AI インサイトはありません")).toBeInTheDocument();
+    expect(screen.getByText("収集範囲・制約（自動集計）")).toBeInTheDocument();
+    expect(screen.getByText(/0 件は問題なしの証明ではありません/)).toBeInTheDocument();
     expect(screen.getByText(/AI が生成した分析ではありません/)).toBeInTheDocument();
     expect(screen.getByRole("link", { name: /AI 分析ワークフローの実行結果を確認/ })).toHaveAttribute(
       "href", "https://github.com/aktsmm/azure-ops-pulse-demo/actions/workflows/ai-insights.lock.yml"
