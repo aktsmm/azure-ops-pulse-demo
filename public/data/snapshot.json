@@ -1560,54 +1560,59 @@
   "aiInsights": [
     {
       "severity": "warning",
-      "title": "コストの過半数が Azure Cognitive Search に集中",
-      "observation": "当月のコスト構成では Azure Cognitive Search が62.9%を占め、前期比では-5.4%の減少でした。全体コストも前期比-0.9%とほぼ横ばいです。",
-      "impact": "特定サービスへのコスト集中は、そのサービスの利用変動が全体コストへ大きく波及する可能性を示唆します。",
+      "title": "Azure Cognitive Search がコスト構成比の過半を占め、変化率が全体とかい離",
+      "observation": "Azure Cognitive Search のコストシェアは62.9%で最大のカテゴリですが、当該カテゴリの前期比変化率は-5.4%であり、コスト全体の前期比変化率-0.9%とかい離しています。",
+      "impact": "コスト全体の前期比変化はわずか-0.9%ですが、支出の62.9%を占めるAzure Cognitive Searchは-5.4%とより大きく変動しているため、全体の変化率だけを見ると支出構造の変化を見落とすおそれがあります。まずこのカテゴリの内訳を優先的に確認すべきです。",
       "numericEvidence": [
         {
-          "label": "Azure Cognitive Search のコスト構成比",
+          "label": "Azure Cognitive Search のコストシェア",
           "value": "62.9%",
           "source": "cost.categories.0.sharePercent"
         },
         {
-          "label": "Azure Cognitive Search の前期比増減率",
+          "label": "Azure Cognitive Search の前期比変化率",
           "value": "-5.4%",
           "source": "cost.categories.0.deltaPercent"
         },
         {
-          "label": "全体コストの前期比増減率",
+          "label": "コスト全体の前期比変化率",
           "value": "-0.9%",
           "source": "cost.deltaPercent"
         }
       ],
-      "recommendedAction": "コストダッシュボードで Azure Cognitive Search の利用状況を確認し、想定通りの推移か定期的に照合することを推奨します。",
-      "confidence": 0.55,
+      "recommendedAction": "コストダッシュボードでAzure Cognitive Searchのカテゴリ別内訳を確認し、全体の変化率(-0.9%)とのかい離が構成比の変化によるものか、使用量の変化によるものかを判断してください。",
+      "confidence": 0.75,
       "route": "/cost",
       "period": "2026-09-10 スナップショット収集時点",
-      "id": "insight-9456f228"
+      "id": "insight-23084d7d"
     },
     {
       "severity": "warning",
-      "title": "Service Health でアクティブなイベントが2件検出",
-      "observation": "Service Health は集計で5件のイベントを報告し、うち2件がアクティブ、3件が解決済みです。",
-      "impact": "アクティブなイベントはサービス単位の状態のみが分かり、影響範囲の詳細は含まれないため、個別確認が必要になる可能性があります。",
+      "title": "Azure Advisor の推奨事項は高可用性の区分に集中",
+      "observation": "Azure Advisor の推奨事項は高可用性の区分で影響度「高」が21件、影響度「中」が27件と多く、運用の卓越性の区分では影響度「低」が1件にとどまり、区分間で件数の偏りが見られます。",
+      "impact": "高可用性の区分の推奨事項(影響度「高」21件、影響度「中」27件)は他の区分(例: 運用の卓越性の影響度「低」1件)より著しく多いため、可用性関連の推奨事項から優先的にレビューすることで、影響度の大きい確認漏れを防げます。",
       "numericEvidence": [
         {
-          "label": "アクティブなイベント件数",
-          "value": "2 件",
-          "source": "reliability.serviceHealth.activeEvents"
+          "label": "高可用性・影響度「高」の推奨事項数",
+          "value": "21",
+          "source": "advisor.recommendations.0.count"
         },
         {
-          "label": "解決済みイベント件数",
-          "value": "3 件",
-          "source": "reliability.serviceHealth.resolvedEvents"
+          "label": "高可用性・影響度「中」の推奨事項数",
+          "value": "27",
+          "source": "advisor.recommendations.1.count"
+        },
+        {
+          "label": "運用の卓越性・影響度「低」の推奨事項数",
+          "value": "1",
+          "source": "advisor.recommendations.2.count"
         }
       ],
-      "recommendedAction": "信頼性ダッシュボードでアクティブなイベントの詳細を確認し、影響の有無を精査することを推奨します。",
-      "confidence": 0.6,
+      "recommendedAction": "信頼性ダッシュボードで高可用性の区分の推奨事項(影響度「高」「中」)を優先確認し、他区分の推奨事項との対応順位を判断してください。",
+      "confidence": 0.7,
       "route": "/reliability",
       "period": "2026-09-10 スナップショット収集時点",
-      "id": "insight-5015a506"
+      "id": "insight-cf9edb83"
     }
   ],
   "advisor": {
