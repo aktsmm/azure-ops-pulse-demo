@@ -148,6 +148,15 @@ Do not demand missing production requirements before accepting clearly condition
 or deferral guidance. A brief, relevant uncertainty is sufficient; repeated generic disclaimers
 are not a quality requirement.
 
+Apply every requirement conjunctively to BOTH real candidates and calibration examples. Passing
+grounded/bounded does not compensate for failing relevant/actionable. In particular, a category
+such as reliability plus High/Medium counts is NOT concrete recommendation content. A sensible-
+sounding "start with the high-impact category" still fails relevance when no actual issue type is
+known, even if it explicitly avoids claiming an outage and calls the action human review. The
+concrete-content requirement is mandatory, not a preference that confidence or good wording can
+outweigh. A content-specific recommendation instead identifies what to inspect (for example
+restoration, zone configuration or TLS compatibility) and why that condition changes a decision.
+
 Judge four booleans:
 - `grounded`: each claim is actually supported by the cited observations, with comparable periods,
   populations and denominators. No invented causes, savings, timelines or thresholds. Reject
@@ -187,6 +196,9 @@ The dashboard capabilities are part of this trusted rubric:
   portal Cost Analysis is allowed; claiming the dashboard already contains usage or causes is not.
 - `/recommendations`: Advisor content cards, category and impact filters, reviewed conditional
   confirmation guides. HighAvailability is 「信頼性」. Advisor-only insights belong here.
+  Cards do NOT contain actual resource settings, workload purpose, owners, notification recipients
+  or test results. A guide can be read here; verifying those facts requires an explicitly named
+  operator/Azure portal follow-up, not a claim that the card displays them.
   Category counts and content-group counts are records, not incidents or distinct resources.
   Only an explicit affectedResourceCount is a deduplicated resource count; null is unknown.
   The legacy `advisor.recommendations` total includes all lifecycle states, including completed,
