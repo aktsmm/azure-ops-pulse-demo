@@ -1,11 +1,11 @@
 {
   "schemaVersion": "1.4.0",
-  "generatedAt": "2026-09-10T12:21:46.622Z",
+  "generatedAt": "2026-09-10T12:50:47.892Z",
   "mode": "AZURE",
   "freshness": {
     "state": "fresh",
     "ageMinutes": 0,
-    "lastSuccessfulCollection": "2026-09-10T12:21:46.622Z",
+    "lastSuccessfulCollection": "2026-09-10T12:50:47.892Z",
     "nextScheduledCollection": "Tuesday / Friday 06:00 JST"
   },
   "scope": {
@@ -154,7 +154,7 @@
       {
         "id": "event-ff907070",
         "timestamp": "現在の収集期間",
-        "severity": "warning",
+        "severity": "info",
         "title": "Service Health イベントを検出",
         "detail": "影響を受けたサブスクリプションやリソースの詳細を除き、サービス単位の状態のみを表示します。",
         "route": "/reliability"
@@ -1646,82 +1646,72 @@
   "aiInsights": [
     {
       "severity": "info",
-      "title": "コスト構成: Azure Cognitive Search のシェアと変化率を他カテゴリと比較",
-      "observation": "コスト全体の変化率は+0.8%である一方、シェア63%を占める Azure Cognitive Search 単体の変化率は-3.5%であり、Foundry Tools の変化率は-49.1%と大きく異なります。単一カテゴリの動きだけでは全体の変化を説明できません。",
-      "impact": "全体変化+0.8%の内訳が、最大シェアの Azure Cognitive Search(-3.5%)だけでは説明できないため、Foundry Tools(-49.1%)など変化率の大きい他カテゴリも合わせて確認しないと、どこを優先してレビューすべきか判断を誤る可能性があります。",
+      "title": "コスト増加要因はAzure Cognitive Search以外のカテゴリを優先確認すべきか判断",
+      "observation": "コストの63%を占めるAzure Cognitive Searchの前期比は-3.5%だが、全体の前期比は+0.8%増加している。",
+      "impact": "費用シェア63%を占める最大カテゴリの増減率は-3.5%の減少だが、全体の増減率は+0.8%の増加であり、最大カテゴリの動きと全体の動きが逆方向になっている。増減率が未公開の他カテゴリが増加を牽引した可能性があり、費用シェア最大のカテゴリだけを見ていると増加要因を見落とす。",
       "numericEvidence": [
         {
-          "label": "Azure Cognitive Search のコストシェア",
+          "label": "Azure Cognitive Searchの費用シェア",
           "value": "63%",
           "source": "cost.categories.0.sharePercent"
         },
         {
-          "label": "Azure Cognitive Search のコスト変化率",
-          "value": "-3.5%",
-          "source": "cost.categories.0.deltaPercent"
-        },
-        {
-          "label": "コスト全体の変化率",
+          "label": "全体の前期比増減率",
           "value": "+0.8%",
           "source": "cost.deltaPercent"
         },
         {
-          "label": "Foundry Tools の変化率",
-          "value": "-49.1%",
-          "source": "cost.categories.2.deltaPercent"
+          "label": "Azure Cognitive Searchの前期比増減率",
+          "value": "-3.5%",
+          "source": "cost.categories.0.deltaPercent"
         }
       ],
-      "recommendedAction": "/cost で Azure Cognitive Search のシェア(63%)と変化率(-3.5%)を、変化率が大きい Foundry Tools(-49.1%)や他カテゴリと比較し、全体変化(+0.8%)への寄与度を確認します。具体的な使用量要因は Azure Portal のコスト分析で該当カテゴリを確認してください。",
-      "confidence": 0.55,
+      "recommendedAction": "/cost で各カテゴリの前期比を確認し、変化率が未公開のカテゴリ(Load Balancer、Storage等)についてはAzureポータルのコスト分析で使用量の変化を確認したうえで、レビュー対象の優先順位を判断してください。",
+      "confidence": 0.6,
       "route": "/cost",
       "period": "2026-09-10 スナップショット収集時点",
-      "id": "insight-88836a54"
+      "id": "insight-43fdbcff"
     },
     {
       "severity": "warning",
-      "title": "Storage のゾーン冗長性確認とTLS設定確認、対象リソースの重複を優先確認",
-      "observation": "ゾーン冗長性確認の対象は4件、TLS設定確認の対象は1件であり、TLS設定確認の対象はゾーン冗長性確認の対象4件に含まれる同一の Storage アカウントです。復旧観点と互換性観点という異なる懸念が同じリソースに集中しています。",
-      "impact": "ゾーン冗長性確認の対象4件のうち、TLS設定確認の対象1件と重複するリソースは、復旧観点と互換性観点の両方の高影響度事項に該当するため、他の対象より先にまとめて確認する価値があります。",
+      "title": "重複する対象ストレージアカウントはゾーン冗長性の確認を優先すべきか判断",
+      "observation": "ゾーン冗長性に関する指摘は影響度が「高」でストレージアカウント4件が対象となっており、その対象はBlobの誤削除・上書きからの復旧に関する指摘(影響度「中」・対象7件)の対象と重複する。",
+      "impact": "同じストレージアカウント群がゾーン冗長性(可用性)とBlobの誤削除保護(データ復旧)という異なる観点で指摘されている。ゾーン障害はアカウント全体へのアクセス不能につながるため、対象4件を持つ影響度「高」のゾーン冗長性を、対象7件だが影響度「中」の誤削除保護より先に確認する方が稼働継続への影響が大きい。",
       "numericEvidence": [
         {
-          "label": "ゾーン冗長性確認の対象リソース数",
-          "value": "4",
+          "label": "ゾーン冗長性指摘の対象リソース数",
+          "value": "4件",
           "source": "advisor.details.groups.10.affectedResourceCount"
         },
         {
-          "label": "TLS設定確認の対象リソース数",
-          "value": "1",
-          "source": "advisor.details.groups.9.affectedResourceCount"
+          "label": "Blob誤削除保護指摘の対象リソース数",
+          "value": "7件",
+          "source": "advisor.details.groups.0.affectedResourceCount"
         }
       ],
-      "recommendedAction": "/recommendations で Storage のゾーン障害対策とTLS設定の両ガイドを開き、重複する対象リソースの現在の冗長化方式と最小TLSバージョン・接続クライアントを確認し、対応要否をリソース所有者と判断します。",
-      "confidence": 0.6,
+      "recommendedAction": "/recommendations でストレージのゾーン冗長性に関する推奨事項の内容を確認し、現在の冗長化方式と許容停止時間を優先的に確認します。稼働用途が検証用で停止を許容できると所有者が確認できれば保留し、本番化時にBlobの保持期間確認も合わせて実施してください。",
+      "confidence": 0.55,
       "route": "/recommendations",
       "period": "2026-09-10 スナップショット収集時点",
-      "id": "insight-32cebb1b"
+      "id": "insight-2931daa4"
     },
     {
       "severity": "info",
-      "title": "Cosmos DB のバックアップ方式確認とインデックス確認、対象リソースの重複を確認",
-      "observation": "継続バックアップ確認の対象は1件、不足インデックス確認の対象も1件であり、両者は同一の Cosmos DB アカウントです。復旧要件と性能要件という異なる観点が同時に指摘されています。",
-      "impact": "対象1件の継続バックアップ確認と対象1件の不足インデックス確認が同一リソースに集中しているため、どちらを先に検証するか運用者が決める必要があります。",
+      "title": "ストレージのTLS設定変更前にクライアント互換性を確認すべきか判断",
+      "observation": "ストレージのTLS設定に関する指摘は影響度が「高」でストレージアカウント1件が対象になっている。",
+      "impact": "最小TLSバージョンの見直しは、対応していない古いクライアントの接続断につながる可能性がある。影響度「高」は緊急対応の意味ではなく接続互換性の事前確認が必要という意味であり、対象1件の実接続バージョンを確認しないまま変更すると既存クライアントに影響しうる。",
       "numericEvidence": [
         {
-          "label": "継続バックアップ確認の対象リソース数",
-          "value": "1",
-          "source": "advisor.details.groups.2.affectedResourceCount"
-        },
-        {
-          "label": "不足インデックス確認の対象リソース数",
-          "value": "1",
-          "source": "advisor.details.groups.3.affectedResourceCount"
+          "label": "TLS設定指摘の対象リソース数",
+          "value": "1件",
+          "source": "advisor.details.groups.9.affectedResourceCount"
         }
       ],
-      "recommendedAction": "/recommendations で Cosmos DB の復元時点・バックアップ方式のガイドと、不足インデックスのガイドを確認し、許容データ損失時間の検証を先に行うか、対象クエリの応答時間・要求ユニット消費量の検証を先に行うか判断します。",
+      "recommendedAction": "/recommendations でストレージのTLS設定に関する推奨事項のガイドを確認し、対象ストレージアカウントへの実接続で使用されているTLSバージョンをAzureポータルで確認したうえで、変更前に互換性テストを計画してください。全接続が対応済みと確認できた場合は変更を保留し、新規クライアント追加時に再確認します。",
       "confidence": 0.5,
       "route": "/recommendations",
       "period": "2026-09-10 スナップショット収集時点",
-      "id": "insight-a8ab2772"
+      "id": "insight-327248cd"
     }
   ],
   "advisor": {
