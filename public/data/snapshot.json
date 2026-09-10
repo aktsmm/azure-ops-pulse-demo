@@ -1559,10 +1559,10 @@
   },
   "aiInsights": [
     {
-      "severity": "warning",
-      "title": "Azure Cognitive Search がコスト構成比の過半を占め、変化率が全体とかい離",
-      "observation": "Azure Cognitive Search のコストシェアは62.9%で最大のカテゴリですが、当該カテゴリの前期比変化率は-5.4%であり、コスト全体の前期比変化率-0.9%とかい離しています。",
-      "impact": "コスト全体の前期比変化はわずか-0.9%ですが、支出の62.9%を占めるAzure Cognitive Searchは-5.4%とより大きく変動しているため、全体の変化率だけを見ると支出構造の変化を見落とすおそれがあります。まずこのカテゴリの内訳を優先的に確認すべきです。",
+      "severity": "info",
+      "title": "コスト構成は Azure Cognitive Search に集中し、変化率も全体と乖離",
+      "observation": "コスト全体に占める Azure Cognitive Search のシェアは 62.9% と突出しており、このカテゴリ単体の変化率は -5.4% である一方、コスト全体の変化率は -0.9% にとどまっている。",
+      "impact": "コストシェア 62.9% を占めるカテゴリの変化率(-5.4%)が全体の変化率(-0.9%)より大きく乖離していることから、全体の増減はこのカテゴリの動きに強く左右されている可能性があり、他カテゴリの変化を覆い隠していないか確認する優先度が高い。",
       "numericEvidence": [
         {
           "label": "Azure Cognitive Search のコストシェア",
@@ -1570,49 +1570,49 @@
           "source": "cost.categories.0.sharePercent"
         },
         {
-          "label": "Azure Cognitive Search の前期比変化率",
+          "label": "Azure Cognitive Search カテゴリの変化率",
           "value": "-5.4%",
           "source": "cost.categories.0.deltaPercent"
         },
         {
-          "label": "コスト全体の前期比変化率",
+          "label": "コスト全体の変化率",
           "value": "-0.9%",
           "source": "cost.deltaPercent"
         }
       ],
-      "recommendedAction": "コストダッシュボードでAzure Cognitive Searchのカテゴリ別内訳を確認し、全体の変化率(-0.9%)とのかい離が構成比の変化によるものか、使用量の変化によるものかを判断してください。",
-      "confidence": 0.75,
+      "recommendedAction": "/cost ページで Azure Cognitive Search のカテゴリ変化率(-5.4%)とコスト全体の変化率(-0.9%)を比較し、この乖離が妥当か、まずこのカテゴリの構成を優先して確認するか他カテゴリを含めて見直すかを判断する。",
+      "confidence": 0.6,
       "route": "/cost",
       "period": "2026-09-10 スナップショット収集時点",
-      "id": "insight-23084d7d"
+      "id": "insight-50708468"
     },
     {
       "severity": "warning",
-      "title": "Azure Advisor の推奨事項は高可用性の区分に集中",
-      "observation": "Azure Advisor の推奨事項は高可用性の区分で影響度「高」が21件、影響度「中」が27件と多く、運用の卓越性の区分では影響度「低」が1件にとどまり、区分間で件数の偏りが見られます。",
-      "impact": "高可用性の区分の推奨事項(影響度「高」21件、影響度「中」27件)は他の区分(例: 運用の卓越性の影響度「低」1件)より著しく多いため、可用性関連の推奨事項から優先的にレビューすることで、影響度の大きい確認漏れを防げます。",
+      "title": "Azure Advisor 推奨件数は可用性の分類に集中",
+      "observation": "Azure Advisor の推奨件数は可用性の分類で重要度「高」が 21 件、重要度「中」が 27 件と多く、パフォーマンスの分類(重要度「中」)の 1 件と比べて著しく多い。",
+      "impact": "可用性分類の重要度「高」の推奨が 21 件と、パフォーマンス分類の 1 件を大きく上回っていることから、Azure Advisor の確認優先度は可用性の分類に置くべきであり、件数は集計値であって対象リソースの詳細を示すものではない点に留意して選定する必要がある。",
       "numericEvidence": [
         {
-          "label": "高可用性・影響度「高」の推奨事項数",
-          "value": "21",
+          "label": "可用性(重要度高)の推奨件数",
+          "value": "21件",
           "source": "advisor.recommendations.0.count"
         },
         {
-          "label": "高可用性・影響度「中」の推奨事項数",
-          "value": "27",
+          "label": "可用性(重要度中)の推奨件数",
+          "value": "27件",
           "source": "advisor.recommendations.1.count"
         },
         {
-          "label": "運用の卓越性・影響度「低」の推奨事項数",
-          "value": "1",
-          "source": "advisor.recommendations.2.count"
+          "label": "パフォーマンス(重要度中)の推奨件数",
+          "value": "1件",
+          "source": "advisor.recommendations.4.count"
         }
       ],
-      "recommendedAction": "信頼性ダッシュボードで高可用性の区分の推奨事項(影響度「高」「中」)を優先確認し、他区分の推奨事項との対応順位を判断してください。",
-      "confidence": 0.7,
-      "route": "/reliability",
+      "recommendedAction": "/security ページの Azure Advisor カテゴリ・影響度セレクターで可用性の分類を選択し、重要度「高」の推奨事項から優先して確認することを推奨する。",
+      "confidence": 0.65,
+      "route": "/security",
       "period": "2026-09-10 スナップショット収集時点",
-      "id": "insight-cf9edb83"
+      "id": "insight-f8a24667"
     }
   ],
   "advisor": {
