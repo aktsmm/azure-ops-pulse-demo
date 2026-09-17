@@ -1643,7 +1643,130 @@
       "flows": []
     }
   },
-  "aiInsights": [],
+  "aiInsights": [
+    {
+      "severity": "warning",
+      "title": "コスト全体は増加、Azure Cognitive Search は減少 — Load Balancer の急増を先に確認",
+      "observation": "Azure Cognitive Search はコストの 63.6% を占める最大カテゴリですが、自身の増減率は -2% でした。一方で全体の増減率は +3.2% と増加しており、Load Balancer は +104.1% と大きく増加しています。",
+      "impact": "最大シェアのカテゴリが減少しているにもかかわらず全体が +3.2% 増えているため、増加の主因は他カテゴリ、特に +104.1% という大幅な増加を示した Load Balancer にある可能性が高く、レビューの優先順位づけに影響します。",
+      "numericEvidence": [
+        {
+          "label": "最大カテゴリのコストシェア",
+          "value": "63.6%",
+          "source": "cost.categories.0.sharePercent"
+        },
+        {
+          "label": "最大カテゴリの増減率",
+          "value": "-2%",
+          "source": "cost.categories.0.deltaPercent"
+        },
+        {
+          "label": "Load Balancer カテゴリの増減率",
+          "value": "+104.1%",
+          "source": "cost.categories.1.deltaPercent"
+        },
+        {
+          "label": "コスト全体の増減率",
+          "value": "+3.2%",
+          "source": "cost.deltaPercent"
+        }
+      ],
+      "recommendedAction": "/cost でカテゴリ別のコスト内訳を確認し、Load Balancer の増加要因と他の残りカテゴリを比較して、どこから先にレビューするかを判断します。使用量の詳細が必要な場合は Azure portal のコスト分析で当該カテゴリを確認してください。",
+      "confidence": 0.72,
+      "route": "/cost",
+      "period": "2026-09-18 スナップショット収集時点",
+      "id": "insight-4b73a47c"
+    },
+    {
+      "severity": "warning",
+      "title": "Storage アカウント4件のゾーン冗長化を確認するかどうかを判断",
+      "observation": "Azure Advisor の「Storage のゾーン障害対策を確認」推奨は、4件の Storage アカウントすべてで影響度「高」として記録されています。",
+      "impact": "対象4件すべてが影響度「高」で計上されているため、単一データセンター依存によるアクセス不能リスクを比較検討する優先度が高いカテゴリです。ただし稼働用途や許容停止時間は未収集で、影響度だけで緊急対応を決めるべきではありません。",
+      "numericEvidence": [
+        {
+          "label": "対象リソース数",
+          "value": "4 件",
+          "source": "advisor.details.groups.10.affectedResourceCount"
+        },
+        {
+          "label": "影響度「高」の件数",
+          "value": "4 件",
+          "source": "advisor.details.groups.10.impacts.High"
+        }
+      ],
+      "recommendedAction": "/recommendations で「Storage のゾーン障害対策を確認」の内容と対象リソースを確認し、現在の冗長化方式・許容停止時間・移行費用を担当者と比較します。再生成可能な検証データでゾーン停止を許容できると合意済みなら保留し、本番化時に再評価してください。",
+      "confidence": 0.68,
+      "route": "/recommendations",
+      "period": "2026-09-18 スナップショット収集時点",
+      "id": "insight-f6bcf7db"
+    },
+    {
+      "severity": "info",
+      "title": "同一 Container Registry に対する geo レプリケーションと階層見直しをまとめて比較",
+      "observation": "Azure Advisor は同じ Container Registry 1件に対し、「リージョン障害対策」と「階層と本番要件」という独立した推奨をいずれも影響度「高」として出しています。",
+      "impact": "同一の Container Registry 1件に対し影響度「高」の推奨が重ねて存在するため、それぞれ地理的冗長性（DR）と処理容量・機能要件（互換性）という異なる観点をまとめて検討する方が判断しやすくなります。",
+      "numericEvidence": [
+        {
+          "label": "リージョン障害対策の対象リソース数",
+          "value": "1 件",
+          "source": "advisor.details.groups.5.affectedResourceCount"
+        },
+        {
+          "label": "階層見直しの対象リソース数",
+          "value": "1 件",
+          "source": "advisor.details.groups.6.affectedResourceCount"
+        },
+        {
+          "label": "リージョン障害対策の影響度「高」件数",
+          "value": "1 件",
+          "source": "advisor.details.groups.5.impacts.High"
+        },
+        {
+          "label": "階層見直しの影響度「高」件数",
+          "value": "1 件",
+          "source": "advisor.details.groups.6.impacts.High"
+        }
+      ],
+      "recommendedAction": "/recommendations で「Container Registry のリージョン障害対策」と「階層と本番要件」の両カードを確認し、Premium 階層への変更が両方の要件を同時に満たすか、費用と復旧要件を照らして比較します。現行階層で負荷と復旧要件を検証済みなら保留し、利用量増加時に再確認してください。",
+      "confidence": 0.6,
+      "route": "/recommendations",
+      "period": "2026-09-18 スナップショット収集時点",
+      "id": "insight-902f59dd"
+    },
+    {
+      "severity": "warning",
+      "title": "Blob の誤削除・上書き復旧要件を確認 — 対象7件のうち2件は未解決",
+      "observation": "Azure Advisor の「Blob の誤削除・上書きからの復旧を確認」推奨は Storage アカウント7件が対象で、いずれも影響度「中」です。公開済みの対象参照は5件で、残り2件は未解決です。",
+      "impact": "対象7件すべてが復旧確認の候補ですが、参照が未解決の2件は個別に対象リソースを特定できないため、確認作業の範囲決めに影響します。",
+      "numericEvidence": [
+        {
+          "label": "対象リソース数",
+          "value": "7 件",
+          "source": "advisor.details.groups.0.affectedResourceCount"
+        },
+        {
+          "label": "影響度「中」の件数",
+          "value": "7 件",
+          "source": "advisor.details.groups.0.impacts.Medium"
+        },
+        {
+          "label": "参照解決済みの対象数",
+          "value": "5 件",
+          "source": "advisor.details.groups.0.targetCoverage.publishedResources"
+        },
+        {
+          "label": "参照未解決の対象数",
+          "value": "2 件",
+          "source": "advisor.details.groups.0.targetCoverage.unresolvedResources"
+        }
+      ],
+      "recommendedAction": "/recommendations で「Blob の誤削除・上書きからの復旧を確認」の公開済み対象5件を確認し、論理的な削除・保持期間・復元テストを確認します。未解決の2件は Azure ポータルまたは担当者と個別に特定してください。再生成可能な一時データのみであれば保留し、重要データ追加時に再評価します。",
+      "confidence": 0.62,
+      "route": "/recommendations",
+      "period": "2026-09-18 スナップショット収集時点",
+      "id": "insight-e168cc67"
+    }
+  ],
   "advisor": {
     "availability": "available",
     "message": "カテゴリ・影響度の件数は全ライフサイクルの推奨レコード数です。対応候補の内容別集計は完了・却下・延期を除外します。",
