@@ -1,11 +1,11 @@
 {
   "schemaVersion": "1.4.0",
-  "generatedAt": "2026-09-14T23:41:03.354Z",
+  "generatedAt": "2026-09-17T23:22:13.827Z",
   "mode": "AZURE",
   "freshness": {
     "state": "fresh",
     "ageMinutes": 0,
-    "lastSuccessfulCollection": "2026-09-14T23:41:03.354Z",
+    "lastSuccessfulCollection": "2026-09-17T23:22:13.827Z",
     "nextScheduledCollection": "Tuesday / Friday 06:00 JST"
   },
   "scope": {
@@ -22,12 +22,12 @@
     {
       "source": "Cost Management",
       "availability": "available",
-      "message": "Current and prior comparable rounded JPY periods were collected from 14 and 14 records."
+      "message": "Current and prior comparable rounded JPY periods were collected from 14 and 13 records."
     },
     {
       "source": "Resource Health",
       "availability": "partial",
-      "message": "Resource Health evaluated 12 of 19 supported resources; 63 resources are outside Resource Health coverage."
+      "message": "Resource Health evaluated 13 of 19 supported resources; 63 resources are outside Resource Health coverage."
     },
     {
       "source": "Service Health",
@@ -37,7 +37,7 @@
     {
       "source": "Activity Log",
       "availability": "available",
-      "message": "3 recent Activity Log events were collected without actor or resource detail."
+      "message": "5 recent Activity Log events were collected without actor or resource detail."
     },
     {
       "source": "Defender for Cloud",
@@ -66,13 +66,13 @@
     "metrics": [
       {
         "label": "Resource Health の評価範囲",
-        "value": "63%",
-        "change": "対応 19 件中 12 件を評価済み（対象外 63 件）",
+        "value": "68%",
+        "change": "対応 19 件中 13 件を評価済み（対象外 63 件）",
         "direction": "flat",
         "severity": "info",
         "points": [
-          63,
-          63
+          68,
+          68
         ]
       },
       {
@@ -121,15 +121,15 @@
       },
       {
         "id": "event-cd198459",
-        "timestamp": "2026-09-12T21:45:14.827452Z",
+        "timestamp": "2026-09-15T02:10:47.2111244Z",
         "severity": "info",
-        "title": "推奨事項操作を検出",
+        "title": "管理操作を検出",
         "detail": "公開前に実行者と対象リソースの詳細を削除しています。",
         "route": "/overview"
       },
       {
         "id": "event-cc1982c6",
-        "timestamp": "2026-09-11T04:07:59.040357Z",
+        "timestamp": "2026-09-15T02:10:45.0549437Z",
         "severity": "info",
         "title": "管理操作を検出",
         "detail": "公開前に実行者と対象リソースの詳細を削除しています。",
@@ -137,7 +137,15 @@
       },
       {
         "id": "event-cb198133",
-        "timestamp": "2026-09-11T04:07:57.4325665Z",
+        "timestamp": "2026-09-12T21:45:14.827452Z",
+        "severity": "info",
+        "title": "推奨事項操作を検出",
+        "detail": "公開前に実行者と対象リソースの詳細を削除しています。",
+        "route": "/overview"
+      },
+      {
+        "id": "event-ca197fa0",
+        "timestamp": "2026-09-11T04:07:59.040357Z",
         "severity": "info",
         "title": "管理操作を検出",
         "detail": "公開前に実行者と対象リソースの詳細を削除しています。",
@@ -189,13 +197,13 @@
     },
     "current": {
       "availability": "available",
-      "approximateAmount": "約¥2.2万"
+      "approximateAmount": "約¥2.3万"
     },
     "previous": {
       "availability": "available",
       "approximateAmount": "約¥2.2万"
     },
-    "deltaPercent": 0.5,
+    "deltaPercent": 3.2,
     "forecast": {
       "availability": "unavailable",
       "approximateAmount": null
@@ -209,37 +217,37 @@
       {
         "name": "Azure Cognitive Search",
         "approximateAmount": "約¥1.4万",
-        "sharePercent": 66,
+        "sharePercent": 63.6,
         "deltaPercent": -2
       },
       {
         "name": "Load Balancer",
         "approximateAmount": "約¥3千",
-        "sharePercent": 12.4,
-        "deltaPercent": 155.9
+        "sharePercent": 12,
+        "deltaPercent": 104.1
       },
       {
         "name": "Foundry Tools",
-        "approximateAmount": "約¥1千",
-        "sharePercent": 6.6,
-        "deltaPercent": -60.4
+        "approximateAmount": "約¥2千",
+        "sharePercent": 10,
+        "deltaPercent": -34.6
       },
       {
         "name": "Storage",
         "approximateAmount": "約¥1千",
-        "sharePercent": 4.9,
+        "sharePercent": 4.7,
         "deltaPercent": null
       },
       {
         "name": "Container Registry",
         "approximateAmount": "約¥1千未満",
-        "sharePercent": 3.4,
+        "sharePercent": 3.3,
         "deltaPercent": null
       },
       {
         "name": "Virtual Network",
         "approximateAmount": "約¥1千未満",
-        "sharePercent": 2.5,
+        "sharePercent": 2.4,
         "deltaPercent": null
       },
       {
@@ -251,7 +259,7 @@
       {
         "name": "Log Analytics",
         "approximateAmount": "約¥1千未満",
-        "sharePercent": 2,
+        "sharePercent": 1.9,
         "deltaPercent": null
       }
     ]
@@ -1032,7 +1040,7 @@
         "resourceGroup": "rg-8c2924db",
         "type": "microsoft.operationalinsights/workspaces",
         "region": "japaneast",
-        "status": "Unknown",
+        "status": "Healthy",
         "owner": "identity-caac8562",
         "tags": {},
         "change": "Azure Resource Graph から収集"
@@ -1359,12 +1367,12 @@
       "totalResources": 82,
       "supportedResources": 19,
       "notApplicableResources": 63,
-      "evaluatedResources": 12,
-      "unevaluatedResources": 7,
-      "healthyResources": 12,
+      "evaluatedResources": 13,
+      "unevaluatedResources": 6,
+      "healthyResources": 13,
       "degradedResources": 0,
       "unavailableResources": 0,
-      "supportedCoveragePercent": 63
+      "supportedCoveragePercent": 68
     },
     "serviceHealth": {
       "availability": "available",
@@ -1635,105 +1643,7 @@
       "flows": []
     }
   },
-  "aiInsights": [
-    {
-      "severity": "warning",
-      "title": "Load Balancer コストの急増を優先的に確認",
-      "observation": "コスト内訳で Load Balancer は前期比 +155.9% と急増しており、コスト全体の前期比 +0.5% を大きく上回っています。Load Balancer は費用シェア 12.4% を占めます。",
-      "impact": "コスト全体はほぼ横ばい(+0.5%)である一方、Load Balancer だけが +155.9% 増加しているため、他カテゴリより先にこのカテゴリの構成変化を確認する価値があります。",
-      "numericEvidence": [
-        {
-          "label": "Load Balancer の前期比変化率",
-          "value": "+155.9%",
-          "source": "cost.categories.1.deltaPercent"
-        },
-        {
-          "label": "コスト全体の前期比変化率",
-          "value": "+0.5%",
-          "source": "cost.deltaPercent"
-        },
-        {
-          "label": "Load Balancer のコストシェア",
-          "value": "12.4%",
-          "source": "cost.categories.1.sharePercent"
-        }
-      ],
-      "recommendedAction": "/cost で Load Balancer のカテゴリ内訳と他カテゴリの変化率を比較し、増加が構成変更によるものか使用量の増加によるものかを Azure portal のコスト分析画面で確認してから、見直しの要否を判断します。",
-      "confidence": 0.72,
-      "route": "/cost",
-      "period": "2026-09-15 スナップショット収集時点",
-      "id": "insight-78e64571"
-    },
-    {
-      "severity": "warning",
-      "title": "Storage の可用性対策は複数リソースにまたがるため優先順位を決定",
-      "observation": "Storage アカウントでは、ゾーン冗長性の確認が必要な対象が 4 件(影響度「高」)、誤削除・上書きからの復旧確認が必要な対象が 7 件(影響度「中」)と Azure Advisor が報告しています。",
-      "impact": "件数だけを見ると誤削除対策の対象(7 件)がゾーン冗長性の対象(4 件)より多いものの、Azure Advisor の影響度はゾーン冗長性が「高」、誤削除対策は「中」であり、ゾーン障害時のサービス継続性を先に検討する根拠になります。",
-      "numericEvidence": [
-        {
-          "label": "ゾーン冗長性の確認対象数",
-          "value": "4件",
-          "source": "advisor.details.groups.10.affectedResourceCount"
-        },
-        {
-          "label": "Blob 誤削除復旧の確認対象数",
-          "value": "7件",
-          "source": "advisor.details.groups.0.affectedResourceCount"
-        }
-      ],
-      "recommendedAction": "/recommendations で Storage のゾーン冗長性ガイドと Blob の誤削除復旧ガイドを開き、対象ストレージ アカウントの現在の冗長化方式と保持設定を確認したうえで、許容停止時間と復旧要件に応じてどちらを先に是正するか判断します。",
-      "confidence": 0.68,
-      "route": "/recommendations",
-      "period": "2026-09-15 スナップショット収集時点",
-      "id": "insight-995a751a"
-    },
-    {
-      "severity": "warning",
-      "title": "Container Registry の同一リソースに対する複数の確認事項を整理",
-      "observation": "同じ Container Registry について Azure Advisor はリージョン障害対策(geo レプリケーション)と Premium 階層の要件確認をそれぞれ影響度「高」で報告しています。",
-      "impact": "1 件のレジストリに対して復旧性(geo レプリケーション)と容量・互換性(Premium の機能)という異なる観点の対応候補が両方「高」影響度であるため、どちらを先に検証するかは復旧要件と現在の階層の制約次第で変わります。",
-      "numericEvidence": [
-        {
-          "label": "geo レプリケーション確認対象数",
-          "value": "1件",
-          "source": "advisor.details.groups.5.affectedResourceCount"
-        },
-        {
-          "label": "公開スナップショットの指標",
-          "value": "1件",
-          "source": "advisor.details.groups.6.affectedResourceCount"
-        }
-      ],
-      "recommendedAction": "/recommendations で Container Registry の geo レプリケーション ガイドと Premium 階層ガイドの両方を確認し、障害時のイメージ取得要件と現在の階層の制約を洗い出したうえで、Premium 移行が両方の懸念を同時に満たせるか比較します。",
-      "confidence": 0.65,
-      "route": "/recommendations",
-      "period": "2026-09-15 スナップショット収集時点",
-      "id": "insight-f21727ed"
-    },
-    {
-      "severity": "info",
-      "title": "Cosmos DB の復旧要件とパフォーマンス改善の優先順位を確認",
-      "observation": "同一の Cosmos DB アカウントについて、Azure Advisor は継続バックアップの検討(影響度「中」)と不足インデックスの追加(影響度「中」)を報告しています。",
-      "impact": "両方とも影響度「中」で対象は 1 件ずつですが、一方はデータ復旧要件、他方はクエリ性能・要求ユニット消費という異なる観点であり、まず復旧要件を優先するか性能検証を優先するかの判断が必要です。",
-      "numericEvidence": [
-        {
-          "label": "継続バックアップ確認対象数",
-          "value": "1件",
-          "source": "advisor.details.groups.2.affectedResourceCount"
-        },
-        {
-          "label": "不足インデックス確認対象数",
-          "value": "1件",
-          "source": "advisor.details.groups.3.affectedResourceCount"
-        }
-      ],
-      "recommendedAction": "/recommendations で Cosmos DB の継続バックアップ ガイドと不足インデックス ガイドを開き、許容データ損失時間とクエリの応答時間・要求ユニット消費の現状を確認したうえで、どちらを先に検証するか決めます。",
-      "confidence": 0.6,
-      "route": "/recommendations",
-      "period": "2026-09-15 スナップショット収集時点",
-      "id": "insight-9d19d253"
-    }
-  ],
+  "aiInsights": [],
   "advisor": {
     "availability": "available",
     "message": "カテゴリ・影響度の件数は全ライフサイクルの推奨レコード数です。対応候補の内容別集計は完了・却下・延期を除外します。",
