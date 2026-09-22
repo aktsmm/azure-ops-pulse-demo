@@ -1643,7 +1643,90 @@
       "flows": []
     }
   },
-  "aiInsights": [],
+  "aiInsights": [
+    {
+      "severity": "info",
+      "title": "最大シェアのコストカテゴリ以外を優先して精査するか判断",
+      "observation": "Azure Cognitive Search はコスト全体の 62.8% を占める最大カテゴリですが、自身の増減率は -5.3% と減少しており、全体のコストは +2.6% 増加しています。",
+      "impact": "全体が +2.6% 増加する一方で、最大シェア 62.8% を占める Azure Cognitive Search 自体は -5.3% 減少しているため、増加要因は他のカテゴリにある可能性が高く、そこを優先して比較する価値があります。",
+      "numericEvidence": [
+        {
+          "label": "最大カテゴリのコストシェア",
+          "value": "62.8%",
+          "source": "cost.categories.0.sharePercent"
+        },
+        {
+          "label": "最大カテゴリの増減率",
+          "value": "-5.3%",
+          "source": "cost.categories.0.deltaPercent"
+        },
+        {
+          "label": "コスト全体の増減率",
+          "value": "+2.6%",
+          "source": "cost.deltaPercent"
+        }
+      ],
+      "recommendedAction": "/cost で Azure Cognitive Search（シェア 62.8%）以外の各カテゴリの増減率を比較し、全体 +2.6% 増加の要因となっているカテゴリを特定してください。使用量の内訳はこのダッシュボードでは分からないため、候補カテゴリが絞れたら Azure Portal のコスト管理画面で使用量要因を確認してください。",
+      "confidence": 0.68,
+      "route": "/cost",
+      "period": "2026-09-22 スナップショット収集時点",
+      "id": "insight-deedfc28"
+    },
+    {
+      "severity": "warning",
+      "title": "Storage 4アカウントのゾーン冗長化移行を判断",
+      "observation": "Azure Advisor の「Storage のゾーン障害対策を確認」の対象群は Storage アカウント 4 件で、すべて影響度が高いものとして報告されています。",
+      "impact": "単一データセンター依存の構成のままだと、影響度が高い対象 4 件がゾーン障害時にデータへアクセスできなくなる可能性があるため、現在の冗長化方式を確認する価値があります。",
+      "numericEvidence": [
+        {
+          "label": "対象 Storage アカウント数",
+          "value": "4件",
+          "source": "advisor.details.groups.10.affectedResourceCount"
+        }
+      ],
+      "recommendedAction": "/recommendations の「Storage のゾーン障害対策を確認」カードで対象 4 件について、現在の冗長化方式と許容停止時間を確認し、ゾーン冗長構成への移行費用を復旧要件と比較してください。検証用途で停止を許容できると所有者が合意済みなら移行を保留し、本番化や復旧要件の変更時に再評価してください。",
+      "confidence": 0.62,
+      "route": "/recommendations",
+      "period": "2026-09-22 スナップショット収集時点",
+      "id": "insight-33bfec2a"
+    },
+    {
+      "severity": "warning",
+      "title": "Storage の最小 TLS 設定変更前に接続互換性を確認するか判断",
+      "observation": "Azure Advisor の「Storage の TLS 設定と接続互換性を確認」の対象群は Storage アカウント 1 件で、影響度が高いものとして報告されています。",
+      "impact": "対象は 1 件のみですが影響度が高いと報告されており、古い TLS に依存するクライアントが残っていると、この対象がサービス側の対応変更時に接続できなくなる可能性があるため、設定変更前の互換性確認が必要です。",
+      "numericEvidence": [
+        {
+          "label": "影響度が高い対象リソース数",
+          "value": "1件",
+          "source": "advisor.details.groups.9.affectedResourceCount"
+        }
+      ],
+      "recommendedAction": "/recommendations の「Storage の TLS 設定と接続互換性を確認」カードで対象アカウントの最小 TLS 設定と、実際に接続しているクライアントの TLS バージョンを確認し、公式の適用条件・日程と照合して互換性テストを計画してください。全クライアントが対応済みと検証できるまでは設定変更を保留してください。",
+      "confidence": 0.58,
+      "route": "/recommendations",
+      "period": "2026-09-22 スナップショット収集時点",
+      "id": "insight-7d6f549a"
+    },
+    {
+      "severity": "warning",
+      "title": "Container Apps 環境2件のゾーン冗長性を判断",
+      "observation": "Azure Advisor の「Container Apps 環境のゾーン冗長性を確認」の対象群は Container Apps 環境 2 件で、いずれも影響度が高いものとして報告されています。",
+      "impact": "単一ゾーンに依存する配置のままだと、影響度が高い対象 2 環境がゾーン障害時に稼働を継続できなくなる可能性があるため、冗長化の要否を判断する価値があります。",
+      "numericEvidence": [
+        {
+          "label": "影響度が高い対象環境数",
+          "value": "2件",
+          "source": "advisor.details.groups.1.affectedResourceCount"
+        }
+      ],
+      "recommendedAction": "/recommendations の「Container Apps 環境のゾーン冗長性を確認」カードで対象 2 件について、環境のゾーン設定とアプリのレプリカ数を確認し、ゾーン冗長化への移行費用を継続性要件と比較してください。開発・検証用途で停止を許容できると確認済みなら移行を保留し、本番化時に再評価してください。",
+      "confidence": 0.6,
+      "route": "/recommendations",
+      "period": "2026-09-22 スナップショット収集時点",
+      "id": "insight-b690785a"
+    }
+  ],
   "advisor": {
     "availability": "available",
     "message": "カテゴリ・影響度の件数は全ライフサイクルの推奨レコード数です。対応候補の内容別集計は完了・却下・延期を除外します。",
