@@ -155,6 +155,25 @@ describe("independent semantic review publication boundary", () => {
     expect(source).toContain("Do not require invented target/configuration details");
   });
 
+  it("makes the author bind every action clause to an available page or named external follow-up", () => {
+    const author = readFileSync(".github/workflows/ai-insights.md", "utf8").replace(/\r\n/g, "\n");
+    const capabilities = author.split("## What the linked pages actually contain\n")[1]
+      ?.split("\n## Signal quality:")[0];
+    const selfCheck = author.split("## Check your own work before you finish\n")[1]
+      ?.split("\n## Guardrails")[0];
+    expect(capabilities).toContain("active/resolved event counts and category totals");
+    expect(capabilities).toContain("NO per-event affected services, regions, impact details");
+    expect(capabilities).toContain("Azure portal > Service Health");
+    expect(capabilities).toContain("Do not attach an external check to a dashboard route");
+    expect(capabilities).toContain("Invalid: `/reliability でイベントの対象サービス・リージョンを確認する`");
+    expect(capabilities).toContain("外部確認として Azure ポータルの Service Health");
+    expect(selfCheck).toContain("For EVERY clause of EVERY `recommendedAction`");
+    expect(selfCheck).toContain("the exact observed field AND the page capability");
+    expect(selfCheck).toContain("name the external location in that same clause");
+    expect(selfCheck).toContain("does not prove action feasibility or semantic approval");
+    expect(source).toContain("A negative verdict is a successful review, not an execution error");
+  });
+
   it("admits observed CVE decisions but never turns absent or zero vulnerability results into an all-clear", () => {
     const author = readFileSync(".github/workflows/ai-insights.md", "utf8");
     expect(author).toContain("has its OWN availability");

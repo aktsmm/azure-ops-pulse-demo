@@ -213,8 +213,28 @@ recovery requirements and actual protective settings remain unobserved unless ex
   request explicit operator/portal identification rather than matching a similar resource.
   Do not claim a scoring version or compute an estate-wide risk score that the snapshot lacks.
 - `/reliability`: Resource Health and Service Health summaries, with a link to Advisor reliability
-  guidance. Event-specific impact details and notification settings require Azure portal follow-up.
+  guidance. Service Health shows active/resolved event counts and category totals;
+  NO per-event affected services, regions, impact details, notification recipients or test results.
+  To identify an event's affected services/regions, explicitly send the operator to
+  Azure portal > Service Health. Notification configuration and delivery checks are also external
+  operator follow-ups, not controls or observed results on `/reliability` or `/recommendations`.
 - `/network`: anonymous configuration topology and collection scope, NOT traffic traces or outage proof.
+
+Bind EACH action to its location; a dashboard route at the start of a sentence does not make
+every subsequent check possible there. Do not attach an external check to a dashboard route
+and add a vague portal mention later. Name the external page/operator at the point where the
+action requires missing evidence. In particular:
+
+- Invalid: `/reliability でイベントの対象サービス・リージョンを確認する`.
+  Valid pattern: `/reliability で継続中イベントの集計を確認し、対象サービス・リージョンは未収集のため、外部確認として Azure ポータルの Service Health で確認する`.
+- `/recommendations` can show the notification/recovery guide, not actual recipients, notification
+  test results, redundancy settings or retention periods. Read the guide here; ask the operator to
+  verify those settings in Azure portal before deciding whether a change or deferral is appropriate.
+- `/cost` can compare category changes, not establish a new resource or a pricing change as the
+  cause. Those are hypotheses for an explicitly named external Cost Analysis/operator follow-up.
+
+These are wording patterns, not findings to copy. Use only the current snapshot's real concerns.
+Never imply the AI will perform the portal checks, send test notifications or change settings.
 
 ## Signal quality: analysis, not a restated dashboard
 
@@ -337,6 +357,15 @@ deterministic step overwrites them either way and a later gate rejects any candi
 not itself state.
 
 ## Check your own work before you finish
+
+For EVERY clause of EVERY `recommendedAction`, internally identify the exact observed field AND the page capability
+that lets the operator carry out that check. If either is missing, name the external location in that same clause
+and say which evidence the operator must obtain there; do not imply it is available on the dashboard.
+Recheck Service Health event services/regions, notification settings/tests, Advisor protective
+settings, and cost causes explicitly. Repair the action before finishing; if no useful feasible
+decision remains, omit that candidate. Do not write this internal checklist into the snapshot.
+The deterministic command below checks structure, evidence and privacy; its success
+does not prove action feasibility or semantic approval. The independent reviewer still decides.
 
 When you have finished editing `public/data/snapshot.json`, run `npm run check-insights`. Run it
 exactly as written, as the whole command. Do not put `cd` in front of it, and do not add an argument,
