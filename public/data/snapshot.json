@@ -1,11 +1,11 @@
 {
   "schemaVersion": "1.4.0",
-  "generatedAt": "2026-09-21T23:48:33.798Z",
+  "generatedAt": "2026-09-22T02:02:02.478Z",
   "mode": "AZURE",
   "freshness": {
     "state": "fresh",
     "ageMinutes": 0,
-    "lastSuccessfulCollection": "2026-09-21T23:48:33.798Z",
+    "lastSuccessfulCollection": "2026-09-22T02:02:02.478Z",
     "nextScheduledCollection": "Tuesday / Friday 06:00 JST"
   },
   "scope": {
@@ -154,7 +154,7 @@
       {
         "id": "event-ff907070",
         "timestamp": "現在の収集期間",
-        "severity": "warning",
+        "severity": "info",
         "title": "Service Health イベントを検出",
         "detail": "影響を受けたサブスクリプションやリソースの詳細を除き、サービス単位の状態のみを表示します。",
         "route": "/reliability"
@@ -197,13 +197,13 @@
     },
     "current": {
       "availability": "available",
-      "approximateAmount": "約¥2.3万"
+      "approximateAmount": "約¥2.2万"
     },
     "previous": {
       "availability": "available",
       "approximateAmount": "約¥2.2万"
     },
-    "deltaPercent": 6.4,
+    "deltaPercent": 2.6,
     "forecast": {
       "availability": "unavailable",
       "approximateAmount": null
@@ -217,19 +217,19 @@
       {
         "name": "Azure Cognitive Search",
         "approximateAmount": "約¥1.4万",
-        "sharePercent": 63,
-        "deltaPercent": -2
+        "sharePercent": 62.8,
+        "deltaPercent": -5.3
       },
       {
         "name": "Load Balancer",
         "approximateAmount": "約¥3千",
-        "sharePercent": 11.9,
-        "deltaPercent": 60.7
+        "sharePercent": 11.8,
+        "deltaPercent": 47.6
       },
       {
         "name": "Foundry Tools",
         "approximateAmount": "約¥2千",
-        "sharePercent": 10.7,
+        "sharePercent": 11,
         "deltaPercent": 1
       },
       {
@@ -259,7 +259,7 @@
       {
         "name": "Logic Apps",
         "approximateAmount": "約¥1千未満",
-        "sharePercent": 2,
+        "sharePercent": 1.9,
         "deltaPercent": null
       }
     ]
