@@ -1612,7 +1612,69 @@
       "flows": []
     }
   },
-  "aiInsights": [],
+  "aiInsights": [
+    {
+      "severity": "warning",
+      "title": "Container Apps 環境のゾーン冗長性と Blob の復旧保護のどちらを先に確認するか決める",
+      "observation": "Azure Advisor の内容別グループでは、Container Apps 環境のゾーン冗長性が対象 2 件で影響度「高」が 2 件、Blob の誤削除・上書きからの復旧が対象ストレージアカウント 5 件で影響度「中」です。前者はゾーン障害時のサービス継続、後者はデータ復旧という別の懸念です。",
+      "impact": "影響度「高」が 2 件ある Container Apps 環境は、単一ゾーン依存の場合にゾーン障害で稼働を継続できない可能性があります。一方、5 件のストレージアカウントは誤削除・上書きの保持期間が要件を満たすか未確認で、復旧できないリスクが残ります。用途や許容停止時間は未収集のため、影響度だけで緊急度は決められません。",
+      "numericEvidence": [
+        {
+          "label": "Container Apps 環境グループの影響度「高」の件数",
+          "value": "2 件",
+          "source": "advisor.details.groups.1.impacts.High"
+        },
+        {
+          "label": "Container Apps 環境グループの対象リソース数",
+          "value": "2 件",
+          "source": "advisor.details.groups.1.affectedResourceCount"
+        },
+        {
+          "label": "Blob 復旧グループの対象リソース数",
+          "value": "5 件",
+          "source": "advisor.details.groups.0.affectedResourceCount"
+        }
+      ],
+      "recommendedAction": "/recommendations で「Container Apps 環境のゾーン冗長性を確認」と「Blob の誤削除・上書きからの復旧を確認」のガイドと公開済み対象を読みます。環境のゾーン設定、レプリカ数、Blob の論理的な削除の保持期間、稼働用途と許容停止時間は本ダッシュボードに未収集のため、外部確認として Azure ポータルと運用担当者に確認してください。本番用途で要件を満たさなければ移行や保護設定を費用と併せて検討し、再作成可能な検証用途や別の検証済み復元手段がある場合は、本番化やデータ重要度の変更を条件に保留します。",
+      "confidence": 0.72,
+      "route": "/recommendations",
+      "period": "2026-09-29 スナップショット収集時点",
+      "id": "insight-9e7ba833"
+    },
+    {
+      "severity": "info",
+      "title": "コスト確認は Azure Cognitive Search を先に見るか、他カテゴリを見るか判断する",
+      "observation": "Azure Cognitive Search がコストの大半を占め、カテゴリの変化率は全体の変化率より大きく減少しています。一方でロードバランサーは増加しています。",
+      "impact": "Azure Cognitive Search の構成比が 62.7% と集中しているため、全体コストの動きはこのカテゴリに強く左右されます。ただし構成比は無駄の証拠ではなく、全体が微減でもカテゴリ間で増減が分かれています。",
+      "numericEvidence": [
+        {
+          "label": "検索サービスカテゴリの構成比",
+          "value": "62.7%",
+          "source": "cost.categories.0.sharePercent"
+        },
+        {
+          "label": "検索サービスカテゴリの変化率",
+          "value": "-5.1%",
+          "source": "cost.categories.0.deltaPercent"
+        },
+        {
+          "label": "全体の変化率",
+          "value": "-1.7%",
+          "source": "cost.deltaPercent"
+        },
+        {
+          "label": "ロードバランサーカテゴリの変化率",
+          "value": "+9.2%",
+          "source": "cost.categories.1.deltaPercent"
+        }
+      ],
+      "recommendedAction": "/cost で Azure Cognitive Search の構成比・変化率と全体の変化率、および増加している Load Balancer の変化率を比較し、集中しているカテゴリと増加カテゴリのどちらを先に見るか決めます。使用量や課金内訳は /cost では未収集のため、外部確認として Azure ポータルのコスト分析画面で選んだカテゴリの内訳を確認してください。",
+      "confidence": 0.7,
+      "route": "/cost",
+      "period": "2026-09-29 スナップショット収集時点",
+      "id": "insight-03dd18b1"
+    }
+  ],
   "advisor": {
     "availability": "available",
     "message": "カテゴリ・影響度の件数は全ライフサイクルの推奨レコード数です。対応候補の内容別集計は完了・却下・延期を除外します。",
