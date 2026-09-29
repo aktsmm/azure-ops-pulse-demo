@@ -1,11 +1,11 @@
 {
   "schemaVersion": "1.4.0",
-  "generatedAt": "2026-09-24T23:45:38.826Z",
+  "generatedAt": "2026-09-29T00:48:45.564Z",
   "mode": "AZURE",
   "freshness": {
     "state": "fresh",
     "ageMinutes": 0,
-    "lastSuccessfulCollection": "2026-09-24T23:45:38.826Z",
+    "lastSuccessfulCollection": "2026-09-29T00:48:45.564Z",
     "nextScheduledCollection": "Tuesday / Friday 06:00 JST"
   },
   "scope": {
@@ -22,12 +22,12 @@
     {
       "source": "Cost Management",
       "availability": "available",
-      "message": "Current and prior comparable rounded JPY periods were collected from 14 and 14 records."
+      "message": "Current and prior comparable rounded JPY periods were collected from 11 and 14 records."
     },
     {
       "source": "Resource Health",
       "availability": "partial",
-      "message": "Resource Health evaluated 13 of 19 supported resources; 63 resources are outside Resource Health coverage."
+      "message": "Resource Health evaluated 12 of 19 supported resources; 63 resources are outside Resource Health coverage."
     },
     {
       "source": "Service Health",
@@ -36,8 +36,9 @@
     },
     {
       "source": "Activity Log",
-      "availability": "available",
-      "message": "2 recent Activity Log events were collected without actor or resource detail."
+      "availability": "partial",
+      "message": "Activity Log returned 0 events for the last 7 days.",
+      "reason": "empty"
     },
     {
       "source": "Defender for Cloud",
@@ -66,13 +67,13 @@
     "metrics": [
       {
         "label": "Resource Health の評価範囲",
-        "value": "68%",
-        "change": "対応 19 件中 13 件を評価済み（対象外 63 件）",
+        "value": "63%",
+        "change": "対応 19 件中 12 件を評価済み（対象外 63 件）",
         "direction": "flat",
         "severity": "info",
         "points": [
-          68,
-          68
+          63,
+          63
         ]
       },
       {
@@ -120,22 +121,6 @@
         "route": "/overview"
       },
       {
-        "id": "event-cd198459",
-        "timestamp": "2026-09-17T23:53:57.5619687Z",
-        "severity": "info",
-        "title": "管理操作を検出",
-        "detail": "公開前に実行者と対象リソースの詳細を削除しています。",
-        "route": "/overview"
-      },
-      {
-        "id": "event-cc1982c6",
-        "timestamp": "2026-09-17T23:53:56.7338237Z",
-        "severity": "info",
-        "title": "管理操作を検出",
-        "detail": "公開前に実行者と対象リソースの詳細を削除しています。",
-        "route": "/overview"
-      },
-      {
         "id": "event-ff907070",
         "timestamp": "現在の収集期間",
         "severity": "warning",
@@ -146,7 +131,7 @@
       {
         "id": "event-00907203",
         "timestamp": "現在の収集期間",
-        "severity": "info",
+        "severity": "warning",
         "title": "Service Health イベントを検出",
         "detail": "影響を受けたサブスクリプションやリソースの詳細を除き、サービス単位の状態のみを表示します。",
         "route": "/reliability"
@@ -181,13 +166,13 @@
     },
     "current": {
       "availability": "available",
-      "approximateAmount": "約¥2.3万"
+      "approximateAmount": "約¥2.2万"
     },
     "previous": {
       "availability": "available",
-      "approximateAmount": "約¥2.2万"
+      "approximateAmount": "約¥2.3万"
     },
-    "deltaPercent": 4.4,
+    "deltaPercent": -1.7,
     "forecast": {
       "availability": "unavailable",
       "approximateAmount": null
@@ -201,19 +186,19 @@
       {
         "name": "Azure Cognitive Search",
         "approximateAmount": "約¥1.4万",
-        "sharePercent": 63,
-        "deltaPercent": -2
+        "sharePercent": 62.7,
+        "deltaPercent": -5.1
       },
       {
         "name": "Load Balancer",
         "approximateAmount": "約¥3千",
-        "sharePercent": 11.9,
-        "deltaPercent": 38.6
+        "sharePercent": 11.8,
+        "deltaPercent": 9.2
       },
       {
         "name": "Foundry Tools",
         "approximateAmount": "約¥2千",
-        "sharePercent": 10.7,
+        "sharePercent": 11,
         "deltaPercent": 1
       },
       {
@@ -1024,7 +1009,7 @@
         "resourceGroup": "rg-8c2924db",
         "type": "microsoft.operationalinsights/workspaces",
         "region": "japaneast",
-        "status": "Healthy",
+        "status": "Unknown",
         "owner": "identity-caac8562",
         "tags": {},
         "change": "Azure Resource Graph から収集"
@@ -1351,12 +1336,12 @@
       "totalResources": 82,
       "supportedResources": 19,
       "notApplicableResources": 63,
-      "evaluatedResources": 13,
-      "unevaluatedResources": 6,
-      "healthyResources": 13,
+      "evaluatedResources": 12,
+      "unevaluatedResources": 7,
+      "healthyResources": 12,
       "degradedResources": 0,
       "unavailableResources": 0,
-      "supportedCoveragePercent": 68
+      "supportedCoveragePercent": 63
     },
     "serviceHealth": {
       "availability": "available",
@@ -1640,16 +1625,11 @@
       {
         "category": "HighAvailability",
         "impact": "Medium",
-        "count": 23
+        "count": 16
       },
       {
         "category": "OperationalExcellence",
         "impact": "Low",
-        "count": 1
-      },
-      {
-        "category": "OperationalExcellence",
-        "impact": "Medium",
         "count": 1
       },
       {
@@ -1663,7 +1643,7 @@
       "message": "内容は公式の種類 ID と照合した固定カタログです。影響度は期限ではありません。状態不明は未対応と断定せず、非公開の内容は Azure ポータルで確認してください。",
       "mappedRecommendationCount": 24,
       "withheldRecommendationCount": 1,
-      "excludedRecommendationCount": 16,
+      "excludedRecommendationCount": 8,
       "lifecycleUnknownCount": 0,
       "affectedResourceCount": null,
       "groups": [
