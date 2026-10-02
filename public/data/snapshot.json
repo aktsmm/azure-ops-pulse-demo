@@ -1619,7 +1619,87 @@
       "flows": []
     }
   },
-  "aiInsights": [],
+  "aiInsights": [
+    {
+      "severity": "warning",
+      "title": "Container Apps 環境のゾーン冗長性を、停止許容の可否で判断する",
+      "observation": "アドバイザーの「Container Apps 環境のゾーン冗長性を確認」グループは、microsoft.app/managedenvironments の環境が対象で、推奨レコードはすべて高影響度です。",
+      "impact": "対象環境の件数が 2 と少数で特定できているため、全体の再設計ではなく環境単位で要件を確認できます。高影響度の推奨が 2 件あり、停止許容度が未確認のままだとゾーン障害時の継続性を判断できません。",
+      "numericEvidence": [
+        {
+          "label": "対象リソース数",
+          "value": "2 件",
+          "source": "advisor.details.groups.1.affectedResourceCount"
+        },
+        {
+          "label": "高影響度の推奨レコード数",
+          "value": "2 件",
+          "source": "advisor.details.groups.1.impacts.High"
+        }
+      ],
+      "recommendedAction": "/recommendations で「Container Apps 環境のゾーン冗長性を確認」の手順と公開済みの対象環境を読み、環境のゾーン設定・レプリカ数・用途・停止許容度は未収集のため、Azure ポータルと運用担当者に確認する。本番または停止不可なら移行方法と費用を比較して検討し、再作成手順が確認済みの開発・検証用途なら、本番化や可用性要件の変更を再評価条件として保留する。",
+      "confidence": 0.74,
+      "route": "/recommendations",
+      "period": "2026-10-02 スナップショット収集時点",
+      "id": "insight-8e7ea0c1"
+    },
+    {
+      "severity": "info",
+      "title": "Blob と Cosmos DB で、データ復旧要件を満たすか確認する対象を決める",
+      "observation": "アドバイザーの「Blob の誤削除・上書きからの復旧を確認」は microsoft.storage/storageaccounts が対象で、「Cosmos DB の復元時点とバックアップ方式を確認」は microsoft.documentdb/databaseaccounts が対象です。どちらも誤削除や復元時点というデータ復旧の論点で、ゾーン冗長性のような稼働継続の論点とは異なります。",
+      "impact": "Blob の対象は 5 件で、Cosmos DB は 1 件です。複数のストレージアカウントを同じ保持期間要件で確認する必要がある一方、Cosmos DB は復元時点の要件を個別に確認する単一の対象です。",
+      "numericEvidence": [
+        {
+          "label": "Blob グループの対象リソース数",
+          "value": "5 件",
+          "source": "advisor.details.groups.0.affectedResourceCount"
+        },
+        {
+          "label": "Cosmos DB グループの対象リソース数",
+          "value": "1 件",
+          "source": "advisor.details.groups.2.affectedResourceCount"
+        }
+      ],
+      "recommendedAction": "/recommendations で「Blob の誤削除・上書きからの復旧を確認」と「Cosmos DB の復元時点とバックアップ方式を確認」の手順と公開済みの対象を読み、現在の保持期間・バックアップ方式・復元テスト結果は未収集のため、Azure ポータルで確認する。許容データ損失と保持コストが要件に合わなければ変更を検討し、再生成可能なデータや検証済みの別の復元手段があれば、重要データの追加を再評価条件として保留する。",
+      "confidence": 0.7,
+      "route": "/recommendations",
+      "period": "2026-10-02 スナップショット収集時点",
+      "id": "insight-f2aa4170"
+    },
+    {
+      "severity": "info",
+      "title": "Foundry Tools の増加が全体の中で突出しているか、コスト分析で先に確認する",
+      "observation": "Foundry Tools は費用カテゴリ内で増加率が最大の一方、Azure Cognitive Search は最大シェアで減少、全体は微減です。増加は構成比の小さいカテゴリに集中し、大きなカテゴリは減少しています。",
+      "impact": "Foundry Tools の増加率は 23.2% ですが、全体の変化は -1.1% で、構成比は 13.9% です。増加は全体の変化には表れておらず、一方で最大シェアの Azure Cognitive Search は 60.6% を占めます。シェアは集中を示すだけで無駄の証明ではありません。",
+      "numericEvidence": [
+        {
+          "label": "Foundry Tools の前期比変化",
+          "value": "+23.2%",
+          "source": "cost.categories.1.deltaPercent"
+        },
+        {
+          "label": "Foundry Tools の構成比",
+          "value": "13.9%",
+          "source": "cost.categories.1.sharePercent"
+        },
+        {
+          "label": "全体の前期比変化",
+          "value": "-1.1%",
+          "source": "cost.deltaPercent"
+        },
+        {
+          "label": "最大費用カテゴリの構成比",
+          "value": "60.6%",
+          "source": "cost.categories.0.sharePercent"
+        }
+      ],
+      "recommendedAction": "/cost でカテゴリ別の変化率を比較し、Foundry Tools の増加と Azure Cognitive Search の最大シェアのどちらを先に見るか決める。使用量や増加要因はこのダッシュボードにないため、外部確認として Azure ポータルのコスト分析で Foundry Tools の内訳を確認し、想定内の利用なら現状維持、想定外なら担当者に利用状況を確認する。",
+      "confidence": 0.66,
+      "route": "/cost",
+      "period": "2026-10-02 スナップショット収集時点",
+      "id": "insight-e7e2906e"
+    }
+  ],
   "advisor": {
     "availability": "available",
     "message": "カテゴリ・影響度の件数は全ライフサイクルの推奨レコード数です。対応候補の内容別集計は完了・却下・延期を除外します。",
