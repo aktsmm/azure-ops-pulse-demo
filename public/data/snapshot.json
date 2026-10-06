@@ -1619,7 +1619,87 @@
       "flows": []
     }
   },
-  "aiInsights": [],
+  "aiInsights": [
+    {
+      "severity": "warning",
+      "title": "Container Apps 環境のゾーン冗長性を本番要件に照らして判断する",
+      "observation": "Azure Advisor の「Container Apps 環境のゾーン冗長性を確認」グループは、影響度が高の推奨が 2 件あり、いずれも microsoft.app/managedenvironments の japaneast 環境に対応付けられています。",
+      "impact": "対象の推奨 2 件はいずれも影響度が高で、環境やアプリの配置が単一ゾーンに依存する場合、ゾーン障害時に稼働を継続できない可能性があります。ただし稼働用途や許容停止時間は未収集のため、緊急性は断定できません。",
+      "numericEvidence": [
+        {
+          "label": "影響度が高の推奨レコード数",
+          "value": "2 件",
+          "source": "advisor.details.groups.1.impacts.High"
+        },
+        {
+          "label": "対象リソース数",
+          "value": "2 件",
+          "source": "advisor.details.groups.1.affectedResourceCount"
+        }
+      ],
+      "recommendedAction": "/recommendations で当該グループのガイドと公開済みの対象環境を読み、ゾーン設定・レプリカ数・ノード数の現状と稼働用途、許容停止時間は Azure ポータルと運用担当者に確認してください。本番または可用性要件がある場合は移行方法と費用を比較して是正を検討し、再作成手順が確認済みの開発・検証用途なら、本番化や要件変更を再評価条件として保留できます。",
+      "confidence": 0.74,
+      "route": "/recommendations",
+      "period": "2026-10-06 スナップショット収集時点",
+      "id": "insight-63b83afb"
+    },
+    {
+      "severity": "info",
+      "title": "Blob の誤削除からの復旧要件を、ストレージアカウントごとに確認する",
+      "observation": "Azure Advisor の「Blob の誤削除・上書きからの復旧を確認」グループは、影響度が中の推奨が 5 件あり、microsoft.storage/storageaccounts の 5 件に対応付けられています。japaneast と eastasia の両リージョンにまたがります。",
+      "impact": "5 件の対象はデータ複製だけでは誤削除や上書きから戻せない可能性があり、保持期間の要件次第で復旧不能となる恐れがあります。影響度が中の 5 件は緊急度を示さず、データの重要度は未収集です。",
+      "numericEvidence": [
+        {
+          "label": "推奨レコード数",
+          "value": "5 件",
+          "source": "advisor.details.groups.0.count"
+        },
+        {
+          "label": "影響度が中の件数",
+          "value": "5 件",
+          "source": "advisor.details.groups.0.impacts.Medium"
+        }
+      ],
+      "recommendedAction": "/recommendations で当該グループのガイドと対象アカウントを確認し、論理的な削除の有効化状況・保持期間・復元テストの有無は Azure ポータルで各アカウントについて確認してください。重要データがあれば保持コストと復旧要件を比較して有効化を検討し、再生成可能な一時データか別の検証済み復元手段がある場合は保留し、重要データの追加時に再評価します。",
+      "confidence": 0.7,
+      "route": "/recommendations",
+      "period": "2026-10-06 スナップショット収集時点",
+      "id": "insight-6dd10d13"
+    },
+    {
+      "severity": "info",
+      "title": "Foundry Tools の増加を、全体の横ばいと比べて優先確認するか決める",
+      "observation": "コスト全体の前期比は小さい一方、Foundry Tools は前期比が大きく増加し、構成比は 14.6% です。最大カテゴリは構成比が 60.3% ですが前期比は減少しています。",
+      "impact": "全体が +1.5% の中で Foundry Tools だけが +67.9% であり、構成比 14.6% のため、最大カテゴリの減少と相殺されている可能性があります。ただし増加が無駄かどうかや原因は、このダッシュボードでは判断できません。",
+      "numericEvidence": [
+        {
+          "label": "全体の前期比",
+          "value": "+1.5%",
+          "source": "cost.deltaPercent"
+        },
+        {
+          "label": "Foundry Tools の前期比",
+          "value": "+67.9%",
+          "source": "cost.categories.1.deltaPercent"
+        },
+        {
+          "label": "Foundry Tools の構成比",
+          "value": "14.6%",
+          "source": "cost.categories.1.sharePercent"
+        },
+        {
+          "label": "最大カテゴリの構成比",
+          "value": "60.3%",
+          "source": "cost.categories.0.sharePercent"
+        }
+      ],
+      "recommendedAction": "/cost でカテゴリ別の前期比と構成比を比較し、Foundry Tools を最大カテゴリより先に見るか判断してください。増加の内訳や利用量は未収集のため、Azure ポータルのコスト分析で Foundry Tools を絞り込んで確認し、想定された利用増なら保留、想定外なら担当者に利用状況を確認します。",
+      "confidence": 0.66,
+      "route": "/cost",
+      "period": "2026-10-06 スナップショット収集時点",
+      "id": "insight-ee4acc9e"
+    }
+  ],
   "advisor": {
     "availability": "available",
     "message": "カテゴリ・影響度の件数は全ライフサイクルの推奨レコード数です。対応候補の内容別集計は完了・却下・延期を除外します。",
