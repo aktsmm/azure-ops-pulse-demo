@@ -1643,7 +1643,77 @@
       "flows": []
     }
   },
-  "aiInsights": [],
+  "aiInsights": [
+    {
+      "severity": "info",
+      "title": "Foundry Tools の増加を優先して見るか、Azure Cognitive Search の構成比を優先するかを決める",
+      "observation": "Foundry Tools は前期比で大きく増加している一方、全体は小幅な減少です。支出の最大カテゴリは Azure Cognitive Search で、こちらは減少しています。",
+      "impact": "Foundry Tools の変化率が +28.7% で全体の -1.2% と逆方向のため、全体の横ばいに見える中で増加が隠れています。Azure Cognitive Search は構成比 60.9% と集中していますが、減少傾向であり、構成比の高さだけでは無駄の証拠になりません。",
+      "numericEvidence": [
+        {
+          "label": "Foundry Tools の前期比変化率",
+          "value": "+28.7%",
+          "source": "cost.categories.1.deltaPercent"
+        },
+        {
+          "label": "全体の前期比変化率",
+          "value": "-1.2%",
+          "source": "cost.deltaPercent"
+        },
+        {
+          "label": "支出最大カテゴリの構成比",
+          "value": "60.9%",
+          "source": "cost.categories.0.sharePercent"
+        }
+      ],
+      "recommendedAction": "/cost でカテゴリ別の変化率と全体の変化率を比べ、Foundry Tools の増加を先に確認するか、構成比の高い Azure Cognitive Search を先に確認するかを決めます。増加の原因となる利用量や新規リソースは /cost には未収集のため、外部確認として Azure ポータルのコスト分析で Foundry Tools を絞り込み、運用担当者に利用状況を確認してください。",
+      "confidence": 0.74,
+      "route": "/cost",
+      "period": "2026-10-09 スナップショット収集時点",
+      "id": "insight-72636f15"
+    },
+    {
+      "severity": "warning",
+      "title": "Container Apps 環境のゾーン冗長性を、本番相当か開発・検証用かで判断する",
+      "observation": "推奨事項の「Container Apps 環境のゾーン冗長性を確認」グループは、影響度が高い推奨が Container Apps 環境 2 件に付いています。単一ゾーン依存の場合、ゾーン障害時に稼働継続できない可能性があるという内容です。",
+      "impact": "影響度が高い記録が 2 件あり、データ復旧ではなくサービス継続性に関する懸念です。ただし現在のゾーン設定や用途は未収集のため、障害時の停止可否は断定できません。",
+      "numericEvidence": [
+        {
+          "label": "影響度が高い推奨レコード数",
+          "value": "2 件",
+          "source": "advisor.details.groups.1.impacts.High"
+        },
+        {
+          "label": "対象の Container Apps 環境数",
+          "value": "2 件",
+          "source": "advisor.details.groups.1.affectedResourceCount"
+        }
+      ],
+      "recommendedAction": "/recommendations で「Container Apps 環境のゾーン冗長性を確認」のガイドと対象 2 環境の公開情報を読みます。実際のゾーン設定、レプリカ数、許容停止時間は未収集のため、外部確認として Azure ポータルと運用担当者で確認し、本番要件があればゾーン冗長化の移行と費用を検討、再作成可能な開発・検証用途なら本番化時の再評価を条件に保留します。",
+      "confidence": 0.72,
+      "route": "/recommendations",
+      "period": "2026-10-09 スナップショット収集時点",
+      "id": "insight-d7d04fa1"
+    },
+    {
+      "severity": "info",
+      "title": "Blob の誤削除・上書きからの復旧手段を、ストレージアカウントごとに確認する",
+      "observation": "推奨事項の「Blob の誤削除・上書きからの復旧を確認」グループは、japaneast と eastasia にまたがるストレージアカウントを対象にしています。複製だけでは誤削除や上書きを防げないという内容です。",
+      "impact": "対象が 5 件のストレージアカウントに及ぶため、データの重要度で優先順位を付けられます。実際の保持期間や復元手段は未収集で、保護が不足していると断定はできません。",
+      "numericEvidence": [
+        {
+          "label": "対象のストレージアカウント数",
+          "value": "5 件",
+          "source": "advisor.details.groups.0.affectedResourceCount"
+        }
+      ],
+      "recommendedAction": "/recommendations で「Blob の誤削除・上書きからの復旧を確認」のガイドと対象アカウントの公開情報を読みます。論理的な削除の設定、保持期間、復元テストの結果は未収集のため、外部確認として Azure ポータルのストレージアカウント設定と運用担当者で確認し、重要データがあれば保持コストと比較して設定を検討、別の検証済み復元手段や再生成可能データなら保留します。",
+      "confidence": 0.7,
+      "route": "/recommendations",
+      "period": "2026-10-09 スナップショット収集時点",
+      "id": "insight-f701ecae"
+    }
+  ],
   "advisor": {
     "availability": "available",
     "message": "カテゴリ・影響度の件数は全ライフサイクルの推奨レコード数です。対応候補の内容別集計は完了・却下・延期を除外します。",
