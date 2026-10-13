@@ -1643,7 +1643,92 @@
       "flows": []
     }
   },
-  "aiInsights": [],
+  "aiInsights": [
+    {
+      "severity": "info",
+      "title": "コスト確認は Azure Cognitive Search の構成と Foundry Tools の増加のどちらを先にするか決める",
+      "observation": "Azure Cognitive Search が費用の 62.1% を占め、前期比は -4.3% です。一方 Foundry Tools は構成比 12.3% ながら +59.9% で、全体の +0.6% と大きく異なります。",
+      "impact": "全体の変化が +0.6% と小さい中で、Foundry Tools の +59.9% は構成比が小さいため全体への影響は限定的に見えます。最大構成比の Azure Cognitive Search は減少傾向で、無駄とは断定できません。どちらも原因はこのデータでは特定できません。",
+      "numericEvidence": [
+        {
+          "label": "Azure Cognitive Search の費用構成比",
+          "value": "62.1%",
+          "source": "cost.categories.0.sharePercent"
+        },
+        {
+          "label": "検索サービス分類 Azure Cognitive Search の前期比変化率",
+          "value": "-4.3%",
+          "source": "cost.categories.0.deltaPercent"
+        },
+        {
+          "label": "Foundry Tools の費用構成比",
+          "value": "12.3%",
+          "source": "cost.categories.1.sharePercent"
+        },
+        {
+          "label": "Foundry Tools の前期比",
+          "value": "+59.9%",
+          "source": "cost.categories.1.deltaPercent"
+        },
+        {
+          "label": "全体の前期比",
+          "value": "+0.6%",
+          "source": "cost.deltaPercent"
+        }
+      ],
+      "recommendedAction": "/cost でカテゴリ別の構成比と前期比、全体の変化を比較し、Foundry Tools と Azure Cognitive Search のどちらを優先して見るか決めます。増加の要因となる利用量や新規リソースは /cost では未収集のため、外部確認として Azure ポータルのコスト分析で Foundry Tools の内訳を確認し、想定内の利用なら保留、想定外なら担当者に確認します。",
+      "confidence": 0.7,
+      "route": "/cost",
+      "period": "2026-10-13 スナップショット収集時点",
+      "id": "insight-e2401572"
+    },
+    {
+      "severity": "warning",
+      "title": "Blob の誤削除復旧と Storage のゾーン障害対策のどちらを先に要件確認するか決める",
+      "observation": "Blob の誤削除・上書きからの復旧グループは 5 件で影響度は中、Storage のゾーン障害対策グループは 4 件です。前者はデータ復旧、後者はゾーン停止時の継続性という別の論点で、どちらも Storage アカウントが対象です。",
+      "impact": "Blob 復旧は 5 件の対象に対し、論理的な削除や保持期間が未確認のままだと誤削除・上書きから戻せない可能性があります。ゾーン冗長は複製による継続性の話で、誤削除の復旧は代替しません。実際の設定や用途は未収集です。",
+      "numericEvidence": [
+        {
+          "label": "Blob 誤削除復旧グループの推奨件数",
+          "value": "5 件",
+          "source": "advisor.details.groups.0.count"
+        },
+        {
+          "label": "Storage ゾーン障害対策グループの推奨件数",
+          "value": "4 件",
+          "source": "advisor.details.groups.10.count"
+        }
+      ],
+      "recommendedAction": "/recommendations で「Blob の誤削除・上書きからの復旧を確認」と「Storage のゾーン障害対策を確認」のガイドと公開された対象を読み、論理的な削除の有無・保持期間・冗長化方式は未収集のため、外部確認として Azure ポータルの対象 Storage アカウントと所有者で確認します。再生成可能な検証データや検証済みの代替復元手段があれば保留、重要データなら復旧要件に合わせて変更を検討します。",
+      "confidence": 0.72,
+      "route": "/recommendations",
+      "period": "2026-10-13 スナップショット収集時点",
+      "id": "insight-c494de5e"
+    },
+    {
+      "severity": "warning",
+      "title": "Container Apps 環境のゾーン冗長性を本番要件として扱うか決める",
+      "observation": "「Container Apps 環境のゾーン冗長性を確認」グループは 2 件すべてが影響度「高」で、対象は microsoft.app/managedenvironments の 2 環境として公開されています。",
+      "impact": "2 件が影響度「高」のため、ゾーン障害時の継続性が要件なら優先して確認する価値があります。ただし用途、許容停止時間、再作成手順は未収集で、ゾーン冗長への移行には再作成や追加費用が伴い得ます。",
+      "numericEvidence": [
+        {
+          "label": "Container Apps ゾーン冗長グループの影響度「高」件数",
+          "value": "2 件",
+          "source": "advisor.details.groups.1.impacts.High"
+        },
+        {
+          "label": "Container Apps ゾーン冗長グループの対象リソース数",
+          "value": "2 件",
+          "source": "advisor.details.groups.1.affectedResourceCount"
+        }
+      ],
+      "recommendedAction": "/recommendations でこのグループのガイドと対象 2 環境を読み、現在のゾーン設定、レプリカ数、停止許容度は未収集のため、外部確認として Azure ポータルと運用担当者に確認します。停止を許容し再作成手順が確認済みの開発・検証用途なら保留し、本番や可用性要件があるなら移行方法と費用を比較します。",
+      "confidence": 0.7,
+      "route": "/recommendations",
+      "period": "2026-10-13 スナップショット収集時点",
+      "id": "insight-58216661"
+    }
+  ],
   "advisor": {
     "availability": "available",
     "message": "カテゴリ・影響度の件数は全ライフサイクルの推奨レコード数です。対応候補の内容別集計は完了・却下・延期を除外します。",

@@ -1,11 +1,11 @@
 {
   "schemaVersion": "1.4.0",
-  "generatedAt": "2026-10-09T01:00:40.017Z",
+  "generatedAt": "2026-10-13T02:24:46.531Z",
   "mode": "AZURE",
   "freshness": {
     "state": "fresh",
     "ageMinutes": 0,
-    "lastSuccessfulCollection": "2026-10-09T01:00:40.017Z",
+    "lastSuccessfulCollection": "2026-10-13T02:24:46.531Z",
     "nextScheduledCollection": "Tuesday / Friday 06:00 JST"
   },
   "scope": {
@@ -27,7 +27,7 @@
     {
       "source": "Resource Health",
       "availability": "partial",
-      "message": "Resource Health evaluated 12 of 19 supported resources; 63 resources are outside Resource Health coverage."
+      "message": "Resource Health evaluated 13 of 19 supported resources; 63 resources are outside Resource Health coverage."
     },
     {
       "source": "Service Health",
@@ -66,13 +66,13 @@
     "metrics": [
       {
         "label": "Resource Health の評価範囲",
-        "value": "63%",
-        "change": "対応 19 件中 12 件を評価済み（対象外 63 件）",
+        "value": "68%",
+        "change": "対応 19 件中 13 件を評価済み（対象外 63 件）",
         "direction": "flat",
         "severity": "info",
         "points": [
-          63,
-          63
+          68,
+          68
         ]
       },
       {
@@ -121,7 +121,7 @@
       },
       {
         "id": "event-cd198459",
-        "timestamp": "2026-10-08T19:23:33.7941625Z",
+        "timestamp": "2026-10-12T19:23:41.0864558Z",
         "severity": "info",
         "title": "管理操作を検出",
         "detail": "公開前に実行者と対象リソースの詳細を削除しています。",
@@ -129,7 +129,7 @@
       },
       {
         "id": "event-cc1982c6",
-        "timestamp": "2026-10-08T19:23:32.1065316Z",
+        "timestamp": "2026-10-12T19:23:39.9145466Z",
         "severity": "info",
         "title": "管理操作を検出",
         "detail": "公開前に実行者と対象リソースの詳細を削除しています。",
@@ -137,24 +137,24 @@
       },
       {
         "id": "event-cb198133",
-        "timestamp": "2026-10-08T03:38:42.0959334Z",
+        "timestamp": "2026-10-08T19:23:33.7941625Z",
         "severity": "info",
-        "title": "ポリシー操作を検出",
+        "title": "管理操作を検出",
         "detail": "公開前に実行者と対象リソースの詳細を削除しています。",
         "route": "/overview"
       },
       {
         "id": "event-ca197fa0",
-        "timestamp": "2026-10-08T03:38:42.0959334Z",
+        "timestamp": "2026-10-08T19:23:32.1065316Z",
         "severity": "info",
-        "title": "ポリシー操作を検出",
+        "title": "管理操作を検出",
         "detail": "公開前に実行者と対象リソースの詳細を削除しています。",
         "route": "/overview"
       },
       {
         "id": "event-ff907070",
         "timestamp": "現在の収集期間",
-        "severity": "warning",
+        "severity": "info",
         "title": "Service Health イベントを検出",
         "detail": "影響を受けたサブスクリプションやリソースの詳細を除き、サービス単位の状態のみを表示します。",
         "route": "/reliability"
@@ -203,7 +203,7 @@
       "availability": "available",
       "approximateAmount": "約¥2.3万"
     },
-    "deltaPercent": -1.2,
+    "deltaPercent": 0.6,
     "forecast": {
       "availability": "unavailable",
       "approximateAmount": null
@@ -217,26 +217,26 @@
       {
         "name": "Azure Cognitive Search",
         "approximateAmount": "約¥1.4万",
-        "sharePercent": 60.9,
-        "deltaPercent": -4.9
+        "sharePercent": 62.1,
+        "deltaPercent": -4.3
       },
       {
         "name": "Foundry Tools",
         "approximateAmount": "約¥3千",
-        "sharePercent": 13.9,
-        "deltaPercent": 28.7
+        "sharePercent": 12.3,
+        "deltaPercent": 59.9
       },
       {
         "name": "Load Balancer",
         "approximateAmount": "約¥3千",
-        "sharePercent": 11.5,
-        "deltaPercent": -4.7
+        "sharePercent": 11.7,
+        "deltaPercent": -4.2
       },
       {
         "name": "Storage",
         "approximateAmount": "約¥1千",
         "sharePercent": 4.6,
-        "deltaPercent": -3.3
+        "deltaPercent": -3.7
       },
       {
         "name": "Container Registry",
@@ -251,15 +251,15 @@
         "deltaPercent": null
       },
       {
-        "name": "Log Analytics",
+        "name": "Logic Apps",
         "approximateAmount": "約¥1千未満",
         "sharePercent": 1.9,
         "deltaPercent": null
       },
       {
-        "name": "Logic Apps",
+        "name": "Log Analytics",
         "approximateAmount": "約¥1千未満",
-        "sharePercent": 1.8,
+        "sharePercent": 1.9,
         "deltaPercent": null
       }
     ]
@@ -1040,7 +1040,7 @@
         "resourceGroup": "rg-8c2924db",
         "type": "microsoft.operationalinsights/workspaces",
         "region": "japaneast",
-        "status": "Unknown",
+        "status": "Healthy",
         "owner": "identity-caac8562",
         "tags": {},
         "change": "Azure Resource Graph から収集"
@@ -1367,12 +1367,12 @@
       "totalResources": 82,
       "supportedResources": 19,
       "notApplicableResources": 63,
-      "evaluatedResources": 12,
-      "unevaluatedResources": 7,
-      "healthyResources": 12,
+      "evaluatedResources": 13,
+      "unevaluatedResources": 6,
+      "healthyResources": 13,
       "degradedResources": 0,
       "unavailableResources": 0,
-      "supportedCoveragePercent": 63
+      "supportedCoveragePercent": 68
     },
     "serviceHealth": {
       "availability": "available",
@@ -1646,72 +1646,87 @@
   "aiInsights": [
     {
       "severity": "info",
-      "title": "Foundry Tools の増加を優先して見るか、Azure Cognitive Search の構成比を優先するかを決める",
-      "observation": "Foundry Tools は前期比で大きく増加している一方、全体は小幅な減少です。支出の最大カテゴリは Azure Cognitive Search で、こちらは減少しています。",
-      "impact": "Foundry Tools の変化率が +28.7% で全体の -1.2% と逆方向のため、全体の横ばいに見える中で増加が隠れています。Azure Cognitive Search は構成比 60.9% と集中していますが、減少傾向であり、構成比の高さだけでは無駄の証拠になりません。",
+      "title": "コスト確認は Azure Cognitive Search の構成と Foundry Tools の増加のどちらを先にするか決める",
+      "observation": "Azure Cognitive Search が費用の 62.1% を占め、前期比は -4.3% です。一方 Foundry Tools は構成比 12.3% ながら +59.9% で、全体の +0.6% と大きく異なります。",
+      "impact": "全体の変化が +0.6% と小さい中で、Foundry Tools の +59.9% は構成比が小さいため全体への影響は限定的に見えます。最大構成比の Azure Cognitive Search は減少傾向で、無駄とは断定できません。どちらも原因はこのデータでは特定できません。",
       "numericEvidence": [
         {
-          "label": "Foundry Tools の前期比変化率",
-          "value": "+28.7%",
+          "label": "Azure Cognitive Search の費用構成比",
+          "value": "62.1%",
+          "source": "cost.categories.0.sharePercent"
+        },
+        {
+          "label": "検索サービス分類 Azure Cognitive Search の前期比変化率",
+          "value": "-4.3%",
+          "source": "cost.categories.0.deltaPercent"
+        },
+        {
+          "label": "Foundry Tools の費用構成比",
+          "value": "12.3%",
+          "source": "cost.categories.1.sharePercent"
+        },
+        {
+          "label": "Foundry Tools の前期比",
+          "value": "+59.9%",
           "source": "cost.categories.1.deltaPercent"
         },
         {
-          "label": "全体の前期比変化率",
-          "value": "-1.2%",
+          "label": "全体の前期比",
+          "value": "+0.6%",
           "source": "cost.deltaPercent"
-        },
-        {
-          "label": "支出最大カテゴリの構成比",
-          "value": "60.9%",
-          "source": "cost.categories.0.sharePercent"
         }
       ],
-      "recommendedAction": "/cost でカテゴリ別の変化率と全体の変化率を比べ、Foundry Tools の増加を先に確認するか、構成比の高い Azure Cognitive Search を先に確認するかを決めます。増加の原因となる利用量や新規リソースは /cost には未収集のため、外部確認として Azure ポータルのコスト分析で Foundry Tools を絞り込み、運用担当者に利用状況を確認してください。",
-      "confidence": 0.74,
+      "recommendedAction": "/cost でカテゴリ別の構成比と前期比、全体の変化を比較し、Foundry Tools と Azure Cognitive Search のどちらを優先して見るか決めます。増加の要因となる利用量や新規リソースは /cost では未収集のため、外部確認として Azure ポータルのコスト分析で Foundry Tools の内訳を確認し、想定内の利用なら保留、想定外なら担当者に確認します。",
+      "confidence": 0.7,
       "route": "/cost",
-      "period": "2026-10-09 スナップショット収集時点",
-      "id": "insight-72636f15"
+      "period": "2026-10-13 スナップショット収集時点",
+      "id": "insight-e2401572"
     },
     {
       "severity": "warning",
-      "title": "Container Apps 環境のゾーン冗長性を、本番相当か開発・検証用かで判断する",
-      "observation": "推奨事項の「Container Apps 環境のゾーン冗長性を確認」グループは、影響度が高い推奨が Container Apps 環境 2 件に付いています。単一ゾーン依存の場合、ゾーン障害時に稼働継続できない可能性があるという内容です。",
-      "impact": "影響度が高い記録が 2 件あり、データ復旧ではなくサービス継続性に関する懸念です。ただし現在のゾーン設定や用途は未収集のため、障害時の停止可否は断定できません。",
+      "title": "Blob の誤削除復旧と Storage のゾーン障害対策のどちらを先に要件確認するか決める",
+      "observation": "Blob の誤削除・上書きからの復旧グループは 5 件で影響度は中、Storage のゾーン障害対策グループは 4 件です。前者はデータ復旧、後者はゾーン停止時の継続性という別の論点で、どちらも Storage アカウントが対象です。",
+      "impact": "Blob 復旧は 5 件の対象に対し、論理的な削除や保持期間が未確認のままだと誤削除・上書きから戻せない可能性があります。ゾーン冗長は複製による継続性の話で、誤削除の復旧は代替しません。実際の設定や用途は未収集です。",
       "numericEvidence": [
         {
-          "label": "影響度が高い推奨レコード数",
+          "label": "Blob 誤削除復旧グループの推奨件数",
+          "value": "5 件",
+          "source": "advisor.details.groups.0.count"
+        },
+        {
+          "label": "Storage ゾーン障害対策グループの推奨件数",
+          "value": "4 件",
+          "source": "advisor.details.groups.10.count"
+        }
+      ],
+      "recommendedAction": "/recommendations で「Blob の誤削除・上書きからの復旧を確認」と「Storage のゾーン障害対策を確認」のガイドと公開された対象を読み、論理的な削除の有無・保持期間・冗長化方式は未収集のため、外部確認として Azure ポータルの対象 Storage アカウントと所有者で確認します。再生成可能な検証データや検証済みの代替復元手段があれば保留、重要データなら復旧要件に合わせて変更を検討します。",
+      "confidence": 0.72,
+      "route": "/recommendations",
+      "period": "2026-10-13 スナップショット収集時点",
+      "id": "insight-c494de5e"
+    },
+    {
+      "severity": "warning",
+      "title": "Container Apps 環境のゾーン冗長性を本番要件として扱うか決める",
+      "observation": "「Container Apps 環境のゾーン冗長性を確認」グループは 2 件すべてが影響度「高」で、対象は microsoft.app/managedenvironments の 2 環境として公開されています。",
+      "impact": "2 件が影響度「高」のため、ゾーン障害時の継続性が要件なら優先して確認する価値があります。ただし用途、許容停止時間、再作成手順は未収集で、ゾーン冗長への移行には再作成や追加費用が伴い得ます。",
+      "numericEvidence": [
+        {
+          "label": "Container Apps ゾーン冗長グループの影響度「高」件数",
           "value": "2 件",
           "source": "advisor.details.groups.1.impacts.High"
         },
         {
-          "label": "対象の Container Apps 環境数",
+          "label": "Container Apps ゾーン冗長グループの対象リソース数",
           "value": "2 件",
           "source": "advisor.details.groups.1.affectedResourceCount"
         }
       ],
-      "recommendedAction": "/recommendations で「Container Apps 環境のゾーン冗長性を確認」のガイドと対象 2 環境の公開情報を読みます。実際のゾーン設定、レプリカ数、許容停止時間は未収集のため、外部確認として Azure ポータルと運用担当者で確認し、本番要件があればゾーン冗長化の移行と費用を検討、再作成可能な開発・検証用途なら本番化時の再評価を条件に保留します。",
-      "confidence": 0.72,
-      "route": "/recommendations",
-      "period": "2026-10-09 スナップショット収集時点",
-      "id": "insight-d7d04fa1"
-    },
-    {
-      "severity": "info",
-      "title": "Blob の誤削除・上書きからの復旧手段を、ストレージアカウントごとに確認する",
-      "observation": "推奨事項の「Blob の誤削除・上書きからの復旧を確認」グループは、japaneast と eastasia にまたがるストレージアカウントを対象にしています。複製だけでは誤削除や上書きを防げないという内容です。",
-      "impact": "対象が 5 件のストレージアカウントに及ぶため、データの重要度で優先順位を付けられます。実際の保持期間や復元手段は未収集で、保護が不足していると断定はできません。",
-      "numericEvidence": [
-        {
-          "label": "対象のストレージアカウント数",
-          "value": "5 件",
-          "source": "advisor.details.groups.0.affectedResourceCount"
-        }
-      ],
-      "recommendedAction": "/recommendations で「Blob の誤削除・上書きからの復旧を確認」のガイドと対象アカウントの公開情報を読みます。論理的な削除の設定、保持期間、復元テストの結果は未収集のため、外部確認として Azure ポータルのストレージアカウント設定と運用担当者で確認し、重要データがあれば保持コストと比較して設定を検討、別の検証済み復元手段や再生成可能データなら保留します。",
+      "recommendedAction": "/recommendations でこのグループのガイドと対象 2 環境を読み、現在のゾーン設定、レプリカ数、停止許容度は未収集のため、外部確認として Azure ポータルと運用担当者に確認します。停止を許容し再作成手順が確認済みの開発・検証用途なら保留し、本番や可用性要件があるなら移行方法と費用を比較します。",
       "confidence": 0.7,
       "route": "/recommendations",
-      "period": "2026-10-09 スナップショット収集時点",
-      "id": "insight-f701ecae"
+      "period": "2026-10-13 スナップショット収集時点",
+      "id": "insight-58216661"
     }
   ],
   "advisor": {
