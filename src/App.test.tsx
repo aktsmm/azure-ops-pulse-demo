@@ -73,6 +73,7 @@ describe("Related demo navigation", () => {
       "page"
     );
     const relatedDemos = [
+      ["Azure Update Digest", "https://aktsmm.github.io/azure-update-digest/"],
       ["M365 Message Center Dashboard", "https://aktsmm.github.io/m365-message-center-dashboard/"],
       ["M365 Copilot Update Digest", "https://aktsmm.github.io/m365-copilot-update-digest/"],
       ["Daily Dev Byte", "https://aktsmm.github.io/daily-dev-byte/"],
