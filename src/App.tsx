@@ -121,6 +121,10 @@ const NAV_ITEMS = [
 
 const RELATED_DEMOS = [
   {
+    label: "Azure Update Digest",
+    href: "https://aktsmm.github.io/azure-update-digest/"
+  },
+  {
     label: "M365 Message Center Dashboard",
     href: "https://aktsmm.github.io/m365-message-center-dashboard/"
   },
