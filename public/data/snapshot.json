@@ -1,11 +1,11 @@
 {
   "schemaVersion": "1.4.0",
-  "generatedAt": "2026-10-15T23:32:35.325Z",
+  "generatedAt": "2026-10-20T00:06:06.508Z",
   "mode": "AZURE",
   "freshness": {
     "state": "fresh",
     "ageMinutes": 0,
-    "lastSuccessfulCollection": "2026-10-15T23:32:35.325Z",
+    "lastSuccessfulCollection": "2026-10-20T00:06:06.508Z",
     "nextScheduledCollection": "Tuesday / Friday 06:00 JST"
   },
   "scope": {
@@ -27,17 +27,17 @@
     {
       "source": "Resource Health",
       "availability": "partial",
-      "message": "Resource Health evaluated 12 of 19 supported resources; 63 resources are outside Resource Health coverage."
+      "message": "Resource Health evaluated 13 of 19 supported resources; 63 resources are outside Resource Health coverage."
     },
     {
       "source": "Service Health",
       "availability": "available",
-      "message": "Service Health returned 4 events in aggregate."
+      "message": "Service Health returned 5 events in aggregate."
     },
     {
       "source": "Activity Log",
       "availability": "available",
-      "message": "4 recent Activity Log events were collected without actor or resource detail."
+      "message": "7 recent Activity Log events were collected without actor or resource detail."
     },
     {
       "source": "Defender for Cloud",
@@ -66,13 +66,13 @@
     "metrics": [
       {
         "label": "Resource Health の評価範囲",
-        "value": "63%",
-        "change": "対応 19 件中 12 件を評価済み（対象外 63 件）",
+        "value": "68%",
+        "change": "対応 19 件中 13 件を評価済み（対象外 63 件）",
         "direction": "flat",
         "severity": "info",
         "points": [
-          63,
-          63
+          68,
+          68
         ]
       },
       {
@@ -121,7 +121,7 @@
       },
       {
         "id": "event-cd198459",
-        "timestamp": "2026-10-14T19:23:12.4866585Z",
+        "timestamp": "2026-10-18T19:24:00.3364598Z",
         "severity": "info",
         "title": "管理操作を検出",
         "detail": "公開前に実行者と対象リソースの詳細を削除しています。",
@@ -129,7 +129,7 @@
       },
       {
         "id": "event-cc1982c6",
-        "timestamp": "2026-10-14T19:23:10.9866585Z",
+        "timestamp": "2026-10-18T19:23:58.4932627Z",
         "severity": "info",
         "title": "管理操作を検出",
         "detail": "公開前に実行者と対象リソースの詳細を削除しています。",
@@ -137,7 +137,7 @@
       },
       {
         "id": "event-cb198133",
-        "timestamp": "2026-10-12T19:23:41.0864558Z",
+        "timestamp": "2026-10-16T19:23:15.8962575Z",
         "severity": "info",
         "title": "管理操作を検出",
         "detail": "公開前に実行者と対象リソースの詳細を削除しています。",
@@ -145,7 +145,7 @@
       },
       {
         "id": "event-ca197fa0",
-        "timestamp": "2026-10-12T19:23:39.9145466Z",
+        "timestamp": "2026-10-16T19:23:14.1462304Z",
         "severity": "info",
         "title": "管理操作を検出",
         "detail": "公開前に実行者と対象リソースの詳細を削除しています。",
@@ -154,7 +154,7 @@
       {
         "id": "event-ff907070",
         "timestamp": "現在の収集期間",
-        "severity": "info",
+        "severity": "warning",
         "title": "Service Health イベントを検出",
         "detail": "影響を受けたサブスクリプションやリソースの詳細を除き、サービス単位の状態のみを表示します。",
         "route": "/reliability"
@@ -162,7 +162,7 @@
       {
         "id": "event-00907203",
         "timestamp": "現在の収集期間",
-        "severity": "warning",
+        "severity": "info",
         "title": "Service Health イベントを検出",
         "detail": "影響を受けたサブスクリプションやリソースの詳細を除き、サービス単位の状態のみを表示します。",
         "route": "/reliability"
@@ -197,13 +197,13 @@
     },
     "current": {
       "availability": "available",
-      "approximateAmount": "約¥2.4万"
+      "approximateAmount": "約¥2.2万"
     },
     "previous": {
       "availability": "available",
-      "approximateAmount": "約¥2.2万"
+      "approximateAmount": "約¥2.3万"
     },
-    "deltaPercent": 8.1,
+    "deltaPercent": -4.9,
     "forecast": {
       "availability": "unavailable",
       "approximateAmount": null
@@ -217,43 +217,43 @@
       {
         "name": "Azure Cognitive Search",
         "approximateAmount": "約¥1.4万",
-        "sharePercent": 60.1,
-        "deltaPercent": -1.8
-      },
-      {
-        "name": "Foundry Tools",
-        "approximateAmount": "約¥4千",
-        "sharePercent": 15.1,
-        "deltaPercent": 151.4
+        "sharePercent": 63.3,
+        "deltaPercent": -4.7
       },
       {
         "name": "Load Balancer",
         "approximateAmount": "約¥3千",
-        "sharePercent": 11.3,
-        "deltaPercent": -1.5
+        "sharePercent": 11.9,
+        "deltaPercent": -4.6
+      },
+      {
+        "name": "Foundry Tools",
+        "approximateAmount": "約¥2千",
+        "sharePercent": 10.7,
+        "deltaPercent": -3.1
       },
       {
         "name": "Storage",
         "approximateAmount": "約¥1千",
-        "sharePercent": 4.5,
-        "deltaPercent": -1.4
+        "sharePercent": 4.7,
+        "deltaPercent": -5.5
       },
       {
         "name": "Container Registry",
         "approximateAmount": "約¥1千未満",
-        "sharePercent": 3,
+        "sharePercent": 3.2,
         "deltaPercent": null
       },
       {
         "name": "Virtual Network",
         "approximateAmount": "約¥1千未満",
-        "sharePercent": 2.3,
+        "sharePercent": 2.4,
         "deltaPercent": null
       },
       {
         "name": "Logic Apps",
         "approximateAmount": "約¥1千未満",
-        "sharePercent": 1.8,
+        "sharePercent": 1.9,
         "deltaPercent": null
       },
       {
@@ -1040,7 +1040,7 @@
         "resourceGroup": "rg-8c2924db",
         "type": "microsoft.operationalinsights/workspaces",
         "region": "japaneast",
-        "status": "Unknown",
+        "status": "Healthy",
         "owner": "identity-caac8562",
         "tags": {},
         "change": "Azure Resource Graph から収集"
@@ -1367,22 +1367,22 @@
       "totalResources": 82,
       "supportedResources": 19,
       "notApplicableResources": 63,
-      "evaluatedResources": 12,
-      "unevaluatedResources": 7,
-      "healthyResources": 12,
+      "evaluatedResources": 13,
+      "unevaluatedResources": 6,
+      "healthyResources": 13,
       "degradedResources": 0,
       "unavailableResources": 0,
-      "supportedCoveragePercent": 63
+      "supportedCoveragePercent": 68
     },
     "serviceHealth": {
       "availability": "available",
-      "message": "Service Health reported 4 events in aggregate (3 active, 1 resolved).",
-      "activeEvents": 3,
+      "message": "Service Health reported 5 events in aggregate (4 active, 1 resolved).",
+      "activeEvents": 4,
       "resolvedEvents": 1,
       "categories": [
         {
           "label": "正常性アドバイザリ",
-          "count": 3
+          "count": 4
         },
         {
           "label": "サービスの問題",
@@ -1643,87 +1643,7 @@
       "flows": []
     }
   },
-  "aiInsights": [
-    {
-      "severity": "warning",
-      "title": "Foundry Tools と Azure Cognitive Search のどちらからコストを見るか決める",
-      "observation": "Azure Cognitive Search は構成比が最大ですが変化率は小幅な減少で、Foundry Tools は構成比が小さいものの変化率が全体より大きく上振れしています。",
-      "impact": "全体の変化率が +8.1% のとき、Foundry Tools の +151.4% は全体の増加を押し上げている可能性があり、最大構成比 60.1% の Azure Cognitive Search は減少傾向のため、増加の確認は Foundry Tools を先にするのが妥当です。ただし構成比の大きさは無駄を意味せず、原因は未観測です。",
-      "numericEvidence": [
-        {
-          "label": "Foundry Tools の変化率",
-          "value": "+151.4%",
-          "source": "cost.categories.1.deltaPercent"
-        },
-        {
-          "label": "全体の変化率",
-          "value": "+8.1%",
-          "source": "cost.deltaPercent"
-        },
-        {
-          "label": "最大構成比カテゴリの構成比",
-          "value": "60.1%",
-          "source": "cost.categories.0.sharePercent"
-        },
-        {
-          "label": "最大構成比カテゴリの変化率",
-          "value": "-1.8%",
-          "source": "cost.categories.0.deltaPercent"
-        }
-      ],
-      "recommendedAction": "/cost で Foundry Tools の変化率を全体および Azure Cognitive Search と比較して確認順を決めます。使用量や課金の内訳はこの画面に無いため、増加要因は外部確認として Azure ポータルのコスト分析で Foundry Tools を絞り込み、サービス内訳を確認してください。想定内の利用増なら保留し、次回収集で変化率が拡大した場合に再評価します。",
-      "confidence": 0.7,
-      "route": "/cost",
-      "period": "2026-10-16 スナップショット収集時点",
-      "id": "insight-9cda42d3"
-    },
-    {
-      "severity": "warning",
-      "title": "Storage の復旧要件とゾーン障害対策のどちらを先に確認するか決める",
-      "observation": "Storage アカウントには、Blob の誤削除・上書きからの復旧に関する推奨と、ゾーン障害対策に関する推奨が別々の内容グループとして存在します。",
-      "impact": "Blob の復旧グループの対象は 5 件、ゾーン障害対策グループの対象は 4 件です。前者は誤操作によるデータ損失、後者はゾーン停止時の継続性という異なる懸念で、必要な設定と費用が違うため、どちらも同じ Storage 対策として一括判断できません。両グループの対象が同一かは参照の突合が必要で、ここでは断定しません。",
-      "numericEvidence": [
-        {
-          "label": "Blob 復旧グループの影響対象リソース数",
-          "value": "5 件",
-          "source": "advisor.details.groups.0.affectedResourceCount"
-        },
-        {
-          "label": "Storage ゾーン障害対策グループの影響対象リソース数",
-          "value": "4 件",
-          "source": "advisor.details.groups.10.affectedResourceCount"
-        }
-      ],
-      "recommendedAction": "/recommendations で「Blob の誤削除・上書きからの復旧を確認」と「Storage のゾーン障害対策を確認」のガイドと公開済み対象を読み、実際の論理的な削除の保持期間、冗長化方式、復旧要件、許容停止時間は外部確認として Azure ポータルの各 Storage アカウントと運用担当者に確認してください。再生成可能な検証データなら保留し、重要データが加わった時点で再評価します。",
-      "confidence": 0.7,
-      "route": "/recommendations",
-      "period": "2026-10-16 スナップショット収集時点",
-      "id": "insight-3d51c93b"
-    },
-    {
-      "severity": "warning",
-      "title": "Container Apps 環境のゾーン冗長性を本番要件に照らして判断する",
-      "observation": "Container Apps 環境に対し、影響度が「高」のゾーン冗長性の推奨が公開されており、対象の環境は 2 件が特定されています。",
-      "impact": "影響度「高」の記録が 2 件、対象の環境も 2 件で、いずれも同じ内容グループに集中しています。ゾーン障害時にアプリの継続が必要かどうかで、冗長化の費用と移行作業を負担するか、停止を許容して保留するかが分かれます。用途や停止許容は未収集です。",
-      "numericEvidence": [
-        {
-          "label": "影響度「高」の記録数",
-          "value": "2 件",
-          "source": "advisor.details.groups.1.impacts.High"
-        },
-        {
-          "label": "影響対象リソース数",
-          "value": "2 件",
-          "source": "advisor.details.groups.1.affectedResourceCount"
-        }
-      ],
-      "recommendedAction": "/recommendations で「Container Apps 環境のゾーン冗長性を確認」のガイドと公開済みの対象環境を読み、環境の現在のゾーン設定、レプリカ数、許容停止時間は外部確認として Azure ポータルと運用担当者に確認してください。本番相当で停止を許容できないなら移行方法と追加費用の検討に進み、再作成手順が確認済みの検証用途なら保留し、本番化時に再評価します。",
-      "confidence": 0.72,
-      "route": "/recommendations",
-      "period": "2026-10-16 スナップショット収集時点",
-      "id": "insight-5b870551"
-    }
-  ],
+  "aiInsights": [],
   "advisor": {
     "availability": "available",
     "message": "カテゴリ・影響度の件数は全ライフサイクルの推奨レコード数です。対応候補の内容別集計は完了・却下・延期を除外します。",
@@ -1731,7 +1651,7 @@
       {
         "category": "HighAvailability",
         "impact": "High",
-        "count": 16
+        "count": 17
       },
       {
         "category": "HighAvailability",
@@ -1758,7 +1678,7 @@
       "availability": "partial",
       "message": "内容は公式の種類 ID と照合した固定カタログです。影響度は期限ではありません。状態不明は未対応と断定せず、非公開の内容は Azure ポータルで確認してください。",
       "mappedRecommendationCount": 24,
-      "withheldRecommendationCount": 4,
+      "withheldRecommendationCount": 5,
       "excludedRecommendationCount": 7,
       "lifecycleUnknownCount": 0,
       "affectedResourceCount": null,
@@ -2441,41 +2361,47 @@
         },
         {
           "resourceRefs": [
-            "res-71b61500"
+            "res-71b61500",
+            "res-dc0ef377"
           ],
           "targets": [
             {
               "resourceRef": "res-71b61500",
               "type": "microsoft.operationalinsights/workspaces",
               "region": "japaneast"
+            },
+            {
+              "resourceRef": "res-dc0ef377",
+              "type": "microsoft.operationalinsights/workspaces",
+              "region": "japaneast"
             }
           ],
           "scopeCounts": {
-            "resource": 2,
+            "resource": 3,
             "subscription": 0,
             "unknown": 0
           },
           "targetCoverage": {
-            "totalResources": 2,
-            "publishedResources": 1,
+            "totalResources": 3,
+            "publishedResources": 2,
             "unresolvedResources": 1,
             "truncated": false
           },
           "id": "withheld-highavailability",
           "category": "HighAvailability",
           "contentStatus": "withheld",
-          "count": 2,
+          "count": 3,
           "impacts": {
-            "High": 1,
+            "High": 2,
             "Medium": 1,
             "Low": 0,
             "Unknown": 0
           },
-          "affectedResourceCount": 2,
+          "affectedResourceCount": 3,
           "resourceTypes": [
             {
               "type": "other",
-              "count": 2
+              "count": 3
             }
           ],
           "title": "内容未分類の推奨事項",
