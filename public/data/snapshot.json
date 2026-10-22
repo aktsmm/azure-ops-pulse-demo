@@ -1,11 +1,11 @@
 {
   "schemaVersion": "1.4.0",
-  "generatedAt": "2026-10-20T00:06:06.508Z",
+  "generatedAt": "2026-10-22T23:52:32.997Z",
   "mode": "AZURE",
   "freshness": {
     "state": "fresh",
     "ageMinutes": 0,
-    "lastSuccessfulCollection": "2026-10-20T00:06:06.508Z",
+    "lastSuccessfulCollection": "2026-10-22T23:52:32.997Z",
     "nextScheduledCollection": "Tuesday / Friday 06:00 JST"
   },
   "scope": {
@@ -37,7 +37,7 @@
     {
       "source": "Activity Log",
       "availability": "available",
-      "message": "7 recent Activity Log events were collected without actor or resource detail."
+      "message": "9 recent Activity Log events were collected without actor or resource detail."
     },
     {
       "source": "Defender for Cloud",
@@ -121,7 +121,7 @@
       },
       {
         "id": "event-cd198459",
-        "timestamp": "2026-10-18T19:24:00.3364598Z",
+        "timestamp": "2026-10-22T19:23:46.3439893Z",
         "severity": "info",
         "title": "管理操作を検出",
         "detail": "公開前に実行者と対象リソースの詳細を削除しています。",
@@ -129,7 +129,7 @@
       },
       {
         "id": "event-cc1982c6",
-        "timestamp": "2026-10-18T19:23:58.4932627Z",
+        "timestamp": "2026-10-22T19:23:44.6252148Z",
         "severity": "info",
         "title": "管理操作を検出",
         "detail": "公開前に実行者と対象リソースの詳細を削除しています。",
@@ -137,7 +137,7 @@
       },
       {
         "id": "event-cb198133",
-        "timestamp": "2026-10-16T19:23:15.8962575Z",
+        "timestamp": "2026-10-20T19:24:28.4732384Z",
         "severity": "info",
         "title": "管理操作を検出",
         "detail": "公開前に実行者と対象リソースの詳細を削除しています。",
@@ -145,7 +145,7 @@
       },
       {
         "id": "event-ca197fa0",
-        "timestamp": "2026-10-16T19:23:14.1462304Z",
+        "timestamp": "2026-10-20T19:24:26.6294938Z",
         "severity": "info",
         "title": "管理操作を検出",
         "detail": "公開前に実行者と対象リソースの詳細を削除しています。",
@@ -197,13 +197,13 @@
     },
     "current": {
       "availability": "available",
-      "approximateAmount": "約¥2.2万"
+      "approximateAmount": "約¥2.3万"
     },
     "previous": {
       "availability": "available",
       "approximateAmount": "約¥2.3万"
     },
-    "deltaPercent": -4.9,
+    "deltaPercent": -1,
     "forecast": {
       "availability": "unavailable",
       "approximateAmount": null
@@ -217,26 +217,26 @@
       {
         "name": "Azure Cognitive Search",
         "approximateAmount": "約¥1.4万",
-        "sharePercent": 63.3,
-        "deltaPercent": -4.7
+        "sharePercent": 62.8,
+        "deltaPercent": -1.6
       },
       {
         "name": "Load Balancer",
         "approximateAmount": "約¥3千",
-        "sharePercent": 11.9,
-        "deltaPercent": -4.6
+        "sharePercent": 11.8,
+        "deltaPercent": -1.4
       },
       {
         "name": "Foundry Tools",
-        "approximateAmount": "約¥2千",
-        "sharePercent": 10.7,
-        "deltaPercent": -3.1
+        "approximateAmount": "約¥3千",
+        "sharePercent": 11.4,
+        "deltaPercent": 8.1
       },
       {
         "name": "Storage",
         "approximateAmount": "約¥1千",
-        "sharePercent": 4.7,
-        "deltaPercent": -5.5
+        "sharePercent": 4.6,
+        "deltaPercent": -2.9
       },
       {
         "name": "Container Registry",
@@ -1656,7 +1656,7 @@
       {
         "category": "HighAvailability",
         "impact": "Medium",
-        "count": 15
+        "count": 14
       },
       {
         "category": "OperationalExcellence",
@@ -1679,7 +1679,7 @@
       "message": "内容は公式の種類 ID と照合した固定カタログです。影響度は期限ではありません。状態不明は未対応と断定せず、非公開の内容は Azure ポータルで確認してください。",
       "mappedRecommendationCount": 24,
       "withheldRecommendationCount": 5,
-      "excludedRecommendationCount": 7,
+      "excludedRecommendationCount": 6,
       "lifecycleUnknownCount": 0,
       "affectedResourceCount": null,
       "groups": [
