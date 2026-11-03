@@ -1,11 +1,11 @@
 {
   "schemaVersion": "1.4.0",
-  "generatedAt": "2026-10-30T00:34:29.137Z",
+  "generatedAt": "2026-11-03T02:46:13.063Z",
   "mode": "AZURE",
   "freshness": {
     "state": "fresh",
     "ageMinutes": 0,
-    "lastSuccessfulCollection": "2026-10-30T00:34:29.137Z",
+    "lastSuccessfulCollection": "2026-11-03T02:46:13.063Z",
     "nextScheduledCollection": "Tuesday / Friday 06:00 JST"
   },
   "scope": {
@@ -27,7 +27,7 @@
     {
       "source": "Resource Health",
       "availability": "partial",
-      "message": "Resource Health evaluated 13 of 19 supported resources; 63 resources are outside Resource Health coverage."
+      "message": "Resource Health evaluated 12 of 19 supported resources; 63 resources are outside Resource Health coverage."
     },
     {
       "source": "Service Health",
@@ -37,7 +37,7 @@
     {
       "source": "Activity Log",
       "availability": "available",
-      "message": "7 recent Activity Log events were collected without actor or resource detail."
+      "message": "8 recent Activity Log events were collected without actor or resource detail."
     },
     {
       "source": "Defender for Cloud",
@@ -66,13 +66,13 @@
     "metrics": [
       {
         "label": "Resource Health の評価範囲",
-        "value": "68%",
-        "change": "対応 19 件中 13 件を評価済み（対象外 63 件）",
+        "value": "63%",
+        "change": "対応 19 件中 12 件を評価済み（対象外 63 件）",
         "direction": "flat",
         "severity": "info",
         "points": [
-          68,
-          68
+          63,
+          63
         ]
       },
       {
@@ -121,7 +121,7 @@
       },
       {
         "id": "event-cd198459",
-        "timestamp": "2026-10-28T19:23:56.0649219Z",
+        "timestamp": "2026-11-01T19:23:33.9966031Z",
         "severity": "info",
         "title": "管理操作を検出",
         "detail": "公開前に実行者と対象リソースの詳細を削除しています。",
@@ -129,7 +129,7 @@
       },
       {
         "id": "event-cc1982c6",
-        "timestamp": "2026-10-28T19:23:55.2837061Z",
+        "timestamp": "2026-11-01T19:23:32.5903121Z",
         "severity": "info",
         "title": "管理操作を検出",
         "detail": "公開前に実行者と対象リソースの詳細を削除しています。",
@@ -137,7 +137,7 @@
       },
       {
         "id": "event-cb198133",
-        "timestamp": "2026-10-27T21:22:10.0696102Z",
+        "timestamp": "2026-10-30T22:36:26.8567196Z",
         "severity": "info",
         "title": "推奨事項操作を検出",
         "detail": "公開前に実行者と対象リソースの詳細を削除しています。",
@@ -145,7 +145,7 @@
       },
       {
         "id": "event-ca197fa0",
-        "timestamp": "2026-10-26T19:23:54.2187107Z",
+        "timestamp": "2026-10-30T19:23:45.4254431Z",
         "severity": "info",
         "title": "管理操作を検出",
         "detail": "公開前に実行者と対象リソースの詳細を削除しています。",
@@ -154,7 +154,7 @@
       {
         "id": "event-ff907070",
         "timestamp": "現在の収集期間",
-        "severity": "warning",
+        "severity": "info",
         "title": "Service Health イベントを検出",
         "detail": "影響を受けたサブスクリプションやリソースの詳細を除き、サービス単位の状態のみを表示します。",
         "route": "/reliability"
@@ -197,13 +197,13 @@
     },
     "current": {
       "availability": "available",
-      "approximateAmount": "約¥2.2万"
+      "approximateAmount": "約¥2.1万"
     },
     "previous": {
       "availability": "available",
       "approximateAmount": "約¥2.4万"
     },
-    "deltaPercent": -10.2,
+    "deltaPercent": -12.2,
     "forecast": {
       "availability": "unavailable",
       "approximateAmount": null
@@ -217,26 +217,26 @@
       {
         "name": "Azure Cognitive Search",
         "approximateAmount": "約¥1.4万",
-        "sharePercent": 64.8,
+        "sharePercent": 65.9,
         "deltaPercent": -4.7
       },
       {
         "name": "Load Balancer",
         "approximateAmount": "約¥3千",
-        "sharePercent": 12.2,
+        "sharePercent": 12.4,
         "deltaPercent": -4.6
       },
       {
         "name": "Foundry Tools",
         "approximateAmount": "約¥2千",
-        "sharePercent": 8.7,
-        "deltaPercent": -41.2
+        "sharePercent": 7.2,
+        "deltaPercent": -54.4
       },
       {
         "name": "Storage",
         "approximateAmount": "約¥1千",
-        "sharePercent": 4.7,
-        "deltaPercent": -7.5
+        "sharePercent": 4.8,
+        "deltaPercent": -7.1
       },
       {
         "name": "Container Registry",
@@ -247,13 +247,13 @@
       {
         "name": "Virtual Network",
         "approximateAmount": "約¥1千未満",
-        "sharePercent": 2.4,
+        "sharePercent": 2.5,
         "deltaPercent": null
       },
       {
         "name": "Logic Apps",
         "approximateAmount": "約¥1千未満",
-        "sharePercent": 1.9,
+        "sharePercent": 2,
         "deltaPercent": null
       },
       {
@@ -1040,7 +1040,7 @@
         "resourceGroup": "rg-8c2924db",
         "type": "microsoft.operationalinsights/workspaces",
         "region": "japaneast",
-        "status": "Healthy",
+        "status": "Unknown",
         "owner": "identity-caac8562",
         "tags": {},
         "change": "Azure Resource Graph から収集"
@@ -1367,12 +1367,12 @@
       "totalResources": 82,
       "supportedResources": 19,
       "notApplicableResources": 63,
-      "evaluatedResources": 13,
-      "unevaluatedResources": 6,
-      "healthyResources": 13,
+      "evaluatedResources": 12,
+      "unevaluatedResources": 7,
+      "healthyResources": 12,
       "degradedResources": 0,
       "unavailableResources": 0,
-      "supportedCoveragePercent": 68
+      "supportedCoveragePercent": 63
     },
     "serviceHealth": {
       "availability": "available",
