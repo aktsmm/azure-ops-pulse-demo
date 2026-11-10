@@ -1,11 +1,11 @@
 {
   "schemaVersion": "1.4.0",
-  "generatedAt": "2026-11-06T01:21:52.565Z",
+  "generatedAt": "2026-11-10T03:09:22.177Z",
   "mode": "AZURE",
   "freshness": {
     "state": "fresh",
     "ageMinutes": 0,
-    "lastSuccessfulCollection": "2026-11-06T01:21:52.565Z",
+    "lastSuccessfulCollection": "2026-11-10T03:09:22.177Z",
     "nextScheduledCollection": "Tuesday / Friday 06:00 JST"
   },
   "scope": {
@@ -22,12 +22,12 @@
     {
       "source": "Cost Management",
       "availability": "available",
-      "message": "Current and prior comparable rounded JPY periods were collected from 11 and 11 records."
+      "message": "Current and prior comparable rounded JPY periods were collected from 12 and 11 records."
     },
     {
       "source": "Resource Health",
       "availability": "partial",
-      "message": "Resource Health evaluated 13 of 19 supported resources; 63 resources are outside Resource Health coverage."
+      "message": "Resource Health evaluated 14 of 22 supported resources; 65 resources are outside Resource Health coverage."
     },
     {
       "source": "Service Health",
@@ -37,7 +37,7 @@
     {
       "source": "Activity Log",
       "availability": "available",
-      "message": "9 recent Activity Log events were collected without actor or resource detail."
+      "message": "100 recent Activity Log events were collected without actor or resource detail."
     },
     {
       "source": "Defender for Cloud",
@@ -59,20 +59,20 @@
     {
       "source": "Network inventory and metrics",
       "availability": "partial",
-      "message": "Network inventory covers 10 resources; 10 were sampled for Azure Monitor metrics; 3 exposed 4 metric series; 7 have no platform metrics; 0 could not be read. Flow telemetry was not collected."
+      "message": "Network inventory covers 11 resources; 11 were sampled for Azure Monitor metrics; 4 exposed 5 metric series; 7 have no platform metrics; 0 could not be read. Flow telemetry was not collected."
     }
   ],
   "overview": {
     "metrics": [
       {
         "label": "Resource Health の評価範囲",
-        "value": "68%",
-        "change": "対応 19 件中 13 件を評価済み（対象外 63 件）",
+        "value": "64%",
+        "change": "対応 22 件中 14 件を評価済み（対象外 65 件）",
         "direction": "flat",
         "severity": "info",
         "points": [
-          68,
-          68
+          64,
+          64
         ]
       },
       {
@@ -116,12 +116,12 @@
         "timestamp": "現在のスナップショット",
         "severity": "healthy",
         "title": "Azure データ収集が完了",
-        "detail": "82 件のリソースをサニタイズし、利用不可の任意ソースは 0 件でした。",
+        "detail": "87 件のリソースをサニタイズし、利用不可の任意ソースは 0 件でした。",
         "route": "/overview"
       },
       {
         "id": "event-cd198459",
-        "timestamp": "2026-11-05T19:23:25.9796995Z",
+        "timestamp": "2026-11-09T19:23:33.6153205Z",
         "severity": "info",
         "title": "管理操作を検出",
         "detail": "公開前に実行者と対象リソースの詳細を削除しています。",
@@ -129,7 +129,7 @@
       },
       {
         "id": "event-cc1982c6",
-        "timestamp": "2026-11-05T19:23:24.7296177Z",
+        "timestamp": "2026-11-09T19:23:31.97473Z",
         "severity": "info",
         "title": "管理操作を検出",
         "detail": "公開前に実行者と対象リソースの詳細を削除しています。",
@@ -137,24 +137,24 @@
       },
       {
         "id": "event-cb198133",
-        "timestamp": "2026-11-03T19:23:36.113612Z",
+        "timestamp": "2026-11-09T02:47:18.2137213Z",
         "severity": "info",
-        "title": "管理操作を検出",
+        "title": "ポリシー操作を検出",
         "detail": "公開前に実行者と対象リソースの詳細を削除しています。",
         "route": "/overview"
       },
       {
         "id": "event-ca197fa0",
-        "timestamp": "2026-11-03T19:23:34.566722Z",
+        "timestamp": "2026-11-09T02:47:18.2137213Z",
         "severity": "info",
-        "title": "管理操作を検出",
+        "title": "ポリシー操作を検出",
         "detail": "公開前に実行者と対象リソースの詳細を削除しています。",
         "route": "/overview"
       },
       {
         "id": "event-ff907070",
         "timestamp": "現在の収集期間",
-        "severity": "warning",
+        "severity": "info",
         "title": "Service Health イベントを検出",
         "detail": "影響を受けたサブスクリプションやリソースの詳細を除き、サービス単位の状態のみを表示します。",
         "route": "/reliability"
@@ -201,9 +201,9 @@
     },
     "previous": {
       "availability": "available",
-      "approximateAmount": "約¥2.5万"
+      "approximateAmount": "約¥2.4万"
     },
-    "deltaPercent": -15.1,
+    "deltaPercent": -13.1,
     "forecast": {
       "availability": "unavailable",
       "approximateAmount": null
@@ -217,31 +217,31 @@
       {
         "name": "Azure Cognitive Search",
         "approximateAmount": "約¥1.4万",
-        "sharePercent": 67.1,
-        "deltaPercent": -4.7
+        "sharePercent": 66.9,
+        "deltaPercent": -5.9
       },
       {
         "name": "Load Balancer",
         "approximateAmount": "約¥3千",
-        "sharePercent": 12.7,
-        "deltaPercent": -4.7
+        "sharePercent": 12.6,
+        "deltaPercent": -5.8
       },
       {
         "name": "Foundry Tools",
         "approximateAmount": "約¥1千",
-        "sharePercent": 5.5,
-        "deltaPercent": -69.8
+        "sharePercent": 5.6,
+        "deltaPercent": -61.9
       },
       {
         "name": "Storage",
         "approximateAmount": "約¥1千",
         "sharePercent": 4.9,
-        "deltaPercent": -6.7
+        "deltaPercent": -6.9
       },
       {
         "name": "Container Registry",
         "approximateAmount": "約¥1千未満",
-        "sharePercent": 3.4,
+        "sharePercent": 3.5,
         "deltaPercent": null
       },
       {
@@ -253,7 +253,7 @@
       {
         "name": "Logic Apps",
         "approximateAmount": "約¥1千未満",
-        "sharePercent": 2,
+        "sharePercent": 2.1,
         "deltaPercent": null
       },
       {
@@ -265,7 +265,7 @@
     ]
   },
   "inventory": {
-    "total": 82,
+    "total": 87,
     "resources": [
       {
         "id": "res-2b208491",
@@ -842,6 +842,19 @@
         "change": "Azure Resource Graph から収集"
       },
       {
+        "id": "res-9602c04b",
+        "name": "userassignedidentities-49134b65",
+        "resourceGroup": "rg-49b8e328",
+        "type": "microsoft.managedidentity/userassignedidentities",
+        "region": "japaneast",
+        "status": "NotApplicable",
+        "owner": "identity-caac8562",
+        "tags": {
+          "environment": "value-186b9211"
+        },
+        "change": "Azure Resource Graph から収集"
+      },
+      {
         "id": "res-5262c962",
         "name": "loadbalancers-55bf3cde",
         "resourceGroup": "rg-e8dfc19d",
@@ -976,6 +989,27 @@
         "owner": "identity-caac8562",
         "tags": {
           "environment": "value-626092f4"
+        },
+        "change": "Azure Resource Graph から収集"
+      },
+      {
+        "id": "res-fac32cb9",
+        "name": "virtualnetworks-753c6a31",
+        "resourceGroup": "rg-49b8e328",
+        "network": {
+          "privateIpv4": [],
+          "privateCidrs": [
+            "10.247.46.0/24"
+          ],
+          "publicIpv4Masked": [],
+          "truncated": false
+        },
+        "type": "microsoft.network/virtualnetworks",
+        "region": "japaneast",
+        "status": "NotApplicable",
+        "owner": "identity-caac8562",
+        "tags": {
+          "environment": "value-186b9211"
         },
         "change": "Azure Resource Graph から収集"
       },
@@ -1149,6 +1183,19 @@
         "change": "Azure Resource Graph から収集"
       },
       {
+        "id": "res-815fa6ab",
+        "name": "storageaccounts-7dfd2095",
+        "resourceGroup": "rg-49b8e328",
+        "type": "microsoft.storage/storageaccounts",
+        "region": "japaneast",
+        "status": "Healthy",
+        "owner": "identity-caac8562",
+        "tags": {
+          "environment": "value-186b9211"
+        },
+        "change": "Azure Resource Graph から収集"
+      },
+      {
         "id": "res-d282cf54",
         "name": "connections-67009abe",
         "resourceGroup": "rg-5806f191",
@@ -1179,6 +1226,32 @@
         "status": "NotApplicable",
         "owner": "identity-caac8562",
         "tags": {},
+        "change": "Azure Resource Graph から収集"
+      },
+      {
+        "id": "res-1449b114",
+        "name": "serverfarms-ecd98848",
+        "resourceGroup": "rg-49b8e328",
+        "type": "microsoft.web/serverfarms",
+        "region": "japaneast",
+        "status": "Unknown",
+        "owner": "identity-caac8562",
+        "tags": {
+          "environment": "value-186b9211"
+        },
+        "change": "Azure Resource Graph から収集"
+      },
+      {
+        "id": "res-596b514b",
+        "name": "sites-32476ee3",
+        "resourceGroup": "rg-49b8e328",
+        "type": "microsoft.web/sites",
+        "region": "japaneast",
+        "status": "Unknown",
+        "owner": "identity-caac8562",
+        "tags": {
+          "environment": "value-186b9211"
+        },
         "change": "Azure Resource Graph から収集"
       },
       {
@@ -1275,7 +1348,7 @@
       },
       {
         "label": "microsoft.managedidentity/userassignedidentities",
-        "count": 2
+        "count": 3
       },
       {
         "label": "microsoft.network/loadbalancers",
@@ -1291,7 +1364,7 @@
       },
       {
         "label": "microsoft.network/virtualnetworks",
-        "count": 1
+        "count": 2
       },
       {
         "label": "microsoft.operationalinsights/workspaces",
@@ -1307,11 +1380,19 @@
       },
       {
         "label": "microsoft.storage/storageaccounts",
-        "count": 5
+        "count": 6
       },
       {
         "label": "microsoft.web/connections",
         "count": 3
+      },
+      {
+        "label": "microsoft.web/serverfarms",
+        "count": 1
+      },
+      {
+        "label": "microsoft.web/sites",
+        "count": 1
       },
       {
         "label": "microsoft.web/staticsites",
@@ -1325,7 +1406,7 @@
       },
       {
         "label": "japaneast",
-        "count": 59
+        "count": 64
       },
       {
         "label": "southeastasia",
@@ -1364,15 +1445,15 @@
     "meanTimeToRecover": "公開スナップショットでは未算出",
     "services": [],
     "coverage": {
-      "totalResources": 82,
-      "supportedResources": 19,
-      "notApplicableResources": 63,
-      "evaluatedResources": 13,
-      "unevaluatedResources": 6,
-      "healthyResources": 13,
+      "totalResources": 87,
+      "supportedResources": 22,
+      "notApplicableResources": 65,
+      "evaluatedResources": 14,
+      "unevaluatedResources": 8,
+      "healthyResources": 14,
       "degradedResources": 0,
       "unavailableResources": 0,
-      "supportedCoveragePercent": 68
+      "supportedCoveragePercent": 64
     },
     "serviceHealth": {
       "availability": "available",
@@ -1524,6 +1605,36 @@
           "region": "japaneast",
           "referenceOnly": false,
           "scope": "inventory"
+        },
+        {
+          "network": {
+            "privateIpv4": [],
+            "privateCidrs": [
+              "10.247.46.0/24"
+            ],
+            "publicIpv4Masked": [],
+            "truncated": false
+          },
+          "id": "res-fac32cb9",
+          "type": "microsoft.network/virtualnetworks",
+          "region": "japaneast",
+          "referenceOnly": false,
+          "scope": "inventory"
+        },
+        {
+          "network": {
+            "privateIpv4": [],
+            "privateCidrs": [
+              "10.247.46.0/26"
+            ],
+            "publicIpv4Masked": [],
+            "truncated": false
+          },
+          "id": "res-48070dc9",
+          "type": "microsoft.network/virtualnetworks/subnets",
+          "region": "japaneast",
+          "referenceOnly": false,
+          "scope": "inventory"
         }
       ],
       "edges": [
@@ -1571,12 +1682,17 @@
           "source": "res-9ba63401",
           "target": "res-bd9730c9",
           "kind": "subnet"
+        },
+        {
+          "source": "res-fac32cb9",
+          "target": "res-48070dc9",
+          "kind": "contains"
         }
       ],
       "truncated": false
     },
     "inventory": {
-      "total": 10,
+      "total": 11,
       "byType": [
         {
           "label": "networkwatchers",
@@ -1592,7 +1708,7 @@
         },
         {
           "label": "virtualnetworks",
-          "count": 1
+          "count": 2
         }
       ],
       "byRegion": [
@@ -1606,7 +1722,7 @@
         },
         {
           "label": "japaneast",
-          "count": 4
+          "count": 5
         },
         {
           "label": "japanwest",
@@ -1627,10 +1743,10 @@
       ]
     },
     "metricCoverage": {
-      "inventoryTotal": 10,
-      "sampledResources": 10,
-      "metricCapableResources": 3,
-      "metricSeries": 4,
+      "inventoryTotal": 11,
+      "sampledResources": 11,
+      "metricCapableResources": 4,
+      "metricSeries": 5,
       "notApplicableResources": 7,
       "failedResources": 0
     },
@@ -1651,12 +1767,12 @@
       {
         "category": "HighAvailability",
         "impact": "High",
-        "count": 17
+        "count": 20
       },
       {
         "category": "HighAvailability",
         "impact": "Medium",
-        "count": 14
+        "count": 15
       },
       {
         "category": "OperationalExcellence",
@@ -1677,8 +1793,8 @@
     "details": {
       "availability": "partial",
       "message": "内容は公式の種類 ID と照合した固定カタログです。影響度は期限ではありません。状態不明は未対応と断定せず、非公開の内容は Azure ポータルで確認してください。",
-      "mappedRecommendationCount": 24,
-      "withheldRecommendationCount": 4,
+      "mappedRecommendationCount": 26,
+      "withheldRecommendationCount": 6,
       "excludedRecommendationCount": 7,
       "lifecycleUnknownCount": 0,
       "affectedResourceCount": null,
@@ -1899,41 +2015,47 @@
         },
         {
           "resourceRefs": [
-            "res-7f62ac38"
+            "res-7f62ac38",
+            "res-fac32cb9"
           ],
           "targets": [
             {
               "resourceRef": "res-7f62ac38",
               "type": "microsoft.network/virtualnetworks",
               "region": "japaneast"
+            },
+            {
+              "resourceRef": "res-fac32cb9",
+              "type": "microsoft.network/virtualnetworks",
+              "region": "japaneast"
             }
           ],
           "scopeCounts": {
-            "resource": 1,
+            "resource": 2,
             "subscription": 0,
             "unknown": 0
           },
           "targetCoverage": {
-            "totalResources": 1,
-            "publishedResources": 1,
+            "totalResources": 2,
+            "publishedResources": 2,
             "unresolvedResources": 0,
             "truncated": false
           },
           "id": "outbound-nat-capacity",
           "category": "HighAvailability",
           "contentStatus": "mapped",
-          "count": 1,
+          "count": 2,
           "impacts": {
             "High": 0,
-            "Medium": 1,
+            "Medium": 2,
             "Low": 0,
             "Unknown": 0
           },
-          "affectedResourceCount": 1,
+          "affectedResourceCount": 2,
           "resourceTypes": [
             {
               "type": "microsoft.network/virtualnetworks",
-              "count": 1
+              "count": 2
             }
           ],
           "title": "送信接続の SNAT 容量と NAT Gateway を検討",
@@ -2170,6 +2292,7 @@
             "res-220853c2",
             "res-26cdd4ac",
             "res-598fae0d",
+            "res-815fa6ab",
             "res-9c4cefb3"
           ],
           "targets": [
@@ -2189,37 +2312,42 @@
               "region": "japaneast"
             },
             {
+              "resourceRef": "res-815fa6ab",
+              "type": "microsoft.storage/storageaccounts",
+              "region": "japaneast"
+            },
+            {
               "resourceRef": "res-9c4cefb3",
               "type": "microsoft.storage/storageaccounts",
               "region": "japaneast"
             }
           ],
           "scopeCounts": {
-            "resource": 4,
+            "resource": 5,
             "subscription": 0,
             "unknown": 0
           },
           "targetCoverage": {
-            "totalResources": 4,
-            "publishedResources": 4,
+            "totalResources": 5,
+            "publishedResources": 5,
             "unresolvedResources": 0,
             "truncated": false
           },
           "id": "storage-zone-redundancy",
           "category": "HighAvailability",
           "contentStatus": "mapped",
-          "count": 4,
+          "count": 5,
           "impacts": {
-            "High": 4,
+            "High": 5,
             "Medium": 0,
             "Low": 0,
             "Unknown": 0
           },
-          "affectedResourceCount": 4,
+          "affectedResourceCount": 5,
           "resourceTypes": [
             {
               "type": "microsoft.storage/storageaccounts",
-              "count": 4
+              "count": 5
             }
           ],
           "title": "Storage のゾーン障害対策を確認",
@@ -2361,9 +2489,15 @@
         },
         {
           "resourceRefs": [
+            "res-1449b114",
             "res-71b61500"
           ],
           "targets": [
+            {
+              "resourceRef": "res-1449b114",
+              "type": "microsoft.web/serverfarms",
+              "region": "japaneast"
+            },
             {
               "resourceRef": "res-71b61500",
               "type": "microsoft.operationalinsights/workspaces",
@@ -2371,31 +2505,31 @@
             }
           ],
           "scopeCounts": {
-            "resource": 2,
+            "resource": 4,
             "subscription": 0,
             "unknown": 0
           },
           "targetCoverage": {
-            "totalResources": 2,
-            "publishedResources": 1,
+            "totalResources": 3,
+            "publishedResources": 2,
             "unresolvedResources": 1,
             "truncated": false
           },
           "id": "withheld-highavailability",
           "category": "HighAvailability",
           "contentStatus": "withheld",
-          "count": 2,
+          "count": 4,
           "impacts": {
-            "High": 1,
+            "High": 3,
             "Medium": 1,
             "Low": 0,
             "Unknown": 0
           },
-          "affectedResourceCount": 2,
+          "affectedResourceCount": 3,
           "resourceTypes": [
             {
               "type": "other",
-              "count": 2
+              "count": 4
             }
           ],
           "title": "内容未分類の推奨事項",
