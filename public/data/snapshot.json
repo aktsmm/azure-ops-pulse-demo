@@ -1,11 +1,11 @@
 {
   "schemaVersion": "1.4.0",
-  "generatedAt": "2026-11-10T03:09:22.177Z",
+  "generatedAt": "2026-11-13T01:39:50.834Z",
   "mode": "AZURE",
   "freshness": {
     "state": "fresh",
     "ageMinutes": 0,
-    "lastSuccessfulCollection": "2026-11-10T03:09:22.177Z",
+    "lastSuccessfulCollection": "2026-11-13T01:39:50.834Z",
     "nextScheduledCollection": "Tuesday / Friday 06:00 JST"
   },
   "scope": {
@@ -121,7 +121,7 @@
       },
       {
         "id": "event-cd198459",
-        "timestamp": "2026-11-09T19:23:33.6153205Z",
+        "timestamp": "2026-11-11T19:23:37.0701919Z",
         "severity": "info",
         "title": "管理操作を検出",
         "detail": "公開前に実行者と対象リソースの詳細を削除しています。",
@@ -129,7 +129,7 @@
       },
       {
         "id": "event-cc1982c6",
-        "timestamp": "2026-11-09T19:23:31.97473Z",
+        "timestamp": "2026-11-11T19:23:35.8826985Z",
         "severity": "info",
         "title": "管理操作を検出",
         "detail": "公開前に実行者と対象リソースの詳細を削除しています。",
@@ -137,24 +137,24 @@
       },
       {
         "id": "event-cb198133",
-        "timestamp": "2026-11-09T02:47:18.2137213Z",
+        "timestamp": "2026-11-09T19:23:33.6153205Z",
         "severity": "info",
-        "title": "ポリシー操作を検出",
+        "title": "管理操作を検出",
         "detail": "公開前に実行者と対象リソースの詳細を削除しています。",
         "route": "/overview"
       },
       {
         "id": "event-ca197fa0",
-        "timestamp": "2026-11-09T02:47:18.2137213Z",
+        "timestamp": "2026-11-09T19:23:31.97473Z",
         "severity": "info",
-        "title": "ポリシー操作を検出",
+        "title": "管理操作を検出",
         "detail": "公開前に実行者と対象リソースの詳細を削除しています。",
         "route": "/overview"
       },
       {
         "id": "event-ff907070",
         "timestamp": "現在の収集期間",
-        "severity": "info",
+        "severity": "warning",
         "title": "Service Health イベントを検出",
         "detail": "影響を受けたサブスクリプションやリソースの詳細を除き、サービス単位の状態のみを表示します。",
         "route": "/reliability"
@@ -201,9 +201,9 @@
     },
     "previous": {
       "availability": "available",
-      "approximateAmount": "約¥2.4万"
+      "approximateAmount": "約¥2.5万"
     },
-    "deltaPercent": -13.1,
+    "deltaPercent": -15.1,
     "forecast": {
       "availability": "unavailable",
       "approximateAmount": null
@@ -217,31 +217,31 @@
       {
         "name": "Azure Cognitive Search",
         "approximateAmount": "約¥1.4万",
-        "sharePercent": 66.9,
-        "deltaPercent": -5.9
+        "sharePercent": 65.8,
+        "deltaPercent": -7.3
       },
       {
         "name": "Load Balancer",
         "approximateAmount": "約¥3千",
-        "sharePercent": 12.6,
-        "deltaPercent": -5.8
+        "sharePercent": 12.4,
+        "deltaPercent": -7.1
       },
       {
         "name": "Foundry Tools",
         "approximateAmount": "約¥1千",
-        "sharePercent": 5.6,
-        "deltaPercent": -61.9
+        "sharePercent": 7,
+        "deltaPercent": -59.8
       },
       {
         "name": "Storage",
         "approximateAmount": "約¥1千",
         "sharePercent": 4.9,
-        "deltaPercent": -6.9
+        "deltaPercent": -7.6
       },
       {
         "name": "Container Registry",
         "approximateAmount": "約¥1千未満",
-        "sharePercent": 3.5,
+        "sharePercent": 3.4,
         "deltaPercent": null
       },
       {
@@ -253,7 +253,7 @@
       {
         "name": "Logic Apps",
         "approximateAmount": "約¥1千未満",
-        "sharePercent": 2.1,
+        "sharePercent": 2,
         "deltaPercent": null
       },
       {
@@ -1767,12 +1767,12 @@
       {
         "category": "HighAvailability",
         "impact": "High",
-        "count": 20
+        "count": 22
       },
       {
         "category": "HighAvailability",
         "impact": "Medium",
-        "count": 15
+        "count": 14
       },
       {
         "category": "OperationalExcellence",
@@ -1794,8 +1794,8 @@
       "availability": "partial",
       "message": "内容は公式の種類 ID と照合した固定カタログです。影響度は期限ではありません。状態不明は未対応と断定せず、非公開の内容は Azure ポータルで確認してください。",
       "mappedRecommendationCount": 26,
-      "withheldRecommendationCount": 6,
-      "excludedRecommendationCount": 7,
+      "withheldRecommendationCount": 9,
+      "excludedRecommendationCount": 5,
       "lifecycleUnknownCount": 0,
       "affectedResourceCount": null,
       "groups": [
@@ -2490,7 +2490,9 @@
         {
           "resourceRefs": [
             "res-1449b114",
-            "res-71b61500"
+            "res-596b514b",
+            "res-71b61500",
+            "res-dc0ef377"
           ],
           "targets": [
             {
@@ -2499,37 +2501,47 @@
               "region": "japaneast"
             },
             {
+              "resourceRef": "res-596b514b",
+              "type": "microsoft.web/sites",
+              "region": "japaneast"
+            },
+            {
               "resourceRef": "res-71b61500",
+              "type": "microsoft.operationalinsights/workspaces",
+              "region": "japaneast"
+            },
+            {
+              "resourceRef": "res-dc0ef377",
               "type": "microsoft.operationalinsights/workspaces",
               "region": "japaneast"
             }
           ],
           "scopeCounts": {
-            "resource": 4,
+            "resource": 7,
             "subscription": 0,
             "unknown": 0
           },
           "targetCoverage": {
-            "totalResources": 3,
-            "publishedResources": 2,
+            "totalResources": 5,
+            "publishedResources": 4,
             "unresolvedResources": 1,
             "truncated": false
           },
           "id": "withheld-highavailability",
           "category": "HighAvailability",
           "contentStatus": "withheld",
-          "count": 4,
+          "count": 7,
           "impacts": {
-            "High": 3,
+            "High": 6,
             "Medium": 1,
             "Low": 0,
             "Unknown": 0
           },
-          "affectedResourceCount": 3,
+          "affectedResourceCount": 5,
           "resourceTypes": [
             {
               "type": "other",
-              "count": 4
+              "count": 7
             }
           ],
           "title": "内容未分類の推奨事項",
