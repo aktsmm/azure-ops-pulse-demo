@@ -1,11 +1,11 @@
 {
   "schemaVersion": "1.4.0",
-  "generatedAt": "2026-11-13T01:39:50.834Z",
+  "generatedAt": "2026-11-17T03:23:46.447Z",
   "mode": "AZURE",
   "freshness": {
     "state": "fresh",
     "ageMinutes": 0,
-    "lastSuccessfulCollection": "2026-11-13T01:39:50.834Z",
+    "lastSuccessfulCollection": "2026-11-17T03:23:46.447Z",
     "nextScheduledCollection": "Tuesday / Friday 06:00 JST"
   },
   "scope": {
@@ -27,7 +27,7 @@
     {
       "source": "Resource Health",
       "availability": "partial",
-      "message": "Resource Health evaluated 14 of 22 supported resources; 65 resources are outside Resource Health coverage."
+      "message": "Resource Health evaluated 13 of 22 supported resources; 65 resources are outside Resource Health coverage."
     },
     {
       "source": "Service Health",
@@ -37,7 +37,7 @@
     {
       "source": "Activity Log",
       "availability": "available",
-      "message": "100 recent Activity Log events were collected without actor or resource detail."
+      "message": "11 recent Activity Log events were collected without actor or resource detail."
     },
     {
       "source": "Defender for Cloud",
@@ -66,13 +66,13 @@
     "metrics": [
       {
         "label": "Resource Health の評価範囲",
-        "value": "64%",
-        "change": "対応 22 件中 14 件を評価済み（対象外 65 件）",
+        "value": "59%",
+        "change": "対応 22 件中 13 件を評価済み（対象外 65 件）",
         "direction": "flat",
         "severity": "info",
         "points": [
-          64,
-          64
+          59,
+          59
         ]
       },
       {
@@ -121,7 +121,7 @@
       },
       {
         "id": "event-cd198459",
-        "timestamp": "2026-11-11T19:23:37.0701919Z",
+        "timestamp": "2026-11-15T19:23:38.4998968Z",
         "severity": "info",
         "title": "管理操作を検出",
         "detail": "公開前に実行者と対象リソースの詳細を削除しています。",
@@ -129,7 +129,7 @@
       },
       {
         "id": "event-cc1982c6",
-        "timestamp": "2026-11-11T19:23:35.8826985Z",
+        "timestamp": "2026-11-15T19:23:37.3903504Z",
         "severity": "info",
         "title": "管理操作を検出",
         "detail": "公開前に実行者と対象リソースの詳細を削除しています。",
@@ -137,17 +137,17 @@
       },
       {
         "id": "event-cb198133",
-        "timestamp": "2026-11-09T19:23:33.6153205Z",
+        "timestamp": "2026-11-15T12:13:56.3471405Z",
         "severity": "info",
-        "title": "管理操作を検出",
+        "title": "推奨事項操作を検出",
         "detail": "公開前に実行者と対象リソースの詳細を削除しています。",
         "route": "/overview"
       },
       {
         "id": "event-ca197fa0",
-        "timestamp": "2026-11-09T19:23:31.97473Z",
+        "timestamp": "2026-11-14T07:08:36.5299726Z",
         "severity": "info",
-        "title": "管理操作を検出",
+        "title": "推奨事項操作を検出",
         "detail": "公開前に実行者と対象リソースの詳細を削除しています。",
         "route": "/overview"
       },
@@ -201,9 +201,9 @@
     },
     "previous": {
       "availability": "available",
-      "approximateAmount": "約¥2.5万"
+      "approximateAmount": "約¥2.4万"
     },
-    "deltaPercent": -15.1,
+    "deltaPercent": -10.6,
     "forecast": {
       "availability": "unavailable",
       "approximateAmount": null
@@ -217,31 +217,31 @@
       {
         "name": "Azure Cognitive Search",
         "approximateAmount": "約¥1.4万",
-        "sharePercent": 65.8,
-        "deltaPercent": -7.3
+        "sharePercent": 66.3,
+        "deltaPercent": -5.1
       },
       {
         "name": "Load Balancer",
         "approximateAmount": "約¥3千",
-        "sharePercent": 12.4,
-        "deltaPercent": -7.1
+        "sharePercent": 12.5,
+        "deltaPercent": -5
       },
       {
         "name": "Foundry Tools",
         "approximateAmount": "約¥1千",
-        "sharePercent": 7,
-        "deltaPercent": -59.8
+        "sharePercent": 6.5,
+        "deltaPercent": -51.6
       },
       {
         "name": "Storage",
         "approximateAmount": "約¥1千",
         "sharePercent": 4.9,
-        "deltaPercent": -7.6
+        "deltaPercent": -4.5
       },
       {
         "name": "Container Registry",
         "approximateAmount": "約¥1千未満",
-        "sharePercent": 3.4,
+        "sharePercent": 3.5,
         "deltaPercent": null
       },
       {
@@ -1074,7 +1074,7 @@
         "resourceGroup": "rg-8c2924db",
         "type": "microsoft.operationalinsights/workspaces",
         "region": "japaneast",
-        "status": "Healthy",
+        "status": "Unknown",
         "owner": "identity-caac8562",
         "tags": {},
         "change": "Azure Resource Graph から収集"
@@ -1448,12 +1448,12 @@
       "totalResources": 87,
       "supportedResources": 22,
       "notApplicableResources": 65,
-      "evaluatedResources": 14,
-      "unevaluatedResources": 8,
-      "healthyResources": 14,
+      "evaluatedResources": 13,
+      "unevaluatedResources": 9,
+      "healthyResources": 13,
       "degradedResources": 0,
       "unavailableResources": 0,
-      "supportedCoveragePercent": 64
+      "supportedCoveragePercent": 59
     },
     "serviceHealth": {
       "availability": "available",
@@ -1793,8 +1793,8 @@
     "details": {
       "availability": "partial",
       "message": "内容は公式の種類 ID と照合した固定カタログです。影響度は期限ではありません。状態不明は未対応と断定せず、非公開の内容は Azure ポータルで確認してください。",
-      "mappedRecommendationCount": 26,
-      "withheldRecommendationCount": 9,
+      "mappedRecommendationCount": 27,
+      "withheldRecommendationCount": 8,
       "excludedRecommendationCount": 5,
       "lifecycleUnknownCount": 0,
       "affectedResourceCount": null,
@@ -1805,6 +1805,7 @@
             "res-220853c2",
             "res-26cdd4ac",
             "res-598fae0d",
+            "res-815fa6ab",
             "res-9c4cefb3"
           ],
           "targets": [
@@ -1829,37 +1830,42 @@
               "region": "japaneast"
             },
             {
+              "resourceRef": "res-815fa6ab",
+              "type": "microsoft.storage/storageaccounts",
+              "region": "japaneast"
+            },
+            {
               "resourceRef": "res-9c4cefb3",
               "type": "microsoft.storage/storageaccounts",
               "region": "japaneast"
             }
           ],
           "scopeCounts": {
-            "resource": 5,
+            "resource": 6,
             "subscription": 0,
             "unknown": 0
           },
           "targetCoverage": {
-            "totalResources": 5,
-            "publishedResources": 5,
+            "totalResources": 6,
+            "publishedResources": 6,
             "unresolvedResources": 0,
             "truncated": false
           },
           "id": "blob-soft-delete",
           "category": "HighAvailability",
           "contentStatus": "mapped",
-          "count": 5,
+          "count": 6,
           "impacts": {
             "High": 0,
-            "Medium": 5,
+            "Medium": 6,
             "Low": 0,
             "Unknown": 0
           },
-          "affectedResourceCount": 5,
+          "affectedResourceCount": 6,
           "resourceTypes": [
             {
               "type": "microsoft.storage/storageaccounts",
-              "count": 5
+              "count": 6
             }
           ],
           "title": "Blob の誤削除・上書きからの復旧を確認",
@@ -2491,8 +2497,7 @@
           "resourceRefs": [
             "res-1449b114",
             "res-596b514b",
-            "res-71b61500",
-            "res-dc0ef377"
+            "res-71b61500"
           ],
           "targets": [
             {
@@ -2509,39 +2514,34 @@
               "resourceRef": "res-71b61500",
               "type": "microsoft.operationalinsights/workspaces",
               "region": "japaneast"
-            },
-            {
-              "resourceRef": "res-dc0ef377",
-              "type": "microsoft.operationalinsights/workspaces",
-              "region": "japaneast"
             }
           ],
           "scopeCounts": {
-            "resource": 7,
+            "resource": 6,
             "subscription": 0,
             "unknown": 0
           },
           "targetCoverage": {
-            "totalResources": 5,
-            "publishedResources": 4,
+            "totalResources": 4,
+            "publishedResources": 3,
             "unresolvedResources": 1,
             "truncated": false
           },
           "id": "withheld-highavailability",
           "category": "HighAvailability",
           "contentStatus": "withheld",
-          "count": 7,
+          "count": 6,
           "impacts": {
-            "High": 6,
+            "High": 5,
             "Medium": 1,
             "Low": 0,
             "Unknown": 0
           },
-          "affectedResourceCount": 5,
+          "affectedResourceCount": 4,
           "resourceTypes": [
             {
               "type": "other",
-              "count": 7
+              "count": 6
             }
           ],
           "title": "内容未分類の推奨事項",
