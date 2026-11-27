@@ -1,11 +1,11 @@
 {
   "schemaVersion": "1.4.0",
-  "generatedAt": "2026-11-24T05:09:03.437Z",
+  "generatedAt": "2026-11-27T03:28:39.433Z",
   "mode": "AZURE",
   "freshness": {
     "state": "fresh",
     "ageMinutes": 0,
-    "lastSuccessfulCollection": "2026-11-24T05:09:03.437Z",
+    "lastSuccessfulCollection": "2026-11-27T03:28:39.433Z",
     "nextScheduledCollection": "Tuesday / Friday 06:00 JST"
   },
   "scope": {
@@ -37,7 +37,7 @@
     {
       "source": "Activity Log",
       "availability": "available",
-      "message": "11 recent Activity Log events were collected without actor or resource detail."
+      "message": "6 recent Activity Log events were collected without actor or resource detail."
     },
     {
       "source": "Defender for Cloud",
@@ -121,7 +121,7 @@
       },
       {
         "id": "event-cd198459",
-        "timestamp": "2026-11-23T19:23:26.4444784Z",
+        "timestamp": "2026-11-25T19:23:23.4684636Z",
         "severity": "info",
         "title": "管理操作を検出",
         "detail": "公開前に実行者と対象リソースの詳細を削除しています。",
@@ -129,7 +129,7 @@
       },
       {
         "id": "event-cc1982c6",
-        "timestamp": "2026-11-23T19:23:25.3350047Z",
+        "timestamp": "2026-11-25T19:23:22.3038086Z",
         "severity": "info",
         "title": "管理操作を検出",
         "detail": "公開前に実行者と対象リソースの詳細を削除しています。",
@@ -137,7 +137,7 @@
       },
       {
         "id": "event-cb198133",
-        "timestamp": "2026-11-21T19:23:53.2044795Z",
+        "timestamp": "2026-11-23T19:23:26.4444784Z",
         "severity": "info",
         "title": "管理操作を検出",
         "detail": "公開前に実行者と対象リソースの詳細を削除しています。",
@@ -145,7 +145,7 @@
       },
       {
         "id": "event-ca197fa0",
-        "timestamp": "2026-11-21T19:23:52.0488414Z",
+        "timestamp": "2026-11-23T19:23:25.3350047Z",
         "severity": "info",
         "title": "管理操作を検出",
         "detail": "公開前に実行者と対象リソースの詳細を削除しています。",
@@ -162,7 +162,7 @@
       {
         "id": "event-00907203",
         "timestamp": "現在の収集期間",
-        "severity": "info",
+        "severity": "warning",
         "title": "Service Health イベントを検出",
         "detail": "影響を受けたサブスクリプションやリソースの詳細を除き、サービス単位の状態のみを表示します。",
         "route": "/reliability"
@@ -203,7 +203,7 @@
       "availability": "available",
       "approximateAmount": "約¥2.3万"
     },
-    "deltaPercent": -10.9,
+    "deltaPercent": -9.6,
     "forecast": {
       "availability": "unavailable",
       "approximateAmount": null
@@ -217,26 +217,26 @@
       {
         "name": "Azure Cognitive Search",
         "approximateAmount": "約¥1.4万",
-        "sharePercent": 67.1,
+        "sharePercent": 66.3,
         "deltaPercent": -5
       },
       {
         "name": "Load Balancer",
         "approximateAmount": "約¥3千",
-        "sharePercent": 12.7,
-        "deltaPercent": -4.8
+        "sharePercent": 12.5,
+        "deltaPercent": -4.7
       },
       {
         "name": "Foundry Tools",
         "approximateAmount": "約¥1千",
-        "sharePercent": 5.2,
-        "deltaPercent": -58.7
+        "sharePercent": 6.5,
+        "deltaPercent": -48.2
       },
       {
         "name": "Storage",
         "approximateAmount": "約¥1千",
         "sharePercent": 5,
-        "deltaPercent": -3
+        "deltaPercent": -2.3
       },
       {
         "name": "Container Registry",
@@ -253,7 +253,7 @@
       {
         "name": "Logic Apps",
         "approximateAmount": "約¥1千未満",
-        "sharePercent": 2.1,
+        "sharePercent": 2,
         "deltaPercent": null
       },
       {
@@ -1794,8 +1794,8 @@
       "availability": "partial",
       "message": "内容は公式の種類 ID と照合した固定カタログです。影響度は期限ではありません。状態不明は未対応と断定せず、非公開の内容は Azure ポータルで確認してください。",
       "mappedRecommendationCount": 24,
-      "withheldRecommendationCount": 8,
-      "excludedRecommendationCount": 8,
+      "withheldRecommendationCount": 7,
+      "excludedRecommendationCount": 9,
       "lifecycleUnknownCount": 0,
       "affectedResourceCount": null,
       "groups": [
@@ -2429,15 +2429,9 @@
         },
         {
           "resourceRefs": [
-            "res-79ef05b8",
             "res-7f62ac38"
           ],
           "targets": [
-            {
-              "resourceRef": "res-79ef05b8",
-              "type": "microsoft.documentdb/databaseaccounts",
-              "region": "japaneast"
-            },
             {
               "resourceRef": "res-7f62ac38",
               "type": "microsoft.network/virtualnetworks",
@@ -2445,32 +2439,28 @@
             }
           ],
           "scopeCounts": {
-            "resource": 2,
+            "resource": 1,
             "subscription": 1,
             "unknown": 0
           },
           "targetCoverage": {
-            "totalResources": 2,
-            "publishedResources": 2,
+            "totalResources": 1,
+            "publishedResources": 1,
             "unresolvedResources": 0,
             "truncated": false
           },
           "id": "withheld-operationalexcellence",
           "category": "OperationalExcellence",
           "contentStatus": "withheld",
-          "count": 3,
+          "count": 2,
           "impacts": {
             "High": 0,
             "Medium": 2,
-            "Low": 1,
+            "Low": 0,
             "Unknown": 0
           },
           "affectedResourceCount": null,
           "resourceTypes": [
-            {
-              "type": "microsoft.documentdb/databaseaccounts",
-              "count": 1
-            },
             {
               "type": "microsoft.network/virtualnetworks",
               "count": 1
